@@ -322,7 +322,7 @@ export default function App() {
       </div>
 
       <div 
-        className={`hidden md:flex bg-[#F1EFE7] flex-col items-start py-2 transition-all duration-300 fixed h-full z-40 ${
+        className={`hidden md:flex bg-[#F1EFE7] flex-col items-start py-2 transition-all duration-300 fixed h-full z-40 overflow-hidden ${
           isSidebarExpanded ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
         style={{ width: isSidebarExpanded ? '200px' : '50px' }}
@@ -368,9 +368,20 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col ml-0 md:ml-0">
-        <div className="bg-[#F1EFE7] hidden md:flex items-center justify-between px-4 md:px-8 py-3 md:py-2">
-          <div className="flex-1 max-w-md">
+      <div 
+        className="flex-1 flex flex-col ml-0 md:min-w-0 transition-all duration-300"
+        style={{ 
+          marginLeft: window.innerWidth >= 768 ? (isSidebarExpanded ? '200px' : '70px') : '0'
+        }}
+      >
+        <div 
+          className="bg-[#F1EFE7] hidden md:flex items-center justify-between px-4 md:pr-8 py-3 md:py-2"
+          style={{ paddingLeft: window.innerWidth >= 768 ? '32px' : '16px' }}
+        >
+          <div 
+            className="flex-1 max-w-md"
+            style={{ paddingLeft: window.innerWidth >= 768 ? '24px' : '0' }}
+          >
             <div className="md:hidden">
               <h1 className="text-[20px] text-[#3d3d3a] m-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
                 Law School
