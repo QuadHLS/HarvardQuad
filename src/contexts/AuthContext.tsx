@@ -58,9 +58,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
     });
     
     if (data.session) {
@@ -73,8 +70,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
+    
+    if (!error) {
+      setSession(null);
+      setUser(null);
+    }
+    
     return { error };
   };
 
@@ -97,18 +98,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { error };
   };
 
-  const value: AuthContextType = {
-    user,
-    session,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    signInWithGoogle,
-    resetPassword,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, signInWithGoogle, resetPassword }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
