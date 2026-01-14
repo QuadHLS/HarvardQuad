@@ -1,17 +1,19 @@
-import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Users, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { MessagingService, Conversation as SupabaseConversation, Message } from '../services/messagingService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 
 interface MessagingPageProps {
   onCourseClick?: (courseId: string) => void;
 }
 
-type ConversationType = 'course' | 'campus' | 'dm';
-
-interface Conversation {
+interface DisplayConversation {
   id: string;
   name: string;
-  type: ConversationType;
-  subtitle?: string;
+  type: 'dm' | 'group';
   avatar?: string;
   avatarColor?: string;
   lastMessage?: string;
@@ -26,105 +28,282 @@ interface Conversation {
   }>;
 }
 
+// Conversation Item Component
+function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white rounded-2xl p-4 active:bg-[#f5f3eb] transition-colors"
+    >
+      <div className="flex items-start gap-3">
+        <div 
+          className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white text-base"
+          style={{ 
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 600,
+            backgroundColor: conv.avatarColor || '#7b7b74'
+          }}
+        >
+          {conv.type === 'group' ? (
+            <span className="text-xl">{conv.avatar}</span>
+          ) : (
+            conv.avatar
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 
+              className="text-base truncate"
+              style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+            >
+              {conv.name}
+            </h3>
+            <span 
+              className="text-xs flex-shrink-0"
+              style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+            >
+              {conv.lastMessageTime}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <p 
+              className="text-sm truncate"
+              style={{ 
+                fontFamily: 'Arial, sans-serif', 
+                color: conv.unread ? '#3d3d3a' : '#7b7b74',
+                fontWeight: conv.unread ? 500 : 400
+              }}
+            >
+              {conv.lastMessage}
+            </p>
+            {conv.unread && conv.unread > 0 && (
+              <div 
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: '#d47455' }}
+              >
+                <span 
+                  className="text-xs text-white"
+                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                >
+                  {conv.unread}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MessagingPage({ onCourseClick }: MessagingPageProps) {
+  const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('');
+  const [conversations, setConversations] = useState<DisplayConversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dms, setDms] = useState<DisplayConversation[]>([]);
+  const [groups, setGroups] = useState<DisplayConversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupEmails, setNewGroupEmails] = useState('');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
-  const conversations: Conversation[] = [
-    {
-      id: 'contracts-101',
-      name: 'contracts-101',
-      type: 'course',
-      subtitle: 'Kingsfield • Mon/Wed 8:15 AM',
-      lastMessage: 'I think it\'s expectation damages in this case...',
-      lastMessageTime: '4:35 PM',
-      unread: 3,
-      messages: [
-        {
-          author: 'Alex Rivera',
-          avatar: 'AR',
-          avatarColor: '#e87461',
-          time: '4:20 PM',
-          content: 'Has anyone started on the brief for Hawkins v. McGee?'
-        },
-        {
-          author: 'Sarah Chen',
-          avatar: 'SC',
-          avatarColor: '#6ec9c4',
-          time: '4:35 PM',
-          content: 'I think it\'s expectation damages in this case. The court was trying to restore the plaintiff.'
-        },
-        {
-          author: 'Mike Johnson',
-          avatar: 'MJ',
-          avatarColor: '#7ba05b',
-          time: '4:42 PM',
-          content: 'Sarah is right - check page 127 of the casebook'
-        }
-      ]
-    },
-    {
-      id: 'property-law',
-      name: 'property-law',
-      type: 'course',
-      subtitle: 'Reed • Tues/Thurs 1:00 PM',
-      lastMessage: 'Don\'t forget the reading for Thursday',
-      lastMessageTime: '2:15 PM',
-      unread: 0,
-      messages: [
-        {
-          author: 'Emma Davis',
-          avatar: 'ED',
-          avatarColor: '#c89b6e',
-          time: '2:15 PM',
-          content: 'Don\'t forget the reading for Thursday - it\'s a heavy one!'
-        }
-      ]
-    },
-    {
-      id: 'dm-sarah',
-      name: 'Sarah Chen',
-      type: 'dm',
-      avatar: 'SC',
-      avatarColor: '#6ec9c4',
-      lastMessage: 'Want to grab coffee before class?',
-      lastMessageTime: 'Yesterday',
-      unread: 1,
-      messages: [
-        {
-          author: 'Sarah Chen',
-          avatar: 'SC',
-          avatarColor: '#6ec9c4',
-          time: 'Yesterday',
-          content: 'Want to grab coffee before class tomorrow?'
-        }
-      ]
-    },
-    {
-      id: 'study-group',
-      name: 'Study Group',
-      type: 'campus',
-      avatar: '📚',
-      lastMessage: 'Meeting at the library at 6pm',
-      lastMessageTime: '11:30 AM',
-      unread: 0,
-      messages: [
-        {
-          author: 'Alex Rivera',
-          avatar: 'AR',
-          avatarColor: '#e87461',
-          time: '11:30 AM',
-          content: 'Meeting at the library at 6pm tonight?'
-        }
-      ]
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (user) {
+      loadConversations();
     }
-  ];
+  }, [user]);
+
+  // Load conversations from Supabase
+  const loadConversations = async () => {
+    try {
+      setLoading(true);
+      const convs = await MessagingService.getConversations();
+      
+      const displayConvs: DisplayConversation[] = await Promise.all(
+        convs.map(async (conv) => {
+          // For DMs, get the other participant's info
+          let displayName = conv.name || 'Unnamed';
+          let avatar = '?';
+          let avatarColor = '#7b7b74';
+
+          if (conv.type === 'dm') {
+            const participants = await MessagingService.getParticipants(conv.id);
+            const otherParticipant = participants.find(p => p.user_id !== user?.id);
+            if (otherParticipant?.profile) {
+              displayName = otherParticipant.profile.full_name || otherParticipant.profile.email?.split('@')[0] || 'Unknown';
+              avatar = (otherParticipant.profile.full_name || otherParticipant.profile.email || '?')
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+              // Generate color from name
+              const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+              avatarColor = colors[displayName.charCodeAt(0) % colors.length];
+            }
+          } else {
+            // Group chat
+            avatar = '👥';
+            avatarColor = '#d47455';
+          }
+
+          // Format last message
+          let lastMessage = 'No messages yet';
+          let lastMessageTime = '';
+          if (conv.last_message) {
+            if (conv.last_message.message_type === 'text') {
+              lastMessage = conv.last_message.content || '[Message]';
+            } else if (conv.last_message.message_type === 'image') {
+              lastMessage = '📷 Image';
+            } else {
+              lastMessage = '📎 File';
+            }
+            lastMessageTime = formatTime(conv.last_message.created_at);
+          }
+
+          return {
+            id: conv.id,
+            name: displayName,
+            type: conv.type,
+            avatar,
+            avatarColor,
+            lastMessage,
+            lastMessageTime,
+            unread: conv.unread_count || 0,
+            messages: [] // Will load when selected
+          };
+        })
+      );
+
+      setConversations(displayConvs);
+      setDms(displayConvs.filter(c => c.type === 'dm'));
+      setGroups(displayConvs.filter(c => c.type === 'group'));
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load messages when conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation);
+    }
+  }, [selectedConversation]);
+
+  const loadMessages = async (conversationId: string) => {
+    try {
+      const msgs = await MessagingService.getMessages(conversationId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
 
   const selectedConv = conversations.find(c => c.id === selectedConversation);
 
-  const handleSendMessage = () => {
-    if (messageInput.trim()) {
+  const formatTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) {
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } else if (days === 1) {
+      return 'Yesterday';
+    } else if (days < 7) {
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    } else {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !selectedConversation || !user) return;
+
+    try {
+      await MessagingService.sendTextMessage(selectedConversation, messageInput.trim());
       setMessageInput('');
+      await loadMessages(selectedConversation);
+      await loadConversations(); // Refresh to update last message
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  // Search for users
+  useEffect(() => {
+    if (userSearchQuery.trim().length > 0) {
+      const searchUsers = async () => {
+        try {
+          const { data } = await MessagingService.searchUsers(userSearchQuery);
+          if (data) {
+            setUserSearchResults(data.filter(u => u.id !== user?.id)); // Exclude current user
+            setShowUserDropdown(true);
+          }
+        } catch (error) {
+          console.error('Error searching users:', error);
+          setUserSearchResults([]);
+        }
+      };
+      
+      const debounceTimer = setTimeout(searchUsers, 300);
+      return () => clearTimeout(debounceTimer);
+    } else {
+      setUserSearchResults([]);
+      setShowUserDropdown(false);
+    }
+  }, [userSearchQuery, user]);
+
+  const handleCreateDM = async (userId: string) => {
+    if (!user) return;
+
+    try {
+      await MessagingService.createDM(userId);
+      setUserSearchQuery('');
+      setShowUserDropdown(false);
+      setUserSearchResults([]);
+      await loadConversations();
+    } catch (error) {
+      console.error('Error creating DM:', error);
+      alert('Error creating DM. Please try again.');
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim() || !newGroupEmails.trim() || !user) return;
+
+    try {
+      const emails = newGroupEmails.split(',').map(e => e.trim()).filter(e => e);
+      const userIds: string[] = [];
+
+      for (const email of emails) {
+        const { data: profiles } = await MessagingService.searchUsers(email);
+        if (profiles && profiles.length > 0) {
+          userIds.push(profiles[0].id);
+        }
+      }
+
+      if (userIds.length > 0) {
+        await MessagingService.createGroupChat(newGroupName.trim(), userIds);
+        setNewGroupName('');
+        setNewGroupEmails('');
+        setShowNewGroup(false);
+        await loadConversations();
+      } else {
+        alert('No valid users found');
+      }
+    } catch (error) {
+      console.error('Error creating group:', error);
+      alert('Error creating group. Please try again.');
     }
   };
 
@@ -147,101 +326,157 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
                 <input
                   type="text"
-                  placeholder="Search messages..."
+                  placeholder="Search for users..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
                   className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border-0 text-sm"
                   style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
                 />
+                {showUserDropdown && userSearchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-[#e7ded1] z-50 max-h-60 overflow-auto">
+                    {userSearchResults.map((userResult) => {
+                      const avatar = (userResult.full_name || userResult.email?.split('@')[0] || '?')
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                      const avatarColor = colors[(userResult.full_name || userResult.email || '?').charCodeAt(0) % colors.length];
+                      
+                      return (
+                        <div
+                          key={userResult.id}
+                          onClick={() => handleCreateDM(userResult.id)}
+                          className="px-4 py-3 flex items-center gap-3 hover:bg-[#f5f3eb] cursor-pointer transition-colors"
+                        >
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm"
+                            style={{ 
+                              fontFamily: 'Arial, sans-serif',
+                              fontWeight: 600,
+                              backgroundColor: avatarColor
+                            }}
+                          >
+                            {avatar}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p 
+                              className="text-sm truncate"
+                              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#3d3d3a' }}
+                            >
+                              {userResult.full_name || userResult.email?.split('@')[0] || 'Unknown'}
+                            </p>
+                            {userResult.full_name && (
+                              <p 
+                                className="text-xs truncate"
+                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                              >
+                                {userResult.email}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="flex-1 overflow-auto">
-              <div className="px-4 pb-4 space-y-2">
-                {conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => setSelectedConversation(conv.id)}
-                    className="bg-white rounded-2xl p-4 active:bg-[#f5f3eb] transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div 
-                        className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white text-base"
-                        style={{ 
-                          fontFamily: 'Arial, sans-serif',
-                          fontWeight: 600,
-                          backgroundColor: conv.type === 'course' ? '#d47455' : conv.avatarColor || '#7b7b74'
-                        }}
-                      >
-                        {conv.type === 'course' ? (
-                          <Hash className="w-6 h-6" />
-                        ) : conv.type === 'dm' ? (
-                          conv.avatar
-                        ) : (
-                          <span className="text-xl">{conv.avatar}</span>
-                        )}
+              <div className="px-4 pb-4">
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* DMs Section */}
+                    <div className="mb-4">
+                      <div className="mb-2">
+                        <h2 
+                          className="text-sm font-semibold"
+                          style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+                        >
+                          DMs
+                        </h2>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 
-                            className="text-base truncate"
-                            style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
-                          >
-                            {conv.name}
-                          </h3>
-                          <span 
-                            className="text-xs flex-shrink-0"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                          >
-                            {conv.lastMessageTime}
-                          </span>
-                        </div>
-                        {conv.subtitle && (
-                          <p 
-                            className="text-xs mb-1"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                          >
-                            {conv.subtitle}
+                      <div className="space-y-2">
+                        {dms.length === 0 ? (
+                          <p className="text-sm text-center py-4" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                            No direct messages
                           </p>
+                        ) : (
+                          dms.map((conv) => (
+                            <ConversationItem
+                              key={conv.id}
+                              conv={conv}
+                              onClick={() => setSelectedConversation(conv.id)}
+                            />
+                          ))
                         )}
-                        <div className="flex items-center justify-between gap-2">
-                          <p 
-                            className="text-sm truncate"
-                            style={{ 
-                              fontFamily: 'Arial, sans-serif', 
-                              color: conv.unread ? '#3d3d3a' : '#7b7b74',
-                              fontWeight: conv.unread ? 500 : 400
-                            }}
-                          >
-                            {conv.lastMessage}
-                          </p>
-                          {conv.unread && conv.unread > 0 && (
-                            <div 
-                              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: '#d47455' }}
-                            >
-                              <span 
-                                className="text-xs text-white"
-                                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-                              >
-                                {conv.unread}
-                              </span>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="p-4">
-              <button 
-                className="w-full py-3 bg-[#d47455] text-white rounded-2xl flex items-center justify-center gap-2"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-              >
-                <Plus className="w-5 h-5" />
-                New Message
-              </button>
+                    {/* Groups Section */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 
+                          className="text-sm font-semibold"
+                          style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+                        >
+                          Groups
+                        </h2>
+                        <Dialog open={showNewGroup} onOpenChange={setShowNewGroup}>
+                          <DialogTrigger asChild>
+                            <button className="w-6 h-6 rounded-full bg-[#d47455] flex items-center justify-center">
+                              <Plus className="w-4 h-4 text-white" />
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>New Group Chat</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <Input
+                                placeholder="Group name"
+                                value={newGroupName}
+                                onChange={(e) => setNewGroupName(e.target.value)}
+                              />
+                              <Input
+                                placeholder="Member emails (comma separated)"
+                                value={newGroupEmails}
+                                onChange={(e) => setNewGroupEmails(e.target.value)}
+                              />
+                              <Button onClick={handleCreateGroup} className="w-full">
+                                Create Group
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      <div className="space-y-2">
+                        {groups.length === 0 ? (
+                          <p className="text-sm text-center py-4" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                            No group chats
+                          </p>
+                        ) : (
+                          groups.map((conv) => (
+                            <ConversationItem
+                              key={conv.id}
+                              conv={conv}
+                              onClick={() => setSelectedConversation(conv.id)}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </>
         ) : (
@@ -291,42 +526,70 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             </div>
 
             <div className="flex-1 overflow-auto p-4 space-y-4">
-              {selectedConv?.messages.map((msg, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs"
-                    style={{ 
-                      fontFamily: 'Arial, sans-serif',
-                      fontWeight: 600,
-                      backgroundColor: msg.avatarColor
-                    }}
-                  >
-                    {msg.avatar}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span 
-                        className="text-sm"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
-                      >
-                        {msg.author}
-                      </span>
-                      <span 
-                        className="text-xs"
-                        style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                      >
-                        {msg.time}
-                      </span>
-                    </div>
-                    <p 
-                      className="text-sm"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
-                    >
-                      {msg.content}
-                    </p>
-                  </div>
+              {messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No messages yet</p>
                 </div>
-              ))}
+              ) : (
+                messages.map((msg) => {
+                  const senderName = msg.sender?.full_name || msg.sender?.email?.split('@')[0] || 'Unknown';
+                  const senderAvatar = (senderName || '?')
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                  const avatarColor = colors[senderName.charCodeAt(0) % colors.length];
+                  
+                  return (
+                    <div key={msg.id} className="flex items-start gap-3">
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs"
+                        style={{ 
+                          fontFamily: 'Arial, sans-serif',
+                          fontWeight: 600,
+                          backgroundColor: avatarColor
+                        }}
+                      >
+                        {senderAvatar}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span 
+                            className="text-sm"
+                            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                          >
+                            {senderName}
+                          </span>
+                          <span 
+                            className="text-xs"
+                            style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                          >
+                            {formatTime(msg.created_at)}
+                          </span>
+                        </div>
+                        {msg.message_type === 'text' ? (
+                          <p 
+                            className="text-sm"
+                            style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+                          >
+                            {msg.content}
+                          </p>
+                        ) : msg.message_type === 'image' ? (
+                          <p className="text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
+                            📷 Image
+                          </p>
+                        ) : (
+                          <p className="text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
+                            📎 File
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             <div className="bg-white border-t border-[#e7ded1] p-4">
@@ -336,7 +599,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   placeholder="Message..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                   className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-2xl border-0 text-sm"
                   style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
                 />
@@ -479,7 +742,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     placeholder="Message..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                     className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-xl border-0"
                     style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
                   />

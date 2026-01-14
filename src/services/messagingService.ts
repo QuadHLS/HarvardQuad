@@ -1,0 +1,621 @@
+import { supabase } from '../lib/supabase';
+
+export interface Conversation {
+  id: string;
+  name: string | null;
+  type: 'dm' | 'group';
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  participants?: Participant[];
+  last_message?: Message;
+  unread_count?: number;
+}
+
+export interface Participant {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  joined_at: string;
+  role: 'admin' | 'member';
+  profile?: {
+    full_name: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  };
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string | null;
+  message_type: 'text' | 'image' | 'file';
+  created_at: string;
+  updated_at: string;
+  sender?: {
+    full_name: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  };
+  attachments?: MessageAttachment[];
+}
+
+export interface MessageAttachment {
+  id: string;
+  message_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  storage_bucket: string;
+  created_at: string;
+  url?: string; // Public URL for the file
+}
+
+export class MessagingService {
+  // Get all conversations for the current user
+  static async getConversations(): Promise<Conversation[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Get all conversations where user is a participant
+    const { data: participants, error: participantsError } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id, joined_at')
+      .eq('user_id', user.id);
+
+    if (participantsError) throw participantsError;
+    if (!participants || participants.length === 0) return [];
+
+    const conversationIds = participants.map(p => p.conversation_id);
+
+    // Get conversations with last message
+    const { data: conversations, error: conversationsError } = await supabase
+      .from('conversations')
+      .select('*')
+      .in('id', conversationIds)
+      .order('updated_at', { ascending: false });
+
+    if (conversationsError) throw conversationsError;
+
+    // Get last message for each conversation
+    const conversationsWithMessages = await Promise.all(
+      conversations.map(async (conv) => {
+        const { data: lastMessage } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        // Get sender profile if message exists
+        if (lastMessage) {
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('full_name, email, avatar_url')
+            .eq('id', lastMessage.sender_id)
+            .single();
+          
+          if (senderProfile) {
+            lastMessage.sender = senderProfile;
+          }
+        }
+
+        // Get unread count
+        const { count: unreadCount } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .gt('created_at', 
+            participants.find(p => p.conversation_id === conv.id)?.joined_at || '1970-01-01'
+          );
+
+        return {
+          ...conv,
+          last_message: lastMessage || undefined,
+          unread_count: unreadCount || 0,
+        };
+      })
+    );
+
+    return conversationsWithMessages as Conversation[];
+  }
+
+  // Get messages for a conversation
+  static async getMessages(conversationId: string, limit: number = 50): Promise<Message[]> {
+    // First get messages
+    const { data: messages, error: messagesError } = await supabase
+      .from('messages')
+      .select('*, attachments:message_attachments(*)')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(limit);
+
+    if (messagesError) throw messagesError;
+    if (!messages) return [];
+
+    // Then get profiles for each sender
+    const messagesWithSenders = await Promise.all(
+      messages.map(async (msg: any) => {
+        // Get sender profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email, avatar_url')
+          .eq('id', msg.sender_id)
+          .single();
+
+        // Get public URLs for attachments
+        let attachmentsWithUrls = msg.attachments || [];
+        if (attachmentsWithUrls.length > 0) {
+          attachmentsWithUrls = await Promise.all(
+            attachmentsWithUrls.map(async (att: any) => {
+              const { data } = supabase.storage
+                .from(att.storage_bucket)
+                .getPublicUrl(att.file_path);
+
+              return {
+                ...att,
+                url: data.publicUrl,
+              };
+            })
+          );
+        }
+
+        return {
+          ...msg,
+          sender: profile || null,
+          attachments: attachmentsWithUrls,
+        };
+      })
+    );
+
+    return messagesWithSenders as Message[];
+  }
+
+  // Send a text message
+  static async sendTextMessage(conversationId: string, content: string): Promise<Message> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: message, error } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content,
+        message_type: 'text',
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    // Get sender profile
+    const { data: senderProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    // Update conversation updated_at
+    await supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+
+    return {
+      ...message,
+      sender: senderProfile || null,
+    } as Message;
+  }
+
+  // Send a message with image
+  static async sendImageMessage(
+    conversationId: string,
+    file: File,
+    caption?: string
+  ): Promise<Message> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Upload image to storage
+    const fileName = `${user.id}/${Date.now()}_${file.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('message-images')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('message-images')
+      .getPublicUrl(fileName);
+
+    // Create message
+    const { data: message, error: messageError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: caption || null,
+        message_type: 'image',
+      })
+      .select('*')
+      .single();
+
+    if (messageError) throw messageError;
+
+    // Get sender profile
+    const { data: senderProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    // Create attachment record
+    await supabase
+      .from('message_attachments')
+      .insert({
+        message_id: message.id,
+        file_name: file.name,
+        file_path: fileName,
+        file_size: file.size,
+        mime_type: file.type,
+        storage_bucket: 'message-images',
+      });
+
+    // Update conversation
+    await supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+
+    return {
+      ...message,
+      attachments: [{
+        id: '',
+        message_id: message.id,
+        file_name: file.name,
+        file_path: fileName,
+        file_size: file.size,
+        mime_type: file.type,
+        storage_bucket: 'message-images',
+        created_at: new Date().toISOString(),
+        url: publicUrl,
+      }],
+    } as Message;
+  }
+
+  // Send a message with file
+  static async sendFileMessage(
+    conversationId: string,
+    file: File,
+    caption?: string
+  ): Promise<Message> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Upload file to storage
+    const fileName = `${user.id}/${Date.now()}_${file.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('message-files')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('message-files')
+      .getPublicUrl(fileName);
+
+    // Create message
+    const { data: message, error: messageError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: caption || null,
+        message_type: 'file',
+      })
+      .select('*')
+      .single();
+
+    if (messageError) throw messageError;
+
+    // Get sender profile
+    const { data: senderProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    // Create attachment record
+    await supabase
+      .from('message_attachments')
+      .insert({
+        message_id: message.id,
+        file_name: file.name,
+        file_path: fileName,
+        file_size: file.size,
+        mime_type: file.type,
+        storage_bucket: 'message-files',
+      });
+
+    // Update conversation
+    await supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+
+    return {
+      ...message,
+      sender: senderProfile || null,
+      attachments: [{
+        id: '',
+        message_id: message.id,
+        file_name: file.name,
+        file_path: fileName,
+        file_size: file.size,
+        mime_type: file.type,
+        storage_bucket: 'message-files',
+        created_at: new Date().toISOString(),
+        url: publicUrl,
+      }],
+    } as Message;
+  }
+
+  // Create a direct message conversation
+  static async createDM(otherUserId: string): Promise<Conversation> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Use the database function to create DM (bypasses RLS issues)
+    const { data: conversationId, error: functionError } = await supabase
+      .rpc('create_dm_conversation', { other_user_id: otherUserId });
+
+    if (functionError) throw functionError;
+    if (!conversationId) throw new Error('Failed to create DM conversation');
+
+    // Fetch the created conversation
+    const { data: conversation, error: fetchError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', conversationId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    return conversation as Conversation;
+  }
+
+  // Create a group chat
+  static async createGroupChat(name: string, userIds: string[]): Promise<Conversation> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Create group conversation
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .insert({
+        name,
+        type: 'group',
+        created_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (convError) throw convError;
+
+    // Add all participants (creator is admin, others are members)
+    const participants = [
+      { conversation_id: conversation.id, user_id: user.id, role: 'admin' },
+      ...userIds.map(id => ({ conversation_id: conversation.id, user_id: id, role: 'member' as const })),
+    ];
+
+    await supabase
+      .from('conversation_participants')
+      .insert(participants);
+
+    return conversation as Conversation;
+  }
+
+  // Get participants for a conversation
+  static async getParticipants(conversationId: string): Promise<Participant[]> {
+    // First get participants
+    const { data: participants, error: participantsError } = await supabase
+      .from('conversation_participants')
+      .select('*')
+      .eq('conversation_id', conversationId);
+
+    if (participantsError) throw participantsError;
+    if (!participants) return [];
+
+    // Then get profiles for each participant
+    const participantsWithProfiles = await Promise.all(
+      participants.map(async (p) => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email, avatar_url')
+          .eq('id', p.user_id)
+          .single();
+
+        return {
+          ...p,
+          profile: profile || null,
+        };
+      })
+    );
+
+    return participantsWithProfiles as Participant[];
+  }
+
+  // Search users by email or name
+  static async searchUsers(query: string): Promise<{ data: Array<{ id: string; email: string; full_name: string | null }> | null; error: any }> {
+    const searchTerm = `%${query}%`;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .or(`email.ilike.${searchTerm},full_name.ilike.${searchTerm}`)
+      .limit(10);
+
+    return { data, error };
+  }
+
+  // Add participant to group chat (admin only)
+  static async addParticipant(conversationId: string, userId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Check if user is admin
+    const { data: participant } = await supabase
+      .from('conversation_participants')
+      .select('role')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (participant?.role !== 'admin') {
+      throw new Error('Only admins can add participants');
+    }
+
+    const { error } = await supabase
+      .from('conversation_participants')
+      .insert({
+        conversation_id: conversationId,
+        user_id: userId,
+        role: 'member',
+      });
+
+    if (error) throw error;
+  }
+
+  // Remove participant from group chat (admin or self)
+  static async removeParticipant(conversationId: string, userId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Check if user is admin or removing themselves
+    if (user.id !== userId) {
+      const { data: participant } = await supabase
+        .from('conversation_participants')
+        .select('role')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (participant?.role !== 'admin') {
+        throw new Error('Only admins can remove other participants');
+      }
+    }
+
+    const { error } = await supabase
+      .from('conversation_participants')
+      .delete()
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  }
+
+  // Delete a message
+  static async deleteMessage(messageId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Get message to verify ownership
+    const { data: message } = await supabase
+      .from('messages')
+      .select('sender_id, attachments:message_attachments(*)')
+      .eq('id', messageId)
+      .single();
+
+    if (!message || message.sender_id !== user.id) {
+      throw new Error('You can only delete your own messages');
+    }
+
+    // Delete attachments from storage
+    if (message.attachments && message.attachments.length > 0) {
+      for (const att of message.attachments) {
+        await supabase.storage
+          .from(att.storage_bucket)
+          .remove([att.file_path]);
+      }
+    }
+
+    // Delete message (cascade will delete attachments)
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) throw error;
+  }
+
+  // Subscribe to new messages in a conversation
+  static subscribeToMessages(
+    conversationId: string,
+    callback: (message: Message) => void
+  ) {
+    return supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        async (payload) => {
+          const message = payload.new as Message;
+          // Fetch full message with attachments
+          const { data: fullMessage } = await supabase
+            .from('messages')
+            .select('*, attachments:message_attachments(*)')
+            .eq('id', message.id)
+            .single();
+
+          // Get sender profile
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('full_name, email, avatar_url')
+            .eq('id', fullMessage.sender_id)
+            .single();
+
+          if (fullMessage) {
+            // Get URLs for attachments
+            let attachmentsWithUrls = fullMessage.attachments || [];
+            if (attachmentsWithUrls.length > 0) {
+              attachmentsWithUrls = await Promise.all(
+                attachmentsWithUrls.map(async (att: any) => {
+                  const { data } = supabase.storage
+                    .from(att.storage_bucket)
+                    .getPublicUrl(att.file_path);
+                  return { ...att, url: data.publicUrl };
+                })
+              );
+            }
+            callback({ 
+              ...fullMessage, 
+              sender: senderProfile || null,
+              attachments: attachmentsWithUrls 
+            } as Message);
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  // Unsubscribe from messages
+  static unsubscribeFromMessages(channel: ReturnType<typeof supabase.channel>) {
+    supabase.removeChannel(channel);
+  }
+}
