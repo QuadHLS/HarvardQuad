@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Phone, MapPin, Calendar, Book, Award, Edit2, ChevronRight, Lock, LogOut, Save, X } from 'lucide-react';
+// @ts-ignore - Image import is handled by vite-env.d.ts
 import imgBitmap1 from "../assets/80922ffffc76a0f79d25191840d09536bcb80db6.png";
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -21,6 +22,8 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editValues, setEditValues] = useState({
     phone: '',
     location: '',
@@ -154,6 +157,124 @@ export function ProfilePage() {
     }
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB.');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      // First, find and delete any existing avatar files for this user
+      const { data: existingFiles, error: listError } = await supabase.storage
+        .from('avatars')
+        .list('', {
+          limit: 100,
+          sortBy: { column: 'created_at', order: 'desc' },
+        });
+
+      if (listError) {
+        console.error('Error listing existing avatars:', listError);
+      } else if (existingFiles && existingFiles.length > 0) {
+        // Filter files that belong to this user (filename starts with user ID)
+        const filesToDelete = existingFiles
+          .filter(file => file.name.startsWith(`${user.id}-`))
+          .map(file => file.name);
+
+        if (filesToDelete.length > 0) {
+          const { error: deleteError } = await supabase.storage
+            .from('avatars')
+            .remove(filesToDelete);
+
+          if (deleteError) {
+            console.error('Error deleting old avatars:', deleteError);
+            // Continue with upload even if delete fails
+          } else {
+            console.log('Deleted old avatar files:', filesToDelete);
+          }
+        }
+      }
+
+      // Create a unique filename for the new avatar
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
+
+      // Upload to Supabase Storage bucket
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false, // We're deleting old files, so no need for upsert
+        });
+
+      if (uploadError) {
+        console.error('Error uploading avatar:', uploadError);
+        console.error('Upload error details:', {
+          message: uploadError.message,
+          name: uploadError.name,
+        });
+        alert(`Failed to upload avatar: ${uploadError.message || 'Unknown error'}. Please check the browser console for details.`);
+        setUploadingAvatar(false);
+        return;
+      }
+
+      console.log('File uploaded successfully:', uploadData);
+
+      // Get public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL in the profiles table
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_url: publicUrl, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Error updating avatar URL:', updateError);
+        alert('Failed to update avatar. Please try again.');
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Update local profile state to reflect the new avatar
+      if (profile) {
+        setProfile({
+          ...profile,
+          avatar_url: publicUrl,
+        });
+      }
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const stats = [
     { label: 'Classes', value: '3' },
     { label: 'Squads', value: '5' },
@@ -197,6 +318,14 @@ export function ProfilePage() {
 
   return (
     <div className="h-full bg-[#FBF9F5]">
+      {/* Hidden file input for avatar upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarChange}
+        className="hidden"
+      />
       {/* Mobile View */}
       <div className="md:hidden min-h-full overflow-y-auto" style={{ paddingBottom: '70px' }}>
         {/* Header with Profile */}
@@ -208,10 +337,34 @@ export function ProfilePage() {
         >
           <div className="flex flex-col items-center">
             <img 
-              src={profile?.avatar_url || imgBitmap1} 
+              src={(profile?.avatar_url && profile.avatar_url.trim() !== '') ? profile.avatar_url : imgBitmap1} 
               alt="Profile" 
-              className="w-28 h-28 rounded-full object-cover border-4 border-white/30 mb-4 shadow-lg"
+              className="w-28 h-28 rounded-full object-cover border-4 border-white/30 mb-3 shadow-lg"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target.src !== imgBitmap1) {
+                  target.src = imgBitmap1;
+                }
+              }}
             />
+            <button 
+              onClick={handleAvatarClick}
+              disabled={uploadingAvatar}
+              className="mb-4 px-4 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+            >
+              {uploadingAvatar ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Edit2 className="w-3 h-3" />
+                  Change Avatar
+                </>
+              )}
+            </button>
             <h1 
               className="text-3xl text-white mb-1"
               style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
@@ -585,11 +738,37 @@ export function ProfilePage() {
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-4xl">
               <div className="flex items-start gap-6 mb-8">
-                <img 
-                  src={imgBitmap1} 
-                  alt="Profile" 
-                  className="w-24 h-24 rounded-full object-cover"
-                />
+                <div className="flex flex-col items-center">
+                  <img 
+                    src={(profile?.avatar_url && profile.avatar_url.trim() !== '') ? profile.avatar_url : imgBitmap1} 
+                    alt="Profile" 
+                    className="w-24 h-24 rounded-full object-cover mb-2"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src !== imgBitmap1) {
+                        target.src = imgBitmap1;
+                      }
+                    }}
+                  />
+                  <button 
+                    onClick={handleAvatarClick}
+                    disabled={uploadingAvatar}
+                    className="px-3 py-1.5 bg-[#f5f3eb] text-[#3d3d3a] rounded-lg text-xs flex items-center gap-1.5 hover:bg-[#ebe8df] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                  >
+                    {uploadingAvatar ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-[#3d3d3a] border-t-transparent rounded-full animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Edit2 className="w-3 h-3" />
+                        Change Avatar
+                      </>
+                    )}
+                  </button>
+                </div>
                 <div className="flex-1">
                   <h3 className="text-[24px] mb-1 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
                     {profile?.full_name || user?.email?.split('@')[0] || 'User'}
