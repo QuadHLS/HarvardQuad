@@ -11,6 +11,7 @@ import { CalendarPage } from './components/CalendarPage';
 import { IconButton } from './components/IconButton';
 import { MobileDashboard } from './components/MobileDashboard';
 
+//Comment 
 type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
 
 export default function App() {
