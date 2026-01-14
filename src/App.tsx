@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Menu, Search, Calendar as CalendarIcon, Bell, MessageCircle, LayoutDashboard, Briefcase, Store, HomeIcon as HouseIcon, BookOpen, Users, Sparkles } from 'lucide-react';
-import imgBitmap1 from "figma:asset/80922ffffc76a0f79d25191840d09536bcb80db6.png";
+// @ts-ignore - Image import is handled by vite-env.d.ts
+import imgBitmap1 from "./assets/80922ffffc76a0f79d25191840d09536bcb80db6.png";
 import { MessagingPage } from './components/MessagingPage';
 import { CoursePage } from './components/CoursePage';
 import { ProfilePage } from './components/ProfilePage';
@@ -10,11 +11,14 @@ import { SquadDetailPage } from './components/SquadDetailPage';
 import { CalendarPage } from './components/CalendarPage';
 import { IconButton } from './components/IconButton';
 import { MobileDashboard } from './components/MobileDashboard';
+import { AuthPage } from './components/auth/AuthPage';
+import { AuthCallback } from './components/auth/AuthCallback';
+import { useAuth } from './contexts/AuthContext';
 
-//Comment 
 type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
 
 export default function App() {
+  const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedSquad, setSelectedSquad] = useState<string>('');
@@ -298,6 +302,27 @@ export default function App() {
         )}
       </div>
     );
+  }
+
+  // Handle auth callback route
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallback />;
+  }
+
+  // Show login page if not authenticated
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f9f5f0]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00962c] mx-auto"></div>
+          <p className="mt-4 text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
   }
 
   return (

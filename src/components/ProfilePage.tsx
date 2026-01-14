@@ -1,5 +1,5 @@
 import { Mail, Phone, MapPin, Calendar, Book, Award, Edit2, ChevronRight, Bell, Lock, HelpCircle, LogOut } from 'lucide-react';
-import imgBitmap1 from "figma:asset/80922ffffc76a0f79d25191840d09536bcb80db6.png";
+import imgBitmap1 from "../assets/80922ffffc76a0f79d25191840d09536bcb80db6.png";
 
 export function ProfilePage() {
   const courses = [
