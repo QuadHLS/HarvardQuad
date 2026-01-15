@@ -201,4 +201,14 @@ export class SquadsService {
     if (error) throw error;
     return (documents || []) as SquadDocument[];
   }
+
+  // Delete a squad (only creator can delete)
+  static async deleteSquad(squadId: string): Promise<void> {
+    const { error } = await supabase
+      .from('squads')
+      .delete()
+      .eq('id', squadId);
+
+    if (error) throw error;
+  }
 }

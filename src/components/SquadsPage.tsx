@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, Lock, Globe, Plus, Dumbbell, PartyPopper, BookOpen, UtensilsCrossed, Building2, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, Users, Lock, Globe, Plus, Dumbbell, PartyPopper, BookOpen, UtensilsCrossed, Building2, ChevronRight, Sparkles, ChevronDown } from 'lucide-react';
 import { SquadsService, Squad } from '../services/squadsService';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -14,6 +14,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'my-squads'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [squads, setSquads] = useState<Squad[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -96,10 +98,17 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
   const mySquads = squads.filter(s => s.is_joined);
   const displaySquads = activeTab === 'my-squads' ? mySquads : squads;
 
-  const filteredSquads = displaySquads.filter(squad =>
-    squad.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (squad.info && squad.info.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredSquads = displaySquads.filter(squad => {
+    // Filter by category if selected
+    if (selectedCategory && squad.category !== selectedCategory) {
+      return false;
+    }
+    // Filter by search query
+    return (
+      squad.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (squad.info && squad.info.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  });
 
   return (
     <div className="h-full bg-[#FBF9F5]">
@@ -136,20 +145,83 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative">
+            {activeTab === 'all' ? (
+              <div className="flex-1 relative">
+                <button
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  className="w-full py-2.5 px-4 rounded-xl text-sm bg-[#d47455] text-white shadow-sm flex items-center justify-center gap-2"
+                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                >
+                  <span className="flex-1 text-center">
+                    {selectedCategory 
+                      ? categories.find(c => c.id === selectedCategory)?.label || 'All Squads'
+                      : 'All Squads'
+                    }
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showCategoryDropdown && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-[60]"
+                      onClick={() => setShowCategoryDropdown(false)}
+                    />
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-[#e7ded1] z-[70] overflow-hidden">
+                      <button
+                        onClick={() => {
+                          setSelectedCategory(null);
+                          setShowCategoryDropdown(false);
+                        }}
+                        className={`w-full py-2.5 px-4 text-sm text-left transition-colors ${
+                          selectedCategory === null
+                            ? 'bg-[#f5f3eb] text-[#d47455]'
+                            : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                        }`}
+                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                      >
+                        All
+                      </button>
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setSelectedCategory(cat.id);
+                            setShowCategoryDropdown(false);
+                          }}
+                          className={`w-full py-2.5 px-4 text-sm text-left transition-colors flex items-center gap-2 ${
+                            selectedCategory === cat.id
+                              ? 'bg-[#f5f3eb] text-[#d47455]'
+                              : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                          }`}
+                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                        >
+                          <cat.icon className="w-4 h-4" style={{ color: cat.color }} />
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setActiveTab('all');
+                  setSelectedCategory(null);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm transition-all bg-white text-[#7b7b74]"
+                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              >
+                All Squads
+              </button>
+            )}
             <button
-              onClick={() => setActiveTab('all')}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-sm transition-all ${
-                activeTab === 'all'
-                  ? 'bg-[#d47455] text-white shadow-sm'
-                  : 'bg-white text-[#7b7b74]'
-              }`}
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-            >
-              All Squads
-            </button>
-            <button
-              onClick={() => setActiveTab('my-squads')}
+              onClick={() => {
+                setActiveTab('my-squads');
+                setSelectedCategory(null);
+                setShowCategoryDropdown(false);
+              }}
               className={`flex-1 py-2.5 px-4 rounded-xl text-sm transition-all ${
                 activeTab === 'my-squads'
                   ? 'bg-[#d47455] text-white shadow-sm'
@@ -164,36 +236,6 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
 
         {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto bg-[#FBF9F5]">
-          {/* Categories */}
-          {activeTab === 'all' && (
-            <div className="px-4 mb-4">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {categories.map((cat) => {
-                  const Icon = cat.icon;
-                  return (
-                    <button
-                      key={cat.id}
-                      className="flex-shrink-0 bg-white rounded-2xl px-4 py-3 flex items-center gap-2.5 active:scale-95 transition-transform shadow-sm"
-                    >
-                      <div 
-                        className="w-8 h-8 rounded-xl flex items-center justify-center"
-                        style={{ backgroundColor: `${cat.color}20` }}
-                      >
-                        <Icon className="w-4 h-4" style={{ color: cat.color }} />
-                      </div>
-                      <span 
-                        className="text-sm whitespace-nowrap"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
-                      >
-                        {cat.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Squads List */}
           <div className="px-4 pb-4 space-y-3">
             {loading ? (
@@ -307,20 +349,83 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
           </div>
         </div>
 
-        <div className="flex gap-3 mb-8">
+        <div className="flex gap-3 mb-8 relative">
+          {activeTab === 'all' ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                className="px-6 py-2 rounded-xl bg-[#d47455] text-white flex items-center justify-center gap-2 min-w-[140px]"
+                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+              >
+                <span className="flex-1 text-center">
+                  {selectedCategory 
+                    ? categories.find(c => c.id === selectedCategory)?.label || 'All Squads'
+                    : 'All Squads'
+                  }
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              {showCategoryDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[60]"
+                    onClick={() => setShowCategoryDropdown(false)}
+                  />
+                  <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-[#e7ded1] z-[70] overflow-hidden min-w-[140px]">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(null);
+                        setShowCategoryDropdown(false);
+                      }}
+                      className={`w-full py-2.5 px-4 text-sm text-left transition-colors ${
+                        selectedCategory === null
+                          ? 'bg-[#f5f3eb] text-[#d47455]'
+                          : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                      }`}
+                      style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                    >
+                      All
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setSelectedCategory(cat.id);
+                          setShowCategoryDropdown(false);
+                        }}
+                        className={`w-full py-2.5 px-4 text-sm text-left transition-colors flex items-center gap-2 ${
+                          selectedCategory === cat.id
+                            ? 'bg-[#f5f3eb] text-[#d47455]'
+                            : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                        }`}
+                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                      >
+                        <cat.icon className="w-4 h-4" style={{ color: cat.color }} />
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setActiveTab('all');
+                setSelectedCategory(null);
+              }}
+              className="px-6 py-2 rounded-xl transition-colors bg-white text-[#7b7b74] hover:bg-[#f5f3eb]"
+              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+            >
+              All Squads
+            </button>
+          )}
           <button
-            onClick={() => setActiveTab('all')}
-            className={`px-6 py-2 rounded-xl transition-colors ${
-              activeTab === 'all'
-                ? 'bg-[#d47455] text-white'
-                : 'bg-white text-[#7b7b74] hover:bg-[#f5f3eb]'
-            }`}
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
-          >
-            All Squads
-          </button>
-          <button
-            onClick={() => setActiveTab('my-squads')}
+            onClick={() => {
+              setActiveTab('my-squads');
+              setSelectedCategory(null);
+              setShowCategoryDropdown(false);
+            }}
             className={`px-6 py-2 rounded-xl transition-colors ${
               activeTab === 'my-squads'
                 ? 'bg-[#d47455] text-white'

@@ -1,4 +1,4 @@
-import { UserPlus, UserMinus, MessageCircle, Users as UsersIcon, ChevronLeft, ChevronDown, MoreVertical, X, Globe, Lock, Users, FileText, Image } from 'lucide-react';
+import { UserPlus, UserMinus, MessageCircle, Users as UsersIcon, ChevronLeft, ChevronDown, MoreVertical, X, Globe, Lock, Users, FileText, Image, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { SquadsService, Squad, SquadMember, SquadDocument } from '../services/squadsService';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,6 +17,8 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInfoMenu, setShowInfoMenu] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
@@ -73,6 +75,21 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
     }
   };
 
+  const handleDeleteSquad = async () => {
+    try {
+      setDeleting(true);
+      await SquadsService.deleteSquad(squadId);
+      // Navigate back after deletion
+      onBack();
+    } catch (error) {
+      console.error('Error deleting squad:', error);
+      alert('Error deleting squad. Please try again.');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const handleOpenChat = () => {
     if (squad?.conversation_id) {
       onOpenChat(squad.conversation_id);
@@ -119,6 +136,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
   }
 
   const isJoined = squad.is_joined || false;
+  const isCreator = user?.id === squad.created_by;
   const squadColor = getCategoryColor(squad.category);
   const PrivacyIcon = squad.type === 'open' ? Globe : squad.type === 'locked' ? Lock : Users;
 
@@ -158,27 +176,18 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             </p>
           </div>
           <div className="flex gap-2">
-            {isJoined ? (
-              <>
-                <button 
-                  onClick={handleOpenChat}
-                  disabled={!squad.conversation_id}
-                  className="flex-1 py-2.5 bg-[#d47455] text-white rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Open Chat
-                </button>
-                <button 
-                  onClick={handleLeaveSquad}
-                  disabled={leaving}
-                  className="px-4 py-2.5 bg-white border border-[#d9d2c5] text-[#7b7b74] rounded-xl text-sm active:scale-95 transition-transform disabled:opacity-50"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-                >
-                  <UserMinus className="w-5 h-5" />
-                </button>
-              </>
-            ) : (
+            {isJoined && (
+              <button 
+                onClick={handleOpenChat}
+                disabled={!squad.conversation_id}
+                className="flex-1 py-2.5 bg-[#d47455] text-white rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              >
+                <MessageCircle className="w-4 h-4" />
+                Open Chat
+              </button>
+            )}
+            {!isJoined && !isCreator && (
               <button 
                 onClick={handleJoinSquad}
                 disabled={joining}
@@ -318,6 +327,21 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               </div>
             </div>
 
+            {/* Leave Squad Section (Non-Creator Members Only) */}
+            {isJoined && !isCreator && (
+              <div className="px-4 py-4 border-t border-[#e7ded1]">
+                <button
+                  onClick={handleLeaveSquad}
+                  disabled={leaving}
+                  className="w-full py-3 bg-white border border-[#d9d2c5] text-[#7b7b74] rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                >
+                  <UserMinus className="w-4 h-4" />
+                  {leaving ? 'Leaving...' : 'Leave Squad'}
+                </button>
+              </div>
+            )}
+
             {/* Members Section */}
             <div className="px-4 py-4">
               <h3 
@@ -370,8 +394,83 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 })}
               </div>
             </div>
+
+            {/* Delete Squad Section (Creator Only) - At the bottom */}
+            {isCreator && (
+              <div className="px-4 py-4 border-t border-[#e7ded1] mt-auto">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-3 border rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+                  style={{ 
+                    fontFamily: 'Arial, sans-serif', 
+                    fontWeight: 600,
+                    backgroundColor: '#dc2626',
+                    borderColor: '#b91c1c',
+                    color: 'white'
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Squad
+                </button>
+                <p 
+                  className="text-xs mt-2 text-center"
+                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                >
+                  This action cannot be undone
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setShowDeleteConfirm(false)}
+              aria-hidden="true"
+            />
+            <div className="relative w-full max-w-md bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[101]">
+              <h2
+                className="text-xl mb-4"
+                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+              >
+                Delete Squad
+              </h2>
+              <p
+                className="text-sm mb-6"
+                style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+              >
+                Are you sure you want to delete <strong>{squad.name}</strong>? This action cannot be undone and will delete all squad data, members, and documents.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-2.5 bg-white border border-[#d9d2c5] text-[#7b7b74] rounded-xl text-sm active:scale-95 transition-transform"
+                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteSquad}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 border rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ 
+                    fontFamily: 'Arial, sans-serif', 
+                    fontWeight: 600,
+                    backgroundColor: '#dc2626',
+                    borderColor: '#b91c1c',
+                    color: 'white'
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Content - Empty state for now (feed removed) */}
         <div className="flex-1 overflow-y-auto bg-[#FBF9F5]">
@@ -443,17 +542,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   Open Chat
                 </button>
               )}
-              {isJoined ? (
-                <button 
-                  onClick={handleLeaveSquad}
-                  disabled={leaving}
-                  className="px-4 py-2.5 bg-white border border-[#e7ded1] text-[#d97757] rounded-lg text-[14px] hover:bg-[#fef9f7] hover:border-[#d97757] transition-colors flex items-center gap-2 disabled:opacity-50"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-                >
-                  <UserMinus className="w-4 h-4" />
-                  {leaving ? 'Leaving...' : 'Leave Squad'}
-                </button>
-              ) : (
+              {!isJoined && !isCreator && (
                 <button 
                   onClick={handleJoinSquad}
                   disabled={joining}
@@ -462,6 +551,22 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 >
                   <UserPlus className="w-4 h-4" />
                   {joining ? 'Joining...' : 'Join Squad'}
+                </button>
+              )}
+              {isCreator && (
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2.5 border rounded-lg text-[14px] transition-colors flex items-center gap-2"
+                  style={{ 
+                    fontFamily: 'Arial, sans-serif', 
+                    fontWeight: 600,
+                    backgroundColor: '#dc2626',
+                    borderColor: '#b91c1c',
+                    color: 'white'
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Squad
                 </button>
               )}
             </div>

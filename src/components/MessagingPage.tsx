@@ -6,6 +6,7 @@ import { MessagingService, Conversation as SupabaseConversation, Message, Partic
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { UserProfileView } from './UserProfileView';
+import { supabase } from '../lib/supabase';
 
 interface MessagingPageProps {
   onCourseClick?: (courseId: string) => void;
@@ -129,6 +130,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [loading, setLoading] = useState(true);
   const [dms, setDms] = useState<DisplayConversation[]>([]);
   const [groups, setGroups] = useState<DisplayConversation[]>([]);
+  const [clubs, setClubs] = useState<DisplayConversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -160,13 +162,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
         // Verify the conversation exists in the loaded conversations
         const conversationExists = conversations.some(c => c.id === storedConversationId) ||
                                    groups.some(g => g.id === storedConversationId) ||
+                                   clubs.some(c => c.id === storedConversationId) ||
                                    dms.some(d => d.id === storedConversationId);
         if (conversationExists) {
           setSelectedConversation(storedConversationId);
         }
       }
     }
-  }, [loading, conversations, groups, dms]);
+  }, [loading, conversations, groups, clubs, dms]);
 
   const closeGroupModal = () => {
     setShowNewGroup(false);
@@ -253,9 +256,26 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
         })
       );
 
+      // Get all squad conversation IDs to identify club groups
+      const { data: squads } = await supabase
+        .from('squads')
+        .select('conversation_id')
+        .not('conversation_id', 'is', null);
+      
+      const squadConversationIds = new Set(
+        (squads || []).map(s => s.conversation_id).filter(Boolean)
+      );
+
       setConversations(displayConvs);
       setDms(displayConvs.filter(c => c.type === 'dm'));
-      setGroups(displayConvs.filter(c => c.type === 'group'));
+      
+      // Separate groups into regular groups and clubs (squad groups)
+      const allGroups = displayConvs.filter(c => c.type === 'group');
+      const clubGroups = allGroups.filter(c => squadConversationIds.has(c.id));
+      const regularGroups = allGroups.filter(c => !squadConversationIds.has(c.id));
+      
+      setGroups(regularGroups);
+      setClubs(clubGroups);
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
@@ -316,6 +336,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             ? { ...conv, unread: 0 }
             : conv
         ));
+        setClubs(prev => prev.map(conv => 
+          conv.id === selectedConversation 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
       }).catch(err => {
         console.error('Error marking messages as read:', err);
       });
@@ -356,12 +381,17 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             ? { ...conv, unread: 0 }
             : conv
         ));
-        setDms(prev => prev.map(conv => 
+        setDms(prev => prev.map(conv =>
           conv.id === conversationId 
             ? { ...conv, unread: 0 }
             : conv
         ));
-        setGroups(prev => prev.map(conv => 
+        setGroups(prev => prev.map(conv =>
+          conv.id === conversationId 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
+        setClubs(prev => prev.map(conv =>
           conv.id === conversationId 
             ? { ...conv, unread: 0 }
             : conv
@@ -628,6 +658,15 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
   const handleDeleteGroup = async () => {
     if (!selectedConversation) return;
+    
+    // Prevent deletion of club group chats
+    const isClubChat = clubs.some(c => c.id === selectedConversation);
+    if (isClubChat) {
+      alert('Club group chats cannot be deleted. Delete the club from the Clubs page instead.');
+      setShowDeleteConfirm(false);
+      return;
+    }
+    
     try {
       await MessagingService.deleteConversation(selectedConversation);
       setShowDeleteConfirm(false);
@@ -821,6 +860,33 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         )}
                       </div>
                     </div>
+
+                    {/* Clubs Section */}
+                    <div className="mb-4">
+                      <div className="mb-2">
+                        <h2 
+                          className="text-sm font-semibold"
+                          style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+                        >
+                          Clubs
+                        </h2>
+                      </div>
+                      <div className="space-y-2">
+                        {clubs.length === 0 ? (
+                          <p className="text-sm text-center py-4" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                            No club chats
+                          </p>
+                        ) : (
+                          clubs.map((conv) => (
+                            <ConversationItem
+                              key={conv.id}
+                              conv={conv}
+                              onClick={() => setSelectedConversation(conv.id)}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
@@ -948,7 +1014,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     </div>
                   </>
                 )}
-                {selectedConv?.type === 'group' && isAdmin && (
+                {selectedConv?.type === 'group' && isAdmin && !clubs.some(c => c.id === selectedConversation) && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleOpenEditMembers}
@@ -1411,7 +1477,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       )}
 
       {/* Edit Members Modal */}
-      {showEditMembers && selectedConv && (
+      {showEditMembers && selectedConv && !clubs.some(c => c.id === selectedConversation) && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center px-4"
           role="dialog"
@@ -1554,7 +1620,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       )}
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && !clubs.some(c => c.id === selectedConversation) && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center px-4"
           role="dialog"
@@ -1701,7 +1767,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       </p>
                     )}
                   </div>
-                  {selectedConv.type === 'group' && isAdmin && (
+                  {selectedConv.type === 'group' && isAdmin && !clubs.some(c => c.id === selectedConversation) && (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleOpenEditMembers}
