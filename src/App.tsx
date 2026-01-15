@@ -14,8 +14,20 @@ import { MobileDashboard } from './components/MobileDashboard';
 import { AuthPage } from './components/auth/AuthPage';
 import { AuthCallback } from './components/auth/AuthCallback';
 import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
 
 type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
+
+interface ProfileData {
+  full_name: string | null;
+  email: string | null;
+  class_year: string | null;
+  graduation_year: string | null;
+  phone: string | null;
+  location: string | null;
+  gpa: string | null;
+  avatar_url: string | null;
+}
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -25,6 +37,8 @@ export default function App() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [previousView, setPreviousView] = useState<ViewState>('dashboard');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,6 +46,55 @@ export default function App() {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, email, class_year, graduation_year, phone, location, gpa, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          setProfile({
+            full_name: user.user_metadata?.full_name || null,
+            email: user.email || null,
+            class_year: null,
+            graduation_year: null,
+            phone: null,
+            location: null,
+            gpa: null,
+            avatar_url: null,
+          });
+        } else {
+          setProfile(data);
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setProfile({
+          full_name: user.user_metadata?.full_name || null,
+          email: user.email || null,
+          class_year: null,
+          graduation_year: null,
+          phone: null,
+          location: null,
+          gpa: null,
+          avatar_url: null,
+        });
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const formatTime = (date: Date) => {
     let hours = date.getHours();
@@ -62,6 +125,50 @@ export default function App() {
     if (hour < 12) return 'Morning';
     if (hour < 17) return 'Afternoon';
     return 'Evening';
+  };
+
+  const getClassYearDisplay = () => {
+    if (!profile) return 'Student';
+    if (profile.class_year) return profile.class_year;
+    if (profile.graduation_year) {
+      const currentYear = new Date().getFullYear();
+      const gradYear = parseInt(profile.graduation_year);
+      const yearDiff = gradYear - currentYear;
+      if (yearDiff === 0) return 'Graduating';
+      if (yearDiff === 1) return 'Senior';
+      if (yearDiff === 2) return 'Junior';
+      if (yearDiff === 3) return 'Sophomore';
+      if (yearDiff === 4) return 'Freshman';
+    }
+    return 'Student';
+  };
+
+  const getDisplayName = () => {
+    if (profile?.full_name) return profile.full_name;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
+
+  const getDisplayNameShort = () => {
+    if (profile?.full_name) {
+      const parts = profile.full_name.split(' ');
+      if (parts.length >= 2) {
+        return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
+      }
+      return parts[0];
+    }
+    if (user?.email) {
+      const name = user.email.split('@')[0];
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    return 'User';
+  };
+
+  const getAvatarUrl = () => {
+    if (profile?.avatar_url && profile.avatar_url.trim() !== '') {
+      return profile.avatar_url;
+    }
+    return imgBitmap1;
   };
 
   const isPastFivePM = currentTime.getHours() >= 17;
@@ -432,14 +539,20 @@ export default function App() {
             <div className="hidden md:block h-8 w-px bg-[#e4e0e0]"></div>
             <div className="flex items-center gap-2 md:gap-3">
               <div className="text-right hidden md:block">
-                <div className="text-sm text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>Justin A.</div>
-                <div className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>Freshman</div>
+                <div className="text-sm text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>{profileLoading ? 'Loading...' : getDisplayNameShort()}</div>
+                <div className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>{profileLoading ? '...' : getClassYearDisplay()}</div>
               </div>
               <img 
-                src={imgBitmap1} 
+                src={getAvatarUrl()} 
                 alt="Profile" 
                 className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all hidden md:block"
                 onClick={handleProfileClick}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== imgBitmap1) {
+                    target.src = imgBitmap1;
+                  }
+                }}
               />
             </div>
           </div>
@@ -495,6 +608,7 @@ export default function App() {
                   ampm={ampm}
                   isPastFivePM={isPastFivePM}
                   handleCourseClick={handleCourseClick}
+                  userName={profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
                 />
               </div>
 
@@ -504,7 +618,7 @@ export default function App() {
                     className="text-[56px] text-[#3d3d3a] mb-2"
                     style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
                   >
-                    {greeting}, Justin
+                    {greeting}, {profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
                   </h1>
                   <p 
                     className="text-[26px] text-[#7b7b74]"
@@ -718,9 +832,15 @@ export default function App() {
             }`}
           >
             <img 
-              src={imgBitmap1} 
+              src={getAvatarUrl()} 
               alt="Profile" 
               className="w-6 h-6 rounded-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target.src !== imgBitmap1) {
+                  target.src = imgBitmap1;
+                }
+              }}
             />
             <span className="text-[10px]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>Profile</span>
           </button>
