@@ -62,7 +62,7 @@ export class MessagingService {
     // Get all conversations where user is a participant
     const { data: participants, error: participantsError } = await supabase
       .from('conversation_participants')
-      .select('conversation_id, joined_at')
+      .select('conversation_id, joined_at, last_read_at')
       .eq('user_id', user.id);
 
     if (participantsError) throw participantsError;
@@ -103,14 +103,19 @@ export class MessagingService {
           }
         }
 
-        // Get unread count
+        // Get unread count - messages created after last_read_at (or joined_at if never read)
+        const participant = participants.find(p => p.conversation_id === conv.id);
+        // Use last_read_at if available, otherwise fall back to joined_at
+        const lastReadAt = (participant as any)?.last_read_at 
+          ? (participant as any).last_read_at 
+          : (participant?.joined_at || '1970-01-01');
+        
         const { count: unreadCount } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conv.id)
-          .gt('created_at', 
-            participants.find(p => p.conversation_id === conv.id)?.joined_at || '1970-01-01'
-          );
+          .neq('sender_id', user.id) // Don't count own messages
+          .gt('created_at', lastReadAt);
 
         return {
           ...conv,
@@ -421,6 +426,32 @@ export class MessagingService {
     if (fetchError) throw fetchError;
 
     return conversation as Conversation;
+  }
+
+  // Mark messages as read for the current user in a conversation
+  static async markAsRead(conversationId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const now = new Date().toISOString();
+    
+    // Update last_read_at timestamp for this user in this conversation
+    const { data, error } = await supabase
+      .from('conversation_participants')
+      .update({ last_read_at: now })
+      .eq('conversation_id', conversationId)
+      .eq('user_id', user.id)
+      .select();
+
+    if (error) {
+      console.error('Error marking messages as read:', error);
+      console.error('Conversation ID:', conversationId, 'User ID:', user.id);
+      throw error;
+    }
+
+    if (data && data.length === 0) {
+      console.warn('No participant record found to update for conversation:', conversationId);
+    }
   }
 
   // Get participants for a conversation

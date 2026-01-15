@@ -94,6 +94,17 @@ export default function App() {
     };
 
     fetchProfile();
+
+    // Listen for profile update events
+    const handleProfileUpdate = () => {
+      fetchProfile();
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
   }, [user]);
 
   const formatTime = (date: Date) => {
@@ -128,19 +139,11 @@ export default function App() {
   };
 
   const getClassYearDisplay = () => {
-    if (!profile) return 'Student';
-    if (profile.class_year) return profile.class_year;
+    if (!profile) return '';
     if (profile.graduation_year) {
-      const currentYear = new Date().getFullYear();
-      const gradYear = parseInt(profile.graduation_year);
-      const yearDiff = gradYear - currentYear;
-      if (yearDiff === 0) return 'Graduating';
-      if (yearDiff === 1) return 'Senior';
-      if (yearDiff === 2) return 'Junior';
-      if (yearDiff === 3) return 'Sophomore';
-      if (yearDiff === 4) return 'Freshman';
+      return `Class of ${profile.graduation_year}`;
     }
-    return 'Student';
+    return '';
   };
 
   const getDisplayName = () => {
@@ -164,11 +167,31 @@ export default function App() {
     return 'User';
   };
 
+  const getInitials = (name: string | null, email: string | null) => {
+    if (name) {
+      const parts = name.split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
+      }
+      return name.charAt(0).toUpperCase().slice(0, 2);
+    }
+    if (email) {
+      return email.split('@')[0].charAt(0).toUpperCase().slice(0, 2);
+    }
+    return 'U';
+  };
+
+  const getAvatarColor = (name: string | null, email: string | null) => {
+    const text = name || email || 'User';
+    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+    return colors[text.charCodeAt(0) % colors.length];
+  };
+
   const getAvatarUrl = () => {
     if (profile?.avatar_url && profile.avatar_url.trim() !== '') {
       return profile.avatar_url;
     }
-    return imgBitmap1;
+    return null;
   };
 
   const isPastFivePM = currentTime.getHours() >= 17;
@@ -546,18 +569,32 @@ export default function App() {
                 <div className="text-sm text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>{profileLoading ? 'Loading...' : getDisplayNameShort()}</div>
                 <div className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>{profileLoading ? '...' : getClassYearDisplay()}</div>
               </div>
-              <img 
-                src={getAvatarUrl()} 
-                alt="Profile" 
-                className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all hidden md:block"
-                onClick={handleProfileClick}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (target.src !== imgBitmap1) {
-                    target.src = imgBitmap1;
-                  }
+              {getAvatarUrl() ? (
+                <img 
+                  src={getAvatarUrl()!} 
+                  alt="Profile" 
+                  className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all hidden md:block"
+                  onClick={handleProfileClick}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all hidden md:block text-white text-sm"
+                style={{ 
+                  backgroundColor: getAvatarColor(profile?.full_name || null, user?.email || null),
+                  display: getAvatarUrl() ? 'none' : 'flex',
+                  fontFamily: 'Arial, sans-serif',
+                  fontWeight: 600
                 }}
-              />
+                onClick={handleProfileClick}
+              >
+                {getInitials(profile?.full_name || null, user?.email || null)}
+              </div>
             </div>
           </div>
         </div>
@@ -838,17 +875,30 @@ export default function App() {
               currentView === 'profile' ? 'text-[#d47455]' : 'text-[#7b7b74]'
             }`}
           >
-            <img 
-              src={getAvatarUrl()} 
-              alt="Profile" 
-              className="w-6 h-6 rounded-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                if (target.src !== imgBitmap1) {
-                  target.src = imgBitmap1;
-                }
+            {getAvatarUrl() ? (
+              <img 
+                src={getAvatarUrl()!} 
+                alt="Profile" 
+                className="w-6 h-6 rounded-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs"
+              style={{ 
+                backgroundColor: getAvatarColor(profile?.full_name || null, user?.email || null),
+                display: getAvatarUrl() ? 'none' : 'flex',
+                fontFamily: 'Arial, sans-serif',
+                fontWeight: 600
               }}
-            />
+            >
+              {getInitials(profile?.full_name || null, user?.email || null)}
+            </div>
             <span className="text-[10px]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>Profile</span>
           </button>
         </div>

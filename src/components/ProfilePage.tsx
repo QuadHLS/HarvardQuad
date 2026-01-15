@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 interface ProfileData {
   full_name: string | null;
   email: string | null;
-  class_year: string | null;
+  major: string | null;
   graduation_year: string | null;
   phone: string | null;
   location: string | null;
@@ -29,7 +29,7 @@ export function ProfilePage() {
     phone: '',
     location: '',
     gpa: '',
-    class_year: '',
+    major: '',
     graduation_year: '',
   });
 
@@ -53,7 +53,7 @@ export function ProfilePage() {
           setProfile({
             full_name: user.user_metadata?.full_name || null,
             email: user.email || null,
-            class_year: null,
+            major: null,
             graduation_year: null,
             phone: null,
             location: null,
@@ -61,7 +61,11 @@ export function ProfilePage() {
             avatar_url: null,
           });
         } else {
-          setProfile(data);
+          // Map class_year from database to major in interface
+          setProfile({
+            ...data,
+            major: data.class_year || null,
+          });
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -69,7 +73,7 @@ export function ProfilePage() {
         setProfile({
           full_name: user.user_metadata?.full_name || null,
           email: user.email || null,
-          class_year: null,
+          major: null,
           graduation_year: null,
           phone: null,
           location: null,
@@ -91,7 +95,7 @@ export function ProfilePage() {
         phone: profile.phone || '',
         location: profile.location || '',
         gpa: profile.gpa || '',
-        class_year: profile.class_year || '',
+        major: profile.major || '',
         graduation_year: profile.graduation_year || '',
       });
     }
@@ -109,7 +113,7 @@ export function ProfilePage() {
         phone: profile.phone || '',
         location: profile.location || '',
         gpa: profile.gpa || '',
-        class_year: profile.class_year || '',
+        major: profile.major || '',
         graduation_year: profile.graduation_year || '',
       });
     }
@@ -126,7 +130,7 @@ export function ProfilePage() {
           phone: editValues.phone || null,
           location: editValues.location || null,
           gpa: editValues.gpa || null,
-          class_year: editValues.class_year || null,
+          class_year: editValues.major || null,
           graduation_year: editValues.graduation_year || null,
           updated_at: new Date().toISOString(),
         })
@@ -145,9 +149,12 @@ export function ProfilePage() {
         phone: editValues.phone || null,
         location: editValues.location || null,
         gpa: editValues.gpa || null,
-        class_year: editValues.class_year || null,
+        major: editValues.major || null,
         graduation_year: editValues.graduation_year || null,
       });
+
+      // Dispatch event to notify other components of profile update
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
 
       setIsEditing(false);
     } catch (err) {
@@ -225,6 +232,9 @@ export function ProfilePage() {
           avatar_url: null,
         });
       }
+
+      // Dispatch event to notify other components of profile update
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (err) {
       console.error('Error deleting avatar:', err);
       alert('An unexpected error occurred. Please try again.');
@@ -335,6 +345,9 @@ export function ProfilePage() {
           avatar_url: publicUrl,
         });
       }
+
+      // Dispatch event to notify other components of profile update
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (err) {
       console.error('Error uploading avatar:', err);
       alert('An unexpected error occurred. Please try again.');
@@ -355,19 +368,11 @@ export function ProfilePage() {
 
   // Helper function to get class year display
   const getClassYearDisplay = () => {
-    if (!profile) return 'Student';
-    if (profile.class_year) return profile.class_year;
+    if (!profile) return '';
     if (profile.graduation_year) {
-      const currentYear = new Date().getFullYear();
-      const gradYear = parseInt(profile.graduation_year);
-      const yearDiff = gradYear - currentYear;
-      if (yearDiff === 0) return 'Graduating';
-      if (yearDiff === 1) return 'Senior';
-      if (yearDiff === 2) return 'Junior';
-      if (yearDiff === 3) return 'Sophomore';
-      if (yearDiff === 4) return 'Freshman';
+      return `Class of ${profile.graduation_year}`;
     }
-    return 'Student';
+    return '';
   };
 
   // Helper function to get graduation year display
@@ -408,17 +413,44 @@ export function ProfilePage() {
           }}
         >
           <div className="flex flex-col items-center">
-            <img 
-              src={(profile?.avatar_url && profile.avatar_url.trim() !== '') ? profile.avatar_url : imgBitmap1} 
-              alt="Profile" 
-              className="w-28 h-28 rounded-full object-cover border-4 border-white/30 mb-3 shadow-lg"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                if (target.src !== imgBitmap1) {
-                  target.src = imgBitmap1;
-                }
+            {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
+              <img 
+                src={profile.avatar_url} 
+                alt="Profile" 
+                className="w-28 h-28 rounded-full object-cover border-4 border-white/30 mb-3 shadow-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div
+              className="w-28 h-28 rounded-full flex items-center justify-center border-4 border-white/30 mb-3 shadow-lg text-white text-3xl"
+              style={{ 
+                backgroundColor: (() => {
+                  const name = profile?.full_name || user?.email || 'User';
+                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                  return colors[name.charCodeAt(0) % colors.length];
+                })(),
+                display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
+                fontFamily: 'Arial, sans-serif',
+                fontWeight: 600
               }}
-            />
+            >
+              {(() => {
+                const name = profile?.full_name || user?.email?.split('@')[0] || 'User';
+                if (profile?.full_name) {
+                  const parts = profile.full_name.split(' ');
+                  if (parts.length >= 2) {
+                    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
+                  }
+                  return name.charAt(0).toUpperCase().slice(0, 2);
+                }
+                return name.charAt(0).toUpperCase().slice(0, 2);
+              })()}
+            </div>
             {isEditing && (
               <div className="flex items-center gap-2 mb-4">
                 <button 
@@ -471,7 +503,7 @@ export function ProfilePage() {
               className="text-sm text-white/90 mb-5"
               style={{ fontFamily: 'Arial, sans-serif' }}
             >
-              {getClassYearDisplay()}{profile?.graduation_year ? ` • ${getGraduationDisplay()}` : ''}
+              {getClassYearDisplay()}
             </p>
             {!isEditing ? (
               <button 
@@ -621,7 +653,7 @@ export function ProfilePage() {
         </div>
 
         {/* Academic Info */}
-        {(profile?.class_year || profile?.graduation_year || profile?.gpa || isEditing) && (
+        {(profile?.major || profile?.graduation_year || profile?.gpa || isEditing) && (
           <div className="px-5 mb-6">
             <h2 
               className="text-xl mb-4"
@@ -643,8 +675,8 @@ export function ProfilePage() {
                   </p>
                   {isEditing ? (
                     <select
-                      value={editValues.class_year}
-                      onChange={(e) => setEditValues({ ...editValues, class_year: e.target.value })}
+                      value={editValues.major}
+                      onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
                       className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                       style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
                     >
@@ -705,7 +737,7 @@ export function ProfilePage() {
                       className="text-sm"
                       style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
                     >
-                      {profile?.class_year || 'Not provided'}
+                      {profile?.major || 'Not provided'}
                     </p>
                   )}
                 </div>
@@ -875,17 +907,44 @@ export function ProfilePage() {
             <div className="max-w-4xl">
               <div className="flex items-start gap-6 mb-8">
                 <div className="flex flex-col items-center">
-                  <img 
-                    src={(profile?.avatar_url && profile.avatar_url.trim() !== '') ? profile.avatar_url : imgBitmap1} 
-                    alt="Profile" 
-                    className="w-24 h-24 rounded-full object-cover mb-2"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      if (target.src !== imgBitmap1) {
-                        target.src = imgBitmap1;
-                      }
+                  {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt="Profile" 
+                      className="w-24 h-24 rounded-full object-cover mb-2"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="w-24 h-24 rounded-full flex items-center justify-center mb-2 text-white text-2xl"
+                    style={{ 
+                      backgroundColor: (() => {
+                        const name = profile?.full_name || user?.email || 'User';
+                        const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                        return colors[name.charCodeAt(0) % colors.length];
+                      })(),
+                      display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600
                     }}
-                  />
+                  >
+                    {(() => {
+                      const name = profile?.full_name || user?.email?.split('@')[0] || 'User';
+                      if (profile?.full_name) {
+                        const parts = profile.full_name.split(' ');
+                        if (parts.length >= 2) {
+                          return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
+                        }
+                        return name.charAt(0).toUpperCase().slice(0, 2);
+                      }
+                      return name.charAt(0).toUpperCase().slice(0, 2);
+                    })()}
+                  </div>
                   {isEditing && (
                     <>
                       <button 
@@ -934,7 +993,7 @@ export function ProfilePage() {
                     {profile?.full_name || user?.email?.split('@')[0] || 'User'}
                   </h3>
                   <p className="text-[14px] text-[#999] mb-3" style={{ fontFamily: 'Arial, sans-serif' }}>
-                    {getClassYearDisplay()}{profile?.graduation_year ? ` • ${getGraduationDisplay()}` : ''}
+                    {getClassYearDisplay()}
                   </p>
                   <div className="flex gap-4">
                     {stats.map((stat, index) => (
@@ -1012,8 +1071,8 @@ export function ProfilePage() {
                         <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Major</p>
                         {isEditing ? (
                           <select
-                            value={editValues.class_year}
-                            onChange={(e) => setEditValues({ ...editValues, class_year: e.target.value })}
+                            value={editValues.major}
+                            onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                             style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
                           >
@@ -1071,7 +1130,7 @@ export function ProfilePage() {
                           </select>
                         ) : (
                           <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
-                            {profile?.class_year || 'Not provided'}
+                            {profile?.major || 'Not provided'}
                           </p>
                         )}
                       </div>

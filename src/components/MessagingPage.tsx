@@ -14,6 +14,7 @@ interface DisplayConversation {
   name: string;
   type: 'dm' | 'group';
   avatar?: string;
+  avatarUrl?: string | null;
   avatarColor?: string;
   lastMessage?: string;
   lastMessageTime?: string;
@@ -35,12 +36,26 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
       className="bg-white rounded-2xl p-4 active:bg-[#f5f3eb] transition-colors"
     >
       <div className="flex items-start gap-3">
+        {conv.avatarUrl ? (
+          <img
+            src={conv.avatarUrl}
+            alt={conv.name}
+            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const fallback = target.nextElementSibling as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
         <div 
           className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white text-base"
           style={{ 
             fontFamily: 'Arial, sans-serif',
             fontWeight: 600,
-            backgroundColor: conv.avatarColor || '#7b7b74'
+            backgroundColor: conv.avatarColor || '#7b7b74',
+            display: conv.avatarUrl ? 'none' : 'flex'
           }}
         >
           {conv.type === 'group' ? (
@@ -153,27 +168,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           let avatar = '?';
           let avatarColor = '#7b7b74';
 
-          if (conv.type === 'dm') {
-            const participants = await MessagingService.getParticipants(conv.id);
-            const otherParticipant = participants.find(p => p.user_id !== user?.id);
-            if (otherParticipant?.profile) {
-              displayName = otherParticipant.profile.full_name || otherParticipant.profile.email?.split('@')[0] || 'Unknown';
-              avatar = (otherParticipant.profile.full_name || otherParticipant.profile.email || '?')
-                .split(' ')
-                .map(n => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2);
-              // Generate color from name
-              const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
-              avatarColor = colors[displayName.charCodeAt(0) % colors.length];
-            }
-          } else {
-            // Group chat
-            avatar = '👥';
-            avatarColor = '#d47455';
-          }
-
           // Format last message
           let lastMessage = 'No messages yet';
           let lastMessageTime = '';
@@ -188,11 +182,39 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             lastMessageTime = formatTime(conv.last_message.created_at);
           }
 
+          let avatarUrl: string | null = null;
+
+          if (conv.type === 'dm') {
+            const participants = await MessagingService.getParticipants(conv.id);
+            const otherParticipant = participants.find(p => p.user_id !== user?.id);
+            if (otherParticipant?.profile) {
+              displayName = otherParticipant.profile.full_name || otherParticipant.profile.email?.split('@')[0] || 'Unknown';
+              avatar = (otherParticipant.profile.full_name || otherParticipant.profile.email || '?')
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+              // Generate color from name (fallback)
+              const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+              avatarColor = colors[displayName.charCodeAt(0) % colors.length];
+              // Use actual avatar URL if available
+              avatarUrl = otherParticipant.profile.avatar_url && otherParticipant.profile.avatar_url.trim() !== '' 
+                ? otherParticipant.profile.avatar_url 
+                : null;
+            }
+          } else {
+            // Group chat
+            avatar = '👥';
+            avatarColor = '#d47455';
+          }
+
           return {
             id: conv.id,
             name: displayName,
             type: conv.type,
             avatar,
+            avatarUrl,
             avatarColor,
             lastMessage,
             lastMessageTime,
@@ -215,6 +237,20 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   // Load messages when conversation is selected
   useEffect(() => {
     if (selectedConversation) {
+      // Mark messages as read immediately when opening the conversation
+      const markReadAndRefresh = async () => {
+        try {
+          await MessagingService.markAsRead(selectedConversation);
+          // Small delay to ensure database update propagates
+          await new Promise(resolve => setTimeout(resolve, 100));
+          // Refresh conversations to update unread count after marking as read
+          await loadConversations();
+        } catch (err) {
+          console.error('Error marking messages as read:', err);
+        }
+      };
+      
+      markReadAndRefresh();
       loadMessages(selectedConversation);
       checkAdminStatus(selectedConversation);
       loadParticipants(selectedConversation);
@@ -225,6 +261,38 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       setShowEditMembers(false);
       setShowDeleteConfirm(false);
     }
+  }, [selectedConversation]);
+
+  // Periodically mark messages as read while viewing the conversation
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    // Set up interval to mark as read every 10 seconds while viewing
+    // This ensures new messages that arrive while viewing are marked as read
+    const interval = setInterval(() => {
+      MessagingService.markAsRead(selectedConversation).then(() => {
+        // Update unread count in the current conversation object
+        setConversations(prev => prev.map(conv => 
+          conv.id === selectedConversation 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
+        setDms(prev => prev.map(conv => 
+          conv.id === selectedConversation 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
+        setGroups(prev => prev.map(conv => 
+          conv.id === selectedConversation 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
+      }).catch(err => {
+        console.error('Error marking messages as read:', err);
+      });
+    }, 10000); // Every 10 seconds
+
+    return () => clearInterval(interval);
   }, [selectedConversation]);
 
   const checkAdminStatus = async (conversationId: string) => {
@@ -251,6 +319,29 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     try {
       const msgs = await MessagingService.getMessages(conversationId);
       setMessages(msgs);
+      // Mark messages as read after loading (in case it wasn't already marked)
+      MessagingService.markAsRead(conversationId).then(() => {
+        // Update unread count locally for immediate UI feedback
+        setConversations(prev => prev.map(conv => 
+          conv.id === conversationId 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
+        setDms(prev => prev.map(conv => 
+          conv.id === conversationId 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
+        setGroups(prev => prev.map(conv => 
+          conv.id === conversationId 
+            ? { ...conv, unread: 0 }
+            : conv
+        ));
+        // Also refresh conversations to ensure consistency
+        loadConversations();
+      }).catch(err => {
+        console.error('Error marking messages as read:', err);
+      });
     } catch (error) {
       console.error('Error loading messages:', error);
     }
@@ -709,12 +800,26 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 >
                   <ChevronLeft className="w-6 h-6 text-[#3d3d3a]" />
                 </button>
+                {selectedConv?.avatarUrl ? (
+                  <img
+                    src={selectedConv.avatarUrl}
+                    alt={selectedConv.name}
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
                 <div 
                   className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                   style={{ 
                     fontFamily: 'Arial, sans-serif',
                     fontWeight: 600,
-                    backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#7b7b74'
+                    backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#7b7b74',
+                    display: selectedConv?.avatarUrl ? 'none' : 'flex'
                   }}
                 >
                   {selectedConv?.type === 'course' ? (
@@ -779,6 +884,9 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     .slice(0, 2);
                   const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
                   const avatarColor = colors[senderName.charCodeAt(0) % colors.length];
+                  const senderAvatarUrl = msg.sender?.avatar_url && msg.sender.avatar_url.trim() !== '' 
+                    ? msg.sender.avatar_url 
+                    : null;
                   
                   // Check if previous message is from same sender and within 2 minutes
                   const prevMsg = index > 0 ? messages[index - 1] : null;
@@ -811,28 +919,60 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       className={`flex items-end gap-2 w-full ${isOwnMessage ? 'justify-end' : ''}`}
                     >
                       {showAvatarOnTop && (
-                        <div 
-                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
-                          style={{ 
-                            fontFamily: 'Arial, sans-serif',
-                            fontWeight: 600,
-                            backgroundColor: avatarColor
-                          }}
-                        >
-                          {senderAvatar}
-                        </div>
+                        <>
+                          {senderAvatarUrl ? (
+                            <img
+                              src={senderAvatarUrl}
+                              alt={senderName}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
+                            style={{ 
+                              fontFamily: 'Arial, sans-serif',
+                              fontWeight: 600,
+                              backgroundColor: avatarColor,
+                              display: senderAvatarUrl ? 'none' : 'flex'
+                            }}
+                          >
+                            {senderAvatar}
+                          </div>
+                        </>
                       )}
                       {showAvatarOnLeft && (
-                        <div 
-                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
-                          style={{ 
-                            fontFamily: 'Arial, sans-serif',
-                            fontWeight: 600,
-                            backgroundColor: avatarColor
-                          }}
-                        >
-                          {senderAvatar}
-                        </div>
+                        <>
+                          {senderAvatarUrl ? (
+                            <img
+                              src={senderAvatarUrl}
+                              alt={senderName}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
+                            style={{ 
+                              fontFamily: 'Arial, sans-serif',
+                              fontWeight: 600,
+                              backgroundColor: avatarColor,
+                              display: senderAvatarUrl ? 'none' : 'flex'
+                            }}
+                          >
+                            {senderAvatar}
+                          </div>
+                        </>
                       )}
                       {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && (
                         <div className="w-8 h-8 flex-shrink-0" />
@@ -1388,12 +1528,26 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 }`}
               >
                 <div className="flex items-start gap-3">
+                  {conv.avatarUrl ? (
+                    <img
+                      src={conv.avatarUrl}
+                      alt={conv.name}
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
                   <div 
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
-                      backgroundColor: conv.type === 'course' ? '#d47455' : conv.avatarColor || '#7b7b74'
+                      backgroundColor: conv.type === 'course' ? '#d47455' : conv.avatarColor || '#7b7b74',
+                      display: conv.avatarUrl ? 'none' : 'flex'
                     }}
                   >
                     {conv.type === 'course' ? <Hash className="w-5 h-5" /> : conv.avatar}
@@ -1477,6 +1631,9 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       .slice(0, 2);
                     const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
                     const avatarColor = colors[senderName.charCodeAt(0) % colors.length];
+                    const senderAvatarUrl = msg.sender?.avatar_url && msg.sender.avatar_url.trim() !== '' 
+                      ? msg.sender.avatar_url 
+                      : null;
                     
                     // Check if previous message is from same sender and within 2 minutes
                     const prevMsg = index > 0 ? messages[index - 1] : null;
@@ -1509,28 +1666,60 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         className={`flex items-end gap-2 w-full ${isOwnMessage ? 'justify-end' : ''}`}
                       >
                         {showAvatarOnTop && (
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
-                            style={{ 
-                              fontFamily: 'Arial, sans-serif',
-                              fontWeight: 600,
-                              backgroundColor: avatarColor
-                            }}
-                          >
-                            {senderAvatar}
-                          </div>
+                          <>
+                            {senderAvatarUrl ? (
+                              <img
+                                src={senderAvatarUrl}
+                                alt={senderName}
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0 mb-1"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: avatarColor,
+                                display: senderAvatarUrl ? 'none' : 'flex'
+                              }}
+                            >
+                              {senderAvatar}
+                            </div>
+                          </>
                         )}
                         {showAvatarOnLeft && (
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
-                            style={{ 
-                              fontFamily: 'Arial, sans-serif',
-                              fontWeight: 600,
-                              backgroundColor: avatarColor
-                            }}
-                          >
-                            {senderAvatar}
-                          </div>
+                          <>
+                            {senderAvatarUrl ? (
+                              <img
+                                src={senderAvatarUrl}
+                                alt={senderName}
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0 mb-1"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: avatarColor,
+                                display: senderAvatarUrl ? 'none' : 'flex'
+                              }}
+                            >
+                              {senderAvatar}
+                            </div>
+                          </>
                         )}
                         {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && (
                           <div className="w-10 h-10 flex-shrink-0" />
