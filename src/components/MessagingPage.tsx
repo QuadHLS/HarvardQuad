@@ -113,6 +113,15 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
 export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  
+  // Check if there's a conversation ID from navigation (e.g., from squad detail page)
+  useEffect(() => {
+    const storedConversationId = sessionStorage.getItem('selectedConversationId');
+    if (storedConversationId) {
+      sessionStorage.removeItem('selectedConversationId');
+      setSelectedConversation(storedConversationId);
+    }
+  }, []);
   const [messageInput, setMessageInput] = useState('');
   const [conversations, setConversations] = useState<DisplayConversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +148,23 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [editMembersSearchQuery, setEditMembersSearchQuery] = useState('');
   const [editMembersSearchResults, setEditMembersSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
   
+  // Check if there's a conversation ID from navigation (e.g., from squad detail page)
+  useEffect(() => {
+    if (!loading && conversations.length > 0) {
+      const storedConversationId = sessionStorage.getItem('selectedConversationId');
+      if (storedConversationId) {
+        sessionStorage.removeItem('selectedConversationId');
+        // Verify the conversation exists in the loaded conversations
+        const conversationExists = conversations.some(c => c.id === storedConversationId) ||
+                                   groups.some(g => g.id === storedConversationId) ||
+                                   dms.some(d => d.id === storedConversationId);
+        if (conversationExists) {
+          setSelectedConversation(storedConversationId);
+        }
+      }
+    }
+  }, [loading, conversations, groups, dms]);
+
   const closeGroupModal = () => {
     setShowNewGroup(false);
     setNewGroupName('');

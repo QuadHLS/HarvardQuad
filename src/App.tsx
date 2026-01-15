@@ -630,7 +630,13 @@ export default function App() {
               <SquadDetailPage 
                 squadId={selectedSquad} 
                 onBack={handleBackFromSquadDetail} 
-                onOpenChat={() => setCurrentView('messaging')}
+                onOpenChat={(conversationId) => {
+                  if (conversationId) {
+                    // Store conversation ID to select when messaging page loads
+                    sessionStorage.setItem('selectedConversationId', conversationId);
+                  }
+                  setCurrentView('messaging');
+                }}
               />
             </div>
           )}
