@@ -8,6 +8,7 @@ interface MobileDashboardProps {
   ampm: string;
   isPastFivePM: boolean;
   handleCourseClick: (courseId: string) => void;
+  userName?: string;
 }
 
 export function MobileDashboard({
@@ -16,7 +17,8 @@ export function MobileDashboard({
   time,
   ampm,
   isPastFivePM,
-  handleCourseClick
+  handleCourseClick,
+  userName = 'User'
 }: MobileDashboardProps) {
   const [isDueSoonExpanded, setIsDueSoonExpanded] = useState(true);
 
@@ -28,7 +30,7 @@ export function MobileDashboard({
           className="text-4xl"
           style={{ fontFamily: 'Lora, serif', fontWeight: 500, color: '#3d3d3a' }}
         >
-          {greeting}, Justin
+          {greeting}, {userName}
         </h1>
       </div>
 

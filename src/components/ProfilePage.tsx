@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Phone, MapPin, Calendar, Book, Award, Edit2, ChevronRight, Lock, LogOut, Save, X } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Book, Award, Edit2, ChevronRight, LogOut, Save, X, Trash2 } from 'lucide-react';
 // @ts-ignore - Image import is handled by vite-env.d.ts
 import imgBitmap1 from "../assets/80922ffffc76a0f79d25191840d09536bcb80db6.png";
 import { useAuth } from '../contexts/AuthContext';
@@ -17,12 +17,13 @@ interface ProfileData {
 }
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [deletingAvatar, setDeletingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editValues, setEditValues] = useState({
     phone: '',
@@ -159,6 +160,77 @@ export function ProfilePage() {
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleDeleteAvatar = async () => {
+    if (!user || !profile?.avatar_url) return;
+
+    // Confirm deletion
+    if (!confirm('Are you sure you want to delete your avatar? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingAvatar(true);
+    try {
+      // Find and delete the avatar file from storage
+      const { data: existingFiles, error: listError } = await supabase.storage
+        .from('avatars')
+        .list('', {
+          limit: 100,
+          sortBy: { column: 'created_at', order: 'desc' },
+        });
+
+      if (listError) {
+        console.error('Error listing avatars for deletion:', listError);
+      } else if (existingFiles && existingFiles.length > 0) {
+        // Filter files that belong to this user
+        const filesToDelete = existingFiles
+          .filter(file => file.name.startsWith(`${user.id}-`))
+          .map(file => file.name);
+
+        if (filesToDelete.length > 0) {
+          const { error: deleteError } = await supabase.storage
+            .from('avatars')
+            .remove(filesToDelete);
+
+          if (deleteError) {
+            console.error('Error deleting avatar from storage:', deleteError);
+            // Continue with profile update even if storage delete fails
+          } else {
+            console.log('Deleted avatar files from storage:', filesToDelete);
+          }
+        }
+      }
+
+      // Update profile to remove avatar_url
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_url: null, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Error removing avatar URL from profile:', updateError);
+        alert('Failed to delete avatar. Please try again.');
+        setDeletingAvatar(false);
+        return;
+      }
+
+      // Update local profile state to show default image
+      if (profile) {
+        setProfile({
+          ...profile,
+          avatar_url: null,
+        });
+      }
+    } catch (err) {
+      console.error('Error deleting avatar:', err);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setDeletingAvatar(false);
+    }
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -347,24 +419,48 @@ export function ProfilePage() {
                 }
               }}
             />
-            <button 
-              onClick={handleAvatarClick}
-              disabled={uploadingAvatar}
-              className="mb-4 px-4 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
-            >
-              {uploadingAvatar ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Edit2 className="w-3 h-3" />
-                  Change Avatar
-                </>
-              )}
-            </button>
+            {isEditing && (
+              <div className="flex items-center gap-2 mb-4">
+                <button 
+                  onClick={handleAvatarClick}
+                  disabled={uploadingAvatar || deletingAvatar}
+                  className="px-4 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                >
+                  {uploadingAvatar ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Edit2 className="w-3 h-3" />
+                      Change Avatar
+                    </>
+                  )}
+                </button>
+                {profile?.avatar_url && profile.avatar_url.trim() !== '' && (
+                  <button 
+                    onClick={handleDeleteAvatar}
+                    disabled={uploadingAvatar || deletingAvatar}
+                    className="px-4 py-1.5 bg-red-500/20 backdrop-blur-sm text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                  >
+                    {deletingAvatar ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-3 h-3" />
+                        Delete Avatar
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
             <h1 
               className="text-3xl text-white mb-1"
               style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
@@ -521,41 +617,11 @@ export function ProfilePage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-4">
-              <div className="w-11 h-11 rounded-2xl bg-[#fef3ef] flex items-center justify-center">
-                <Award className="w-5 h-5" style={{ color: '#d47455' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p 
-                  className="text-xs mb-1"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                >
-                  GPA
-                </p>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editValues.gpa}
-                    onChange={(e) => setEditValues({ ...editValues, gpa: e.target.value })}
-                    className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                    placeholder="Enter GPA"
-                  />
-                ) : (
-                  <p 
-                    className="text-sm"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                  >
-                    {profile?.gpa || 'Not provided'}
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Academic Info */}
-        {(profile?.class_year || profile?.graduation_year || isEditing) && (
+        {(profile?.class_year || profile?.graduation_year || profile?.gpa || isEditing) && (
           <div className="px-5 mb-6">
             <h2 
               className="text-xl mb-4"
@@ -573,17 +639,67 @@ export function ProfilePage() {
                     className="text-xs mb-1"
                     style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
                   >
-                    Class Year
+                    Major
                   </p>
                   {isEditing ? (
-                    <input
-                      type="text"
+                    <select
                       value={editValues.class_year}
                       onChange={(e) => setEditValues({ ...editValues, class_year: e.target.value })}
-                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                       style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                      placeholder="e.g., Freshman, Sophomore"
-                    />
+                    >
+                      <option value="">Select Major</option>
+                      <option value="African and African American Studies (B.A.)">African and African American Studies (B.A.)</option>
+                      <option value="Anthropology (B.A.)">Anthropology (B.A.)</option>
+                      <option value="Applied Mathematics (B.A.)">Applied Mathematics (B.A.)</option>
+                      <option value="Art, Film, and Visual Studies (B.A.)">Art, Film, and Visual Studies (B.A.)</option>
+                      <option value="Astrophysics (B.A.)">Astrophysics (B.A.)</option>
+                      <option value="Biomedical Engineering (B.A.)">Biomedical Engineering (B.A.)</option>
+                      <option value="Chemical and Physical Biology (B.A.)">Chemical and Physical Biology (B.A.)</option>
+                      <option value="Chemistry (B.A.)">Chemistry (B.A.)</option>
+                      <option value="Chemistry and Physics (B.A.)">Chemistry and Physics (B.A.)</option>
+                      <option value="Classics (B.A.)">Classics (B.A.)</option>
+                      <option value="Comparative Literature (B.A.)">Comparative Literature (B.A.)</option>
+                      <option value="Comparative Study of Religion (B.A.)">Comparative Study of Religion (B.A.)</option>
+                      <option value="Computer Science (B.A.)">Computer Science (B.A.)</option>
+                      <option value="Earth and Planetary Sciences (B.A.)">Earth and Planetary Sciences (B.A.)</option>
+                      <option value="East Asian Studies (B.A.)">East Asian Studies (B.A.)</option>
+                      <option value="Economics (B.A.)">Economics (B.A.)</option>
+                      <option value="Electrical Engineering (B.A./B.S.)">Electrical Engineering (B.A./B.S.)</option>
+                      <option value="Engineering Sciences (B.A./B.S.)">Engineering Sciences (B.A./B.S.)</option>
+                      <option value="English (B.A.)">English (B.A.)</option>
+                      <option value="Environmental Science and Engineering (B.A.)">Environmental Science and Engineering (B.A.)</option>
+                      <option value="Environmental Science and Public Policy (B.A.)">Environmental Science and Public Policy (B.A.)</option>
+                      <option value="Folklore and Mythology (B.A.)">Folklore and Mythology (B.A.)</option>
+                      <option value="Germanic Languages and Literature (B.A.)">Germanic Languages and Literature (B.A.)</option>
+                      <option value="Government (B.A.)">Government (B.A.)</option>
+                      <option value="History (B.A.)">History (B.A.)</option>
+                      <option value="History and Literature (B.A.)">History and Literature (B.A.)</option>
+                      <option value="History and Science (B.A.)">History and Science (B.A.)</option>
+                      <option value="History of Art and Architecture (B.A.)">History of Art and Architecture (B.A.)</option>
+                      <option value="Human Developmental and Regenerative Biology (B.A.)">Human Developmental and Regenerative Biology (B.A.)</option>
+                      <option value="Human Evolutionary Biology (B.A.)">Human Evolutionary Biology (B.A.)</option>
+                      <option value="Integrative Biology (B.A.)">Integrative Biology (B.A.)</option>
+                      <option value="Linguistics (B.A.)">Linguistics (B.A.)</option>
+                      <option value="Mathematics (B.A.)">Mathematics (B.A.)</option>
+                      <option value="Mechanical Engineering (B.S.)">Mechanical Engineering (B.S.)</option>
+                      <option value="Molecular and Cellular Biology (B.A.)">Molecular and Cellular Biology (B.A.)</option>
+                      <option value="Music (B.A.)">Music (B.A.)</option>
+                      <option value="Near Eastern Languages and Civilizations (B.A.)">Near Eastern Languages and Civilizations (B.A.)</option>
+                      <option value="Neuroscience (B.A.)">Neuroscience (B.A.)</option>
+                      <option value="Philosophy (B.A.)">Philosophy (B.A.)</option>
+                      <option value="Physics (B.A.)">Physics (B.A.)</option>
+                      <option value="Psychology (B.A.)">Psychology (B.A.)</option>
+                      <option value="Romance Languages and Literature (B.A.)">Romance Languages and Literature (B.A.)</option>
+                      <option value="Slavic Literatures and Cultures (B.A.)">Slavic Literatures and Cultures (B.A.)</option>
+                      <option value="Social Studies (B.A.)">Social Studies (B.A.)</option>
+                      <option value="Sociology (B.A.)">Sociology (B.A.)</option>
+                      <option value="South Asian Studies (B.A.)">South Asian Studies (B.A.)</option>
+                      <option value="Statistics (B.A.)">Statistics (B.A.)</option>
+                      <option value="Studies of Women, Gender, and Sexuality (B.A.)">Studies of Women, Gender, and Sexuality (B.A.)</option>
+                      <option value="Theater, Dance & Media (B.A.)">Theater, Dance & Media (B.A.)</option>
+                      <option value="Other">Other</option>
+                    </select>
                   ) : (
                     <p 
                       className="text-sm"
@@ -594,7 +710,7 @@ export function ProfilePage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-4">
+              <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
                 <div className="w-11 h-11 rounded-2xl bg-[#f5f7f9] flex items-center justify-center">
                   <Calendar className="w-5 h-5" style={{ color: '#7b9fb8' }} />
                 </div>
@@ -606,20 +722,54 @@ export function ProfilePage() {
                     Graduation Year
                   </p>
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={editValues.graduation_year}
+                    <select
+                      value={editValues.graduation_year || ''}
                       onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
-                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                       style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                      placeholder="e.g., 2028"
-                    />
+                    >
+                      <option value="">Select Graduation Year</option>
+                      <option value="2026">2026</option>
+                      <option value="2027">2027</option>
+                      <option value="2028">2028</option>
+                      <option value="2029">2029</option>
+                    </select>
                   ) : (
                     <p 
                       className="text-sm"
                       style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
                     >
                       {profile?.graduation_year || 'Not provided'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-4">
+                <div className="w-11 h-11 rounded-2xl bg-[#fef3ef] flex items-center justify-center">
+                  <Award className="w-5 h-5" style={{ color: '#d47455' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p 
+                    className="text-xs mb-1"
+                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  >
+                    GPA
+                  </p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editValues.gpa}
+                      onChange={(e) => setEditValues({ ...editValues, gpa: e.target.value })}
+                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      placeholder="Enter GPA"
+                    />
+                  ) : (
+                    <p 
+                      className="text-sm"
+                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                    >
+                      {profile?.gpa || 'Not provided'}
                     </p>
                   )}
                 </div>
@@ -637,21 +787,16 @@ export function ProfilePage() {
             Settings
           </h2>
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
-            <button className="w-full flex items-center justify-between px-4 py-4 border-b border-[#f5f3eb] active:bg-[#f5f3eb] transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#f5f3eb] flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-[#7b7b74]" />
-                </div>
-                <span 
-                  className="text-sm"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', fontWeight: 500 }}
-                >
-                  Privacy & Security
-                </span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-[#c7bcaa]" />
-            </button>
-            <button className="w-full flex items-center justify-between px-4 py-4 active:bg-[#fef3ef] transition-colors">
+            <button 
+              onClick={async () => {
+                const { error } = await signOut();
+                if (error) {
+                  console.error('Error signing out:', error);
+                  alert('Failed to sign out. Please try again.');
+                }
+              }}
+              className="w-full flex items-center justify-between px-4 py-4 active:bg-[#fef3ef] transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center">
                   <LogOut className="w-5 h-5 text-[#d47455]" />
@@ -681,15 +826,6 @@ export function ProfilePage() {
             <div className="space-y-1">
               <button className="w-full text-left px-3 py-2.5 rounded bg-[#ebe8df] text-[#1a1a1a] text-[14px] hover:bg-[#ebe8df] transition-colors" style={{ fontFamily: 'Arial, sans-serif' }}>
                 Overview
-              </button>
-              <button className="w-full text-left px-3 py-2.5 rounded text-[#999] text-[14px] hover:bg-[#ebe8df] hover:text-[#1a1a1a] transition-colors" style={{ fontFamily: 'Arial, sans-serif' }}>
-                Academic Records
-              </button>
-              <button className="w-full text-left px-3 py-2.5 rounded text-[#999] text-[14px] hover:bg-[#ebe8df] hover:text-[#1a1a1a] transition-colors" style={{ fontFamily: 'Arial, sans-serif' }}>
-                Settings
-              </button>
-              <button className="w-full text-left px-3 py-2.5 rounded text-[#999] text-[14px] hover:bg-[#ebe8df] hover:text-[#1a1a1a] transition-colors" style={{ fontFamily: 'Arial, sans-serif' }}>
-                Privacy
               </button>
             </div>
           </div>
@@ -750,24 +886,48 @@ export function ProfilePage() {
                       }
                     }}
                   />
-                  <button 
-                    onClick={handleAvatarClick}
-                    disabled={uploadingAvatar}
-                    className="px-3 py-1.5 bg-[#f5f3eb] text-[#3d3d3a] rounded-lg text-xs flex items-center gap-1.5 hover:bg-[#ebe8df] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
-                  >
-                    {uploadingAvatar ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-[#3d3d3a] border-t-transparent rounded-full animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Edit2 className="w-3 h-3" />
-                        Change Avatar
-                      </>
-                    )}
-                  </button>
+                  {isEditing && (
+                    <>
+                      <button 
+                        onClick={handleAvatarClick}
+                        disabled={uploadingAvatar || deletingAvatar}
+                        className="mb-2 px-3 py-1.5 bg-[#f5f3eb] text-[#3d3d3a] rounded-lg text-xs flex items-center gap-1.5 hover:bg-[#ebe8df] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                      >
+                        {uploadingAvatar ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-[#3d3d3a] border-t-transparent rounded-full animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Edit2 className="w-3 h-3" />
+                            Change Avatar
+                          </>
+                        )}
+                      </button>
+                      {profile?.avatar_url && profile.avatar_url.trim() !== '' && (
+                        <button 
+                          onClick={handleDeleteAvatar}
+                          disabled={uploadingAvatar || deletingAvatar}
+                          className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, backgroundColor: 'rgba(232, 59, 59, 1)', color: 'rgba(255, 255, 255, 1)' }}
+                        >
+                          {deletingAvatar ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-red-700 border-t-transparent rounded-full animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-3 h-3" />
+                              Delete Avatar
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-[24px] mb-1 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
@@ -849,16 +1009,66 @@ export function ProfilePage() {
                     <div className="flex items-center gap-3">
                       <Book className="w-5 h-5 text-[#7b7b74]" />
                       <div className="flex-1">
-                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Class Year</p>
+                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Major</p>
                         {isEditing ? (
-                          <input
-                            type="text"
+                          <select
                             value={editValues.class_year}
                             onChange={(e) => setEditValues({ ...editValues, class_year: e.target.value })}
-                            className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                            className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                             style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
-                            placeholder="e.g., Freshman, Sophomore"
-                          />
+                          >
+                            <option value="">Select Major</option>
+                            <option value="African and African American Studies (B.A.)">African and African American Studies (B.A.)</option>
+                            <option value="Anthropology (B.A.)">Anthropology (B.A.)</option>
+                            <option value="Applied Mathematics (B.A.)">Applied Mathematics (B.A.)</option>
+                            <option value="Art, Film, and Visual Studies (B.A.)">Art, Film, and Visual Studies (B.A.)</option>
+                            <option value="Astrophysics (B.A.)">Astrophysics (B.A.)</option>
+                            <option value="Biomedical Engineering (B.A.)">Biomedical Engineering (B.A.)</option>
+                            <option value="Chemical and Physical Biology (B.A.)">Chemical and Physical Biology (B.A.)</option>
+                            <option value="Chemistry (B.A.)">Chemistry (B.A.)</option>
+                            <option value="Chemistry and Physics (B.A.)">Chemistry and Physics (B.A.)</option>
+                            <option value="Classics (B.A.)">Classics (B.A.)</option>
+                            <option value="Comparative Literature (B.A.)">Comparative Literature (B.A.)</option>
+                            <option value="Comparative Study of Religion (B.A.)">Comparative Study of Religion (B.A.)</option>
+                            <option value="Computer Science (B.A.)">Computer Science (B.A.)</option>
+                            <option value="Earth and Planetary Sciences (B.A.)">Earth and Planetary Sciences (B.A.)</option>
+                            <option value="East Asian Studies (B.A.)">East Asian Studies (B.A.)</option>
+                            <option value="Economics (B.A.)">Economics (B.A.)</option>
+                            <option value="Electrical Engineering (B.A./B.S.)">Electrical Engineering (B.A./B.S.)</option>
+                            <option value="Engineering Sciences (B.A./B.S.)">Engineering Sciences (B.A./B.S.)</option>
+                            <option value="English (B.A.)">English (B.A.)</option>
+                            <option value="Environmental Science and Engineering (B.A.)">Environmental Science and Engineering (B.A.)</option>
+                            <option value="Environmental Science and Public Policy (B.A.)">Environmental Science and Public Policy (B.A.)</option>
+                            <option value="Folklore and Mythology (B.A.)">Folklore and Mythology (B.A.)</option>
+                            <option value="Germanic Languages and Literature (B.A.)">Germanic Languages and Literature (B.A.)</option>
+                            <option value="Government (B.A.)">Government (B.A.)</option>
+                            <option value="History (B.A.)">History (B.A.)</option>
+                            <option value="History and Literature (B.A.)">History and Literature (B.A.)</option>
+                            <option value="History and Science (B.A.)">History and Science (B.A.)</option>
+                            <option value="History of Art and Architecture (B.A.)">History of Art and Architecture (B.A.)</option>
+                            <option value="Human Developmental and Regenerative Biology (B.A.)">Human Developmental and Regenerative Biology (B.A.)</option>
+                            <option value="Human Evolutionary Biology (B.A.)">Human Evolutionary Biology (B.A.)</option>
+                            <option value="Integrative Biology (B.A.)">Integrative Biology (B.A.)</option>
+                            <option value="Linguistics (B.A.)">Linguistics (B.A.)</option>
+                            <option value="Mathematics (B.A.)">Mathematics (B.A.)</option>
+                            <option value="Mechanical Engineering (B.S.)">Mechanical Engineering (B.S.)</option>
+                            <option value="Molecular and Cellular Biology (B.A.)">Molecular and Cellular Biology (B.A.)</option>
+                            <option value="Music (B.A.)">Music (B.A.)</option>
+                            <option value="Near Eastern Languages and Civilizations (B.A.)">Near Eastern Languages and Civilizations (B.A.)</option>
+                            <option value="Neuroscience (B.A.)">Neuroscience (B.A.)</option>
+                            <option value="Philosophy (B.A.)">Philosophy (B.A.)</option>
+                            <option value="Physics (B.A.)">Physics (B.A.)</option>
+                            <option value="Psychology (B.A.)">Psychology (B.A.)</option>
+                            <option value="Romance Languages and Literature (B.A.)">Romance Languages and Literature (B.A.)</option>
+                            <option value="Slavic Literatures and Cultures (B.A.)">Slavic Literatures and Cultures (B.A.)</option>
+                            <option value="Social Studies (B.A.)">Social Studies (B.A.)</option>
+                            <option value="Sociology (B.A.)">Sociology (B.A.)</option>
+                            <option value="South Asian Studies (B.A.)">South Asian Studies (B.A.)</option>
+                            <option value="Statistics (B.A.)">Statistics (B.A.)</option>
+                            <option value="Studies of Women, Gender, and Sexuality (B.A.)">Studies of Women, Gender, and Sexuality (B.A.)</option>
+                            <option value="Theater, Dance & Media (B.A.)">Theater, Dance & Media (B.A.)</option>
+                            <option value="Other">Other</option>
+                          </select>
                         ) : (
                           <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
                             {profile?.class_year || 'Not provided'}
@@ -871,14 +1081,18 @@ export function ProfilePage() {
                       <div className="flex-1">
                         <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Graduation Year</p>
                         {isEditing ? (
-                          <input
-                            type="text"
-                            value={editValues.graduation_year}
+                          <select
+                            value={editValues.graduation_year || ''}
                             onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
-                            className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                            className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                             style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
-                            placeholder="e.g., 2028"
-                          />
+                          >
+                            <option value="">Select Graduation Year</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                            <option value="2029">2029</option>
+                          </select>
                         ) : (
                           <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
                             {profile?.graduation_year || 'Not provided'}
