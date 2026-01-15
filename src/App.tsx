@@ -68,6 +68,7 @@ export default function App() {
   const { time, ampm } = formatTime(currentTime);
   const formattedDate = formatDate(currentTime);
   const greeting = getGreeting(currentTime);
+  const isMessagingView = currentView === 'messaging';
 
   const handleCourseClick = (courseId: string) => {
     setPreviousView(currentView);
@@ -326,7 +327,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F1EFE7] flex flex-col md:flex-row">
+    <div
+      className="min-h-screen flex flex-col md:flex-row"
+      style={{ backgroundColor: isMessagingView ? '#fbf8f7' : '#F1EFE7' }}
+    >
       {/* Desktop Sidebar Overlay */}
       {isSidebarExpanded && (
         <div 
@@ -452,7 +456,7 @@ export default function App() {
             </div>
           )}
           {currentView === 'messaging' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
+            <div className="bg-[#fbf8f7] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
               <MessagingPage onCourseClick={handleCourseClick} />
             </div>
           )}
@@ -669,7 +673,10 @@ export default function App() {
         </div>
       </div>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#F1EFE7] border-t border-[#d9d2c5] z-50">
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-[#fbf8f7] border-t border-[#e7ded1] z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur-0"
+        style={{ backgroundColor: '#fbf8f7' }}
+      >
         <div className="flex items-center justify-around px-1 py-2">
           <button
             onClick={handleCalendarClick}

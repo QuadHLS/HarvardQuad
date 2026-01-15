@@ -401,28 +401,24 @@ export class MessagingService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // Create group conversation
-    const { data: conversation, error: convError } = await supabase
+    // Use the database function to create group (bypasses RLS issues)
+    const { data: conversationId, error: functionError } = await supabase
+      .rpc('create_group_conversation', { 
+        group_name: name,
+        participant_user_ids: userIds
+      });
+
+    if (functionError) throw functionError;
+    if (!conversationId) throw new Error('Failed to create group conversation');
+
+    // Fetch the created conversation
+    const { data: conversation, error: fetchError } = await supabase
       .from('conversations')
-      .insert({
-        name,
-        type: 'group',
-        created_by: user.id,
-      })
-      .select()
+      .select('*')
+      .eq('id', conversationId)
       .single();
 
-    if (convError) throw convError;
-
-    // Add all participants (creator is admin, others are members)
-    const participants = [
-      { conversation_id: conversation.id, user_id: user.id, role: 'admin' },
-      ...userIds.map(id => ({ conversation_id: conversation.id, user_id: id, role: 'member' as const })),
-    ];
-
-    await supabase
-      .from('conversation_participants')
-      .insert(participants);
+    if (fetchError) throw fetchError;
 
     return conversation as Conversation;
   }
@@ -521,6 +517,84 @@ export class MessagingService {
       .delete()
       .eq('conversation_id', conversationId)
       .eq('user_id', userId);
+
+    if (error) throw error;
+  }
+
+  // Check if user is admin of a conversation
+  static async isAdmin(conversationId: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data: participant } = await supabase
+      .from('conversation_participants')
+      .select('role')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', user.id)
+      .single();
+
+    return participant?.role === 'admin';
+  }
+
+  // Delete a conversation (admin only, or creator for groups)
+  static async deleteConversation(conversationId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Get conversation to check type and creator
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('type, created_by')
+      .eq('id', conversationId)
+      .single();
+
+    if (convError) throw convError;
+    if (!conversation) throw new Error('Conversation not found');
+
+    // For groups, check if user is admin
+    if (conversation.type === 'group') {
+      const isAdmin = await this.isAdmin(conversationId);
+      if (!isAdmin) {
+        throw new Error('Only admins can delete group conversations');
+      }
+    } else {
+      // For DMs, check if user is the creator (though DMs typically shouldn't be deletable)
+      if (conversation.created_by !== user.id) {
+        throw new Error('Only the creator can delete this conversation');
+      }
+    }
+
+    // Get all messages with attachments before deleting
+    const { data: messages, error: messagesError } = await supabase
+      .from('messages')
+      .select('id, attachments:message_attachments(*)')
+      .eq('conversation_id', conversationId);
+
+    if (messagesError) throw messagesError;
+
+    // Delete all attachment files from storage
+    if (messages && messages.length > 0) {
+      for (const message of messages as Array<{ id: string; attachments?: MessageAttachment[] }>) {
+        if (message.attachments && message.attachments.length > 0) {
+          for (const att of message.attachments) {
+            try {
+              await supabase.storage
+                .from(att.storage_bucket)
+                .remove([att.file_path]);
+            } catch (storageError) {
+              // Log but don't fail - file might already be deleted
+              console.warn(`Failed to delete file ${att.file_path} from ${att.storage_bucket}:`, storageError);
+            }
+          }
+        }
+      }
+    }
+
+    // Delete conversation (cascade will delete participants, messages, and attachments from DB)
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', conversationId);
 
     if (error) throw error;
   }

@@ -1,8 +1,7 @@
-import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Users, User } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Users, User, Paperclip, Download, File, Trash2, Settings } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { MessagingService, Conversation as SupabaseConversation, Message } from '../services/messagingService';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { MessagingService, Conversation as SupabaseConversation, Message, Participant } from '../services/messagingService';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 
@@ -107,10 +106,32 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupEmails, setNewGroupEmails] = useState('');
+  const [newGroupEmails, setNewGroupEmails] = useState(''); // legacy text entry (kept to avoid breaking; not used for new flow)
+  const [newGroupSearchQuery, setNewGroupSearchQuery] = useState('');
+  const [newGroupSearchResults, setNewGroupSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userSearchResults, setUserSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<
+    Array<{ file: File; type: 'image' | 'file'; url: string; name: string; size: number }>
+  >([]);
+  const [showEditMembers, setShowEditMembers] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentParticipants, setCurrentParticipants] = useState<Participant[]>([]);
+  const [editMembersSearchQuery, setEditMembersSearchQuery] = useState('');
+  const [editMembersSearchResults, setEditMembersSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
+  
+  const closeGroupModal = () => {
+    setShowNewGroup(false);
+    setNewGroupName('');
+    setNewGroupEmails('');
+    setNewGroupSearchQuery('');
+    setNewGroupSearchResults([]);
+    setSelectedGroupMembers([]);
+  };
 
   // Fetch conversations on mount
   useEffect(() => {
@@ -195,8 +216,36 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   useEffect(() => {
     if (selectedConversation) {
       loadMessages(selectedConversation);
+      checkAdminStatus(selectedConversation);
+      loadParticipants(selectedConversation);
+    } else {
+      // Reset state when no conversation is selected
+      setIsAdmin(false);
+      setCurrentParticipants([]);
+      setShowEditMembers(false);
+      setShowDeleteConfirm(false);
     }
   }, [selectedConversation]);
+
+  const checkAdminStatus = async (conversationId: string) => {
+    try {
+      const admin = await MessagingService.isAdmin(conversationId);
+      setIsAdmin(admin);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  };
+
+  const loadParticipants = async (conversationId: string) => {
+    try {
+      const participants = await MessagingService.getParticipants(conversationId);
+      setCurrentParticipants(participants);
+    } catch (error) {
+      console.error('Error loading participants:', error);
+      setCurrentParticipants([]);
+    }
+  };
 
   const loadMessages = async (conversationId: string) => {
     try {
@@ -226,16 +275,135 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     }
   };
 
+  const revokePendingUrls = () => {
+    pendingAttachments.forEach(att => URL.revokeObjectURL(att.url));
+  };
+
+  useEffect(() => {
+    return () => {
+      revokePendingUrls();
+      setPendingAttachments([]);
+    };
+  }, [selectedConversation]);
+
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !selectedConversation || !user) return;
+    if (!selectedConversation || !user) return;
+    const hasText = messageInput.trim().length > 0;
+    const hasAttachments = pendingAttachments.length > 0;
+    if (!hasText && !hasAttachments) return;
 
     try {
-      await MessagingService.sendTextMessage(selectedConversation, messageInput.trim());
-      setMessageInput('');
+      for (const att of pendingAttachments) {
+        if (att.type === 'image') {
+          await MessagingService.sendImageMessage(selectedConversation, att.file);
+        } else {
+          await MessagingService.sendFileMessage(selectedConversation, att.file);
+        }
+      }
+
+      if (hasText) {
+        await MessagingService.sendTextMessage(selectedConversation, messageInput.trim());
+        setMessageInput('');
+      }
+
+      revokePendingUrls();
+      setPendingAttachments([]);
       await loadMessages(selectedConversation);
       await loadConversations(); // Refresh to update last message
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith('image/');
+    const url = URL.createObjectURL(file);
+    setPendingAttachments((prev) => [
+      ...prev,
+      {
+        file,
+        type: isImage ? 'image' : 'file',
+        url,
+        name: file.name,
+        size: file.size,
+      },
+    ]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setPendingAttachments((prev) => {
+      const next = [...prev];
+      const removed = next.splice(index, 1)[0];
+      if (removed) URL.revokeObjectURL(removed.url);
+      return next;
+    });
+  };
+
+  const handleGroupDialogChange = (open: boolean) => {
+    if (open) {
+      setShowNewGroup(true);
+    } else {
+      closeGroupModal();
+    }
+  };
+
+  // Search users for group members (debounced)
+  useEffect(() => {
+    if (!newGroupSearchQuery.trim()) {
+      setNewGroupSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await MessagingService.searchUsers(newGroupSearchQuery.trim());
+        setNewGroupSearchResults(data || []);
+      } catch (error) {
+        console.error('Error searching users for group:', error);
+        setNewGroupSearchResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [newGroupSearchQuery]);
+
+  const handleAddGroupMember = (user: { id: string; email: string; full_name: string | null }) => {
+    setSelectedGroupMembers((prev) => {
+      if (prev.some((m) => m.id === user.id)) return prev;
+      return [...prev, user];
+    });
+    setNewGroupSearchQuery('');
+    setNewGroupSearchResults([]);
+  };
+
+  const handleRemoveGroupMember = (id: string) => {
+    setSelectedGroupMembers((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const handleDownload = async (url: string, filename?: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to download file');
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Error downloading file:', error);
     }
   };
 
@@ -279,42 +447,113 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   };
 
   const handleCreateGroup = async () => {
-    if (!newGroupName.trim() || !newGroupEmails.trim() || !user) return;
+    // Require at least 3 people total (creator + 2 selected)
+    if (!newGroupName.trim() || selectedGroupMembers.length < 2 || !user) {
+      alert('Add a group name and at least 2 members (3 people including you).');
+      return;
+    }
 
     try {
-      const emails = newGroupEmails.split(',').map(e => e.trim()).filter(e => e);
-      const userIds: string[] = [];
-
-      for (const email of emails) {
-        const { data: profiles } = await MessagingService.searchUsers(email);
-        if (profiles && profiles.length > 0) {
-          userIds.push(profiles[0].id);
-        }
-      }
-
-      if (userIds.length > 0) {
-        await MessagingService.createGroupChat(newGroupName.trim(), userIds);
-        setNewGroupName('');
-        setNewGroupEmails('');
-        setShowNewGroup(false);
-        await loadConversations();
-      } else {
-        alert('No valid users found');
-      }
+      const userIds = selectedGroupMembers.map((m) => m.id);
+      await MessagingService.createGroupChat(newGroupName.trim(), userIds);
+      closeGroupModal();
+      await loadConversations();
     } catch (error) {
       console.error('Error creating group:', error);
       alert('Error creating group. Please try again.');
     }
   };
 
+  const handleOpenEditMembers = async () => {
+    if (!selectedConversation) return;
+    setShowEditMembers(true);
+    setEditMembersSearchQuery('');
+    setEditMembersSearchResults([]);
+  };
+
+  const handleCloseEditMembers = () => {
+    setShowEditMembers(false);
+    setEditMembersSearchQuery('');
+    setEditMembersSearchResults([]);
+  };
+
+  const handleAddMemberToGroup = async (userId: string) => {
+    if (!selectedConversation) return;
+    try {
+      await MessagingService.addParticipant(selectedConversation, userId);
+      await loadParticipants(selectedConversation);
+      setEditMembersSearchQuery('');
+      setEditMembersSearchResults([]);
+    } catch (error) {
+      console.error('Error adding member:', error);
+      alert('Error adding member. Please try again.');
+    }
+  };
+
+  const handleRemoveMemberFromGroup = async (userId: string) => {
+    if (!selectedConversation || !user) return;
+    try {
+      await MessagingService.removeParticipant(selectedConversation, userId);
+      await loadParticipants(selectedConversation);
+      // If user removed themselves, go back to conversations list
+      if (userId === user.id) {
+        setSelectedConversation(null);
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error removing member:', error);
+      alert('Error removing member. Please try again.');
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!selectedConversation) return;
+    try {
+      await MessagingService.deleteConversation(selectedConversation);
+      setShowDeleteConfirm(false);
+      setSelectedConversation(null);
+      await loadConversations();
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      alert('Error deleting group. Please try again.');
+    }
+  };
+
+  // Search users for edit members (debounced)
+  useEffect(() => {
+    if (!editMembersSearchQuery.trim()) {
+      setEditMembersSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await MessagingService.searchUsers(editMembersSearchQuery.trim());
+        if (data) {
+          // Filter out current participants and current user
+          const participantIds = currentParticipants.map(p => p.user_id);
+          setEditMembersSearchResults(
+            data.filter(u => u.id !== user?.id && !participantIds.includes(u.id))
+          );
+        }
+      } catch (error) {
+        console.error('Error searching users for edit members:', error);
+        setEditMembersSearchResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [editMembersSearchQuery, currentParticipants, user]);
+
   return (
-    <div className="h-full bg-[#FBF9F5]">
+    <div className="h-full bg-[#fbf8f7]">
       {/* Mobile View */}
-      <div className="md:hidden h-full flex flex-col">
+      <div
+        className="md:hidden h-full min-h-screen flex flex-col overflow-hidden"
+        style={{ paddingBottom: '76px' }}
+      >
         {!selectedConversation ? (
           /* Conversations List */
           <>
-            <div className="px-4 pt-6 pb-4">
+            <div className="px-4 pt-6 pb-4 flex-shrink-0">
               <h1 
                 className="text-3xl mb-4"
                 style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
@@ -386,7 +625,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto min-h-0">
               <div className="px-4 pb-4">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
@@ -430,33 +669,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         >
                           Groups
                         </h2>
-                        <Dialog open={showNewGroup} onOpenChange={setShowNewGroup}>
-                          <DialogTrigger asChild>
-                            <button className="w-6 h-6 rounded-full bg-[#d47455] flex items-center justify-center">
-                              <Plus className="w-4 h-4 text-white" />
-                            </button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>New Group Chat</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <Input
-                                placeholder="Group name"
-                                value={newGroupName}
-                                onChange={(e) => setNewGroupName(e.target.value)}
-                              />
-                              <Input
-                                placeholder="Member emails (comma separated)"
-                                value={newGroupEmails}
-                                onChange={(e) => setNewGroupEmails(e.target.value)}
-                              />
-                              <Button onClick={handleCreateGroup} className="w-full">
-                                Create Group
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        <button
+                          type="button"
+                          className="w-6 h-6 rounded-full bg-[#d47455] flex items-center justify-center"
+                          onClick={() => setShowNewGroup(true)}
+                        >
+                          <Plus className="w-4 h-4 text-white" />
+                        </button>
                       </div>
                       <div className="space-y-2">
                         {groups.length === 0 ? (
@@ -481,8 +700,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </>
         ) : (
           /* Chat View */
-          <>
-            <div className="bg-white border-b border-[#e7ded1] px-4 py-3">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setSelectedConversation(null)}
@@ -522,16 +741,35 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     </p>
                   )}
                 </div>
+                {selectedConv?.type === 'group' && isAdmin && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleOpenEditMembers}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
+                      aria-label="Edit members"
+                    >
+                      <Settings className="w-5 h-5 text-[#3d3d3a]" />
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
+                      aria-label="Delete group"
+                    >
+                      <Trash2 className="w-5 h-5 text-[#d47455]" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-4 space-y-1">
               {messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No messages yet</p>
                 </div>
               ) : (
-                messages.map((msg) => {
+                messages.map((msg, index) => {
+                  const isOwnMessage = msg.sender_id === user?.id;
                   const senderName = msg.sender?.full_name || msg.sender?.email?.split('@')[0] || 'Unknown';
                   const senderAvatar = (senderName || '?')
                     .split(' ')
@@ -542,48 +780,164 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
                   const avatarColor = colors[senderName.charCodeAt(0) % colors.length];
                   
+                  // Check if previous message is from same sender and within 2 minutes
+                  const prevMsg = index > 0 ? messages[index - 1] : null;
+                  const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+                  
+                  const isFirstInGroup = !isOwnMessage && (
+                    !prevMsg || 
+                    prevMsg.sender_id !== msg.sender_id || 
+                    new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 120000
+                  );
+                  
+                  const isLastInGroup = !isOwnMessage && (
+                    !nextMsg || 
+                    nextMsg.sender_id !== msg.sender_id || 
+                    new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
+                  );
+                  
+                  const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup;
+                  const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup; // Only show on top if it's also the last (single message)
+                  const showOwnTimestamp = isOwnMessage && (
+                    !nextMsg ||
+                    nextMsg.sender_id !== user?.id ||
+                    new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
+                  );
+                  const showNameAndTime = (!isOwnMessage && isFirstInGroup) || showOwnTimestamp;
+                  
                   return (
-                    <div key={msg.id} className="flex items-start gap-3">
-                      <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs"
-                        style={{ 
-                          fontFamily: 'Arial, sans-serif',
-                          fontWeight: 600,
-                          backgroundColor: avatarColor
-                        }}
-                      >
-                        {senderAvatar}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 mb-1">
-                          <span 
-                            className="text-sm"
-                            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
-                          >
-                            {senderName}
-                          </span>
-                          <span 
-                            className="text-xs"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                          >
-                            {formatTime(msg.created_at)}
-                          </span>
+                    <div 
+                      key={msg.id} 
+                      className={`flex items-end gap-2 w-full ${isOwnMessage ? 'justify-end' : ''}`}
+                    >
+                      {showAvatarOnTop && (
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
+                          style={{ 
+                            fontFamily: 'Arial, sans-serif',
+                            fontWeight: 600,
+                            backgroundColor: avatarColor
+                          }}
+                        >
+                          {senderAvatar}
                         </div>
-                        {msg.message_type === 'text' ? (
-                          <p 
-                            className="text-sm"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+                      )}
+                      {showAvatarOnLeft && (
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
+                          style={{ 
+                            fontFamily: 'Arial, sans-serif',
+                            fontWeight: 600,
+                            backgroundColor: avatarColor
+                          }}
+                        >
+                          {senderAvatar}
+                        </div>
+                      )}
+                      {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && (
+                        <div className="w-8 h-8 flex-shrink-0" />
+                      )}
+                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} ${isOwnMessage ? 'max-w-[65%]' : 'max-w-[65%]'}`}>
+                        {showNameAndTime && (
+                          <div className={`flex w-full items-baseline gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}`}>
+                            {!isOwnMessage && (
+                              <span 
+                                className="text-xs"
+                                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#7b7b74' }}
+                              >
+                                {senderName}
+                              </span>
+                            )}
+                            <span 
+                              className="text-xs"
+                              style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                            >
+                              {formatTime(msg.created_at)}
+                            </span>
+                          </div>
+                        )}
+                        {msg.message_type === 'image' && msg.attachments && msg.attachments.length > 0 ? (
+                          <div className="flex flex-col">
+                            <img 
+                              src={msg.attachments[0].url} 
+                              alt="Shared image"
+                              className="max-w-full rounded-lg"
+                              style={{ maxHeight: '400px', objectFit: 'contain' }}
+                            />
+                            <button
+                              type="button"
+                              aria-label="Download"
+                              onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
+                              className="mt-2 flex items-center text-xs text-[#7b7b74] hover:text-[#3d3d3a] transition-colors"
+                              style={{ fontFamily: 'Arial, sans-serif' }}
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : msg.message_type === 'file' && msg.attachments && msg.attachments.length > 0 ? (
+                          <div
+                            className={`inline-block rounded-xl px-4 py-3 ${
+                              isOwnMessage 
+                                ? 'bg-[#d47455] text-white' 
+                                : 'bg-white border border-[#e7ded1]'
+                            }`}
+                            style={{ fontFamily: 'Arial, sans-serif', minWidth: '200px' }}
                           >
-                            {msg.content}
-                          </p>
-                        ) : msg.message_type === 'image' ? (
-                          <p className="text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                            📷 Image
-                          </p>
+                            <div className="flex items-start gap-3">
+                              <div className={`flex-shrink-0 ${isOwnMessage ? 'text-white' : 'text-[#7b7b74]'}`}>
+                                <File className="w-7 h-7" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p 
+                                  className="text-sm font-medium truncate mb-1"
+                                  style={{ color: isOwnMessage ? '#ffffff' : '#3d3d3a' }}
+                                >
+                                  {msg.attachments[0].file_name}
+                                </p>
+                                {msg.attachments[0].file_size && (
+                                  <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                                    <span
+                                      style={{ color: isOwnMessage ? 'rgba(255,255,255,0.8)' : '#7b7b74' }}
+                                    >
+                                      {(msg.attachments[0].file_size / 1024).toFixed(1)} KB
+                                    </span>
+                                    <button
+                                      type="button"
+                                      aria-label="Download"
+                                      onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
+                                      className={`inline-flex items-center px-2.5 py-1 rounded-lg transition-colors ${
+                                        isOwnMessage 
+                                          ? 'bg-white/20 hover:bg-white/30 text-white' 
+                                          : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#3d3d3a]'
+                                      }`}
+                                      style={{ fontFamily: 'Arial, sans-serif' }}
+                                    >
+                                      <Download className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         ) : (
-                          <p className="text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                            📎 File
-                          </p>
+                          <div
+                            className={`inline-block rounded-xl px-3 py-1.5 ${
+                              isOwnMessage 
+                                ? 'bg-[#d47455] text-white' 
+                                : 'bg-white border border-[#e7ded1]'
+                            }`}
+                            style={{ fontFamily: 'Arial, sans-serif' }}
+                          >
+                            <p 
+                              className="text-sm"
+                              style={{ 
+                                color: isOwnMessage ? '#ffffff' : '#3d3d3a', 
+                                lineHeight: 1.5 
+                              }}
+                            >
+                              {msg.content}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -592,8 +946,63 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               )}
             </div>
 
-            <div className="bg-white border-t border-[#e7ded1] p-4">
+            {pendingAttachments.length > 0 && (
+              <div className="bg-white border-t border-[#e7ded1] px-4 py-3 flex-shrink-0">
+                <div className="flex flex-wrap gap-3">
+                  {pendingAttachments.map((att, idx) => (
+                    <div
+                      key={`${att.url}-${idx}`}
+                      className="relative rounded-lg border border-[#e7ded1] bg-[#f9f7f2] p-2"
+                      style={{ width: '140px' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(idx)}
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#d47455] text-white text-xs flex items-center justify-center shadow"
+                        aria-label="Remove attachment"
+                      >
+                        ×
+                      </button>
+                      {att.type === 'image' ? (
+                        <img
+                          src={att.url}
+                          alt={att.name}
+                          className="w-full h-24 object-cover rounded-md"
+                        />
+                      ) : (
+                        <div className="flex items-start gap-2">
+                          <File className="w-5 h-5 text-[#7b7b74] flex-shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate" style={{ color: '#3d3d3a' }}>
+                              {att.name}
+                            </p>
+                            <p className="text-[11px]" style={{ color: '#7b7b74' }}>
+                              {(att.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white border-t border-[#e7ded1] p-4 flex-shrink-0">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="*/*"
+                className="hidden"
+              />
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleFileSelect}
+                  className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
+                >
+                  <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
+                </button>
                 <input
                   type="text"
                   placeholder="Message..."
@@ -611,20 +1020,353 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 </button>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
+
+      {/* Group Modal */}
+      {showNewGroup && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={closeGroupModal}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-lg bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75]">
+            <div className="flex items-center justify-between mb-4">
+              <h2
+                className="text-lg font-semibold"
+                style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+              >
+                New Group Chat
+              </h2>
+              <button
+                type="button"
+                onClick={closeGroupModal}
+                className="w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#3d3d3a] hover:bg-[#e8e5dc]"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-4">
+              <Input
+                placeholder="Group name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+              />
+              <div className="space-y-2">
+                <Input
+                  placeholder="Search users by name or email"
+                  value={newGroupSearchQuery}
+                  onChange={(e) => setNewGroupSearchQuery(e.target.value)}
+                />
+                {newGroupSearchResults.length > 0 && (
+                  <div className="max-h-48 overflow-auto border border-[#e7ded1] rounded-lg bg-white shadow-sm">
+                    {newGroupSearchResults.map((u) => {
+                    const avatar = (u.full_name || u.email?.split('@')[0] || '?')
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const avatarColor = colors[(u.full_name || u.email || '?').charCodeAt(0) % colors.length];
+                      return (
+                        <button
+                          type="button"
+                          key={u.id}
+                          onClick={() => handleAddGroupMember(u)}
+                          className="w-full px-3 py-2 flex items-center gap-2 hover:bg-[#f5f3eb] text-left"
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
+                            style={{ backgroundColor: avatarColor, fontWeight: 600 }}
+                          >
+                            {avatar}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[#3d3d3a] truncate">{u.full_name || u.email?.split('@')[0] || 'Unknown'}</p>
+                            <p className="text-xs text-[#7b7b74] truncate">{u.email}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              {selectedGroupMembers.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedGroupMembers.map((m) => {
+                    const avatar = (m.full_name || m.email?.split('@')[0] || '?')
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const avatarColor = colors[(m.full_name || m.email || '?').charCodeAt(0) % colors.length];
+                    return (
+                      <div key={m.id} className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5f3eb] border border-[#e7ded1]">
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px]"
+                          style={{ backgroundColor: avatarColor, fontWeight: 600 }}
+                        >
+                          {avatar}
+                        </div>
+                        <span className="text-sm text-[#3d3d3a]">{m.full_name || m.email?.split('@')[0] || 'Unknown'}</span>
+                        <button
+                          type="button"
+                          className="text-[#d47455] text-xs"
+                          onClick={() => handleRemoveGroupMember(m.id)}
+                          aria-label={`Remove ${m.full_name || m.email}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex gap-2 justify-end items-center">
+                <span
+                  className={`text-xs ${!newGroupName.trim() || selectedGroupMembers.length < 2 ? 'text-[#d47455]' : 'text-transparent'}`}
+                  style={{ minHeight: '16px' }}
+                >
+                  {!newGroupName.trim() || selectedGroupMembers.length < 2 ? 'Needs a name and 2+ members (3 incl. you)' : ''}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeGroupModal}
+                  className="min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCreateGroup}
+                  disabled={!newGroupName.trim() || selectedGroupMembers.length < 2}
+                  className="min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white disabled:opacity-60 disabled:hover:bg-[#d47455]"
+                  title={!newGroupName.trim() || selectedGroupMembers.length < 2 ? 'Add a name and at least 2 members (3 incl. you)' : undefined}
+                >
+                  Create Group
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Members Modal */}
+      {showEditMembers && selectedConv && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={handleCloseEditMembers}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-lg bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75] max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2
+                className="text-lg font-semibold"
+                style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+              >
+                Edit Group Members
+              </h2>
+              <button
+                type="button"
+                onClick={handleCloseEditMembers}
+                className="w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#3d3d3a] hover:bg-[#e8e5dc]"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-4">
+              {/* Current Members */}
+              <div>
+                <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}>
+                  Current Members ({currentParticipants.length})
+                </h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {currentParticipants.map((p) => {
+                    const profile = p.profile;
+                    const name = profile?.full_name || profile?.email?.split('@')[0] || 'Unknown';
+                    const avatar = (name || '?')
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const avatarColor = colors[(name || '?').charCodeAt(0) % colors.length];
+                    const isCurrentUser = p.user_id === user?.id;
+                    const canRemove = isAdmin && (p.role === 'member' || (p.role === 'admin' && isCurrentUser));
+
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between px-3 py-2 bg-[#f5f3eb] rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm"
+                            style={{ backgroundColor: avatarColor, fontWeight: 600 }}
+                          >
+                            {avatar}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: '#3d3d3a' }}>
+                              {name}
+                              {p.role === 'admin' && (
+                                <span className="ml-2 text-xs text-[#d47455]">(Admin)</span>
+                              )}
+                            </p>
+                            {profile?.email && (
+                              <p className="text-xs" style={{ color: '#7b7b74' }}>
+                                {profile.email}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {canRemove && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMemberFromGroup(p.user_id)}
+                            className="text-[#d47455] hover:text-[#c06545] text-sm"
+                            aria-label={`Remove ${name}`}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add Members */}
+              <div>
+                <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}>
+                  Add Members
+                </h3>
+                <Input
+                  placeholder="Search users by name or email"
+                  value={editMembersSearchQuery}
+                  onChange={(e) => setEditMembersSearchQuery(e.target.value)}
+                />
+                {editMembersSearchResults.length > 0 && (
+                  <div className="mt-2 max-h-48 overflow-auto border border-[#e7ded1] rounded-lg bg-white shadow-sm">
+                    {editMembersSearchResults.map((u) => {
+                      const avatar = (u.full_name || u.email?.split('@')[0] || '?')
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                      const avatarColor = colors[(u.full_name || u.email || '?').charCodeAt(0) % colors.length];
+                      return (
+                        <button
+                          type="button"
+                          key={u.id}
+                          onClick={() => handleAddMemberToGroup(u.id)}
+                          className="w-full px-3 py-2 flex items-center gap-2 hover:bg-[#f5f3eb] text-left"
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
+                            style={{ backgroundColor: avatarColor, fontWeight: 600 }}
+                          >
+                            {avatar}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[#3d3d3a] truncate">
+                              {u.full_name || u.email?.split('@')[0] || 'Unknown'}
+                            </p>
+                            <p className="text-xs text-[#7b7b74] truncate">{u.email}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowDeleteConfirm(false)}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-md bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75]">
+            <h2
+              className="text-lg font-semibold mb-4"
+              style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+            >
+              Delete Group
+            </h2>
+            <p className="text-sm mb-6" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+              Are you sure you want to delete this group? This action cannot be undone. All messages and members will be permanently removed.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDeleteGroup}
+                className="min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white"
+              >
+                Delete Group
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Desktop View - Keep existing design */}
       <div className="hidden md:flex h-full">
         <div className="w-80 bg-white border-r border-[#e7ded1] flex flex-col">
           <div className="p-6 border-b border-[#e7ded1]">
-            <h2 
-              className="text-2xl mb-4"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
-            >
-              Messages
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 
+                className="text-2xl"
+                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+              >
+                Messages
+              </h2>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full bg-[#d47455] flex items-center justify-center"
+                onClick={() => setShowNewGroup(true)}
+              >
+                <Plus className="w-4 h-4 text-white" />
+              </button>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
               <input
@@ -676,67 +1418,289 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {selectedConv ? (
             <>
               <div className="bg-white border-b border-[#e7ded1] px-6 py-4">
-                <h2 
-                  className="text-xl"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
-                >
-                  {selectedConv.name}
-                </h2>
-                {selectedConv.subtitle && (
-                  <p 
-                    className="text-sm"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                  >
-                    {selectedConv.subtitle}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 
+                      className="text-xl"
+                      style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                    >
+                      {selectedConv.name}
+                    </h2>
+                    {selectedConv.subtitle && (
+                      <p 
+                        className="text-sm"
+                        style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                      >
+                        {selectedConv.subtitle}
+                      </p>
+                    )}
+                  </div>
+                  {selectedConv.type === 'group' && isAdmin && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleOpenEditMembers}
+                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
+                        aria-label="Edit members"
+                      >
+                        <Settings className="w-5 h-5 text-[#3d3d3a]" />
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
+                        aria-label="Delete group"
+                      >
+                        <Trash2 className="w-5 h-5 text-[#d47455]" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-auto p-6 space-y-1">
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No messages yet</p>
+                  </div>
+                ) : (
+                  messages.map((msg, index) => {
+                    const isOwnMessage = msg.sender_id === user?.id;
+                    const senderName = msg.sender?.full_name || msg.sender?.email?.split('@')[0] || 'Unknown';
+                    const senderAvatar = (senderName || '?')
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const avatarColor = colors[senderName.charCodeAt(0) % colors.length];
+                    
+                    // Check if previous message is from same sender and within 2 minutes
+                    const prevMsg = index > 0 ? messages[index - 1] : null;
+                    const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+                    
+                    const isFirstInGroup = !isOwnMessage && (
+                      !prevMsg || 
+                      prevMsg.sender_id !== msg.sender_id || 
+                      new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 120000
+                    );
+                    
+                    const isLastInGroup = !isOwnMessage && (
+                      !nextMsg || 
+                      nextMsg.sender_id !== msg.sender_id || 
+                      new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
+                    );
+                    
+                    const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup;
+                    const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup; // Only show on top if it's also the last (single message)
+                    const showOwnTimestamp = isOwnMessage && (
+                      !nextMsg ||
+                      nextMsg.sender_id !== user?.id ||
+                      new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
+                    );
+                    const showNameAndTime = (!isOwnMessage && isFirstInGroup) || showOwnTimestamp; // show time for own msg if not grouped with next within 2 min
+                    
+                    return (
+                      <div 
+                        key={msg.id} 
+                        className={`flex items-end gap-2 w-full ${isOwnMessage ? 'justify-end' : ''}`}
+                      >
+                        {showAvatarOnTop && (
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
+                            style={{ 
+                              fontFamily: 'Arial, sans-serif',
+                              fontWeight: 600,
+                              backgroundColor: avatarColor
+                            }}
+                          >
+                            {senderAvatar}
+                          </div>
+                        )}
+                        {showAvatarOnLeft && (
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
+                            style={{ 
+                              fontFamily: 'Arial, sans-serif',
+                              fontWeight: 600,
+                              backgroundColor: avatarColor
+                            }}
+                          >
+                            {senderAvatar}
+                          </div>
+                        )}
+                        {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && (
+                          <div className="w-10 h-10 flex-shrink-0" />
+                        )}
+                        <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} ${isOwnMessage ? 'max-w-[65%]' : 'max-w-[65%]'}`}>
+                          {showNameAndTime && (
+                            <div className={`flex w-full items-baseline gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}`}>
+                              {!isOwnMessage && (
+                                <span 
+                                  className="text-xs"
+                                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#7b7b74' }}
+                                >
+                                  {senderName}
+                                </span>
+                              )}
+                              <span 
+                                className="text-xs"
+                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                              >
+                                {formatTime(msg.created_at)}
+                              </span>
+                            </div>
+                          )}
+                          {msg.message_type === 'image' && msg.attachments && msg.attachments.length > 0 ? (
+                            <div className="flex flex-col">
+                              <img 
+                                src={msg.attachments[0].url} 
+                                alt="Shared image"
+                                className="max-w-full rounded-lg"
+                                style={{ maxHeight: '400px', objectFit: 'contain' }}
+                              />
+                              <button
+                                type="button"
+                                aria-label="Download"
+                                onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
+                                className="mt-2 flex items-center text-xs text-[#7b7b74] hover:text-[#3d3d3a] transition-colors"
+                                style={{ fontFamily: 'Arial, sans-serif' }}
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : msg.message_type === 'file' && msg.attachments && msg.attachments.length > 0 ? (
+                            <div
+                              className={`inline-block rounded-xl px-4 py-3 ${
+                                isOwnMessage 
+                                  ? 'bg-[#d47455] text-white' 
+                                  : 'bg-white border border-[#e7ded1]'
+                              }`}
+                              style={{ fontFamily: 'Arial, sans-serif', minWidth: '200px' }}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`flex-shrink-0 ${isOwnMessage ? 'text-white' : 'text-[#7b7b74]'}`}>
+                                  <File className="w-7 h-7" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p 
+                                    className="text-sm font-medium truncate mb-1"
+                                    style={{ color: isOwnMessage ? '#ffffff' : '#3d3d3a' }}
+                                  >
+                                    {msg.attachments[0].file_name}
+                                  </p>
+                                  {msg.attachments[0].file_size && (
+                                    <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                                      <span 
+                                        style={{ color: isOwnMessage ? 'rgba(255,255,255,0.8)' : '#7b7b74' }}
+                                      >
+                                        {(msg.attachments[0].file_size / 1024).toFixed(1)} KB
+                                      </span>
+                                  <button
+                                    type="button"
+                                    aria-label="Download"
+                                    onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
+                                    className={`inline-flex items-center px-2.5 py-1 rounded-lg transition-colors ${
+                                      isOwnMessage 
+                                        ? 'bg-white/20 hover:bg-white/30 text-white' 
+                                        : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#3d3d3a]'
+                                    }`}
+                                    style={{ fontFamily: 'Arial, sans-serif' }}
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className={`inline-block rounded-xl px-3 py-1.5 ${
+                                isOwnMessage 
+                                  ? 'bg-[#d47455] text-white' 
+                                  : 'bg-white border border-[#e7ded1]'
+                              }`}
+                              style={{ fontFamily: 'Arial, sans-serif' }}
+                            >
+                              <p 
+                                className="text-sm"
+                                style={{ 
+                                  color: isOwnMessage ? '#ffffff' : '#3d3d3a', 
+                                  lineHeight: 1.5 
+                                }}
+                              >
+                                {msg.content}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
-              <div className="flex-1 overflow-auto p-6 space-y-4">
-                {selectedConv.messages.map((msg, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
-                      style={{ 
-                        fontFamily: 'Arial, sans-serif',
-                        fontWeight: 600,
-                        backgroundColor: msg.avatarColor
-                      }}
-                    >
-                      {msg.avatar}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span 
-                          className="text-sm"
-                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
-                        >
-                          {msg.author}
-                        </span>
-                        <span 
-                          className="text-xs"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                        >
-                          {msg.time}
-                        </span>
-                      </div>
-                      <p 
-                        className="text-sm"
-                        style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+              {pendingAttachments.length > 0 && (
+                <div className="bg-white border-t border-[#e7ded1] px-6 py-4">
+                  <div className="flex flex-wrap gap-3">
+                    {pendingAttachments.map((att, idx) => (
+                      <div
+                        key={`${att.url}-${idx}`}
+                        className="relative rounded-lg border border-[#e7ded1] bg-[#f9f7f2] p-2"
+                        style={{ width: '160px' }}
                       >
-                        {msg.content}
-                      </p>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(idx)}
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#d47455] text-white text-xs flex items-center justify-center shadow"
+                          aria-label="Remove attachment"
+                        >
+                          ×
+                        </button>
+                        {att.type === 'image' ? (
+                          <img
+                            src={att.url}
+                            alt={att.name}
+                            className="w-full h-28 object-cover rounded-md"
+                          />
+                        ) : (
+                          <div className="flex items-start gap-2">
+                            <File className="w-5 h-5 text-[#7b7b74] flex-shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium truncate" style={{ color: '#3d3d3a' }}>
+                                {att.name}
+                              </p>
+                              <p className="text-[11px]" style={{ color: '#7b7b74' }}>
+                                {(att.size / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
 
               <div className="bg-white border-t border-[#e7ded1] p-6">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="*/*"
+                  className="hidden"
+                />
                 <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleFileSelect}
+                    className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
+                  >
+                    <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
+                  </button>
                   <input
                     type="text"
                     placeholder="Message..."
