@@ -1,9 +1,11 @@
+import React from 'react';
 import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Users, User, Paperclip, Download, File, Trash2, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessagingService, Conversation as SupabaseConversation, Message, Participant } from '../services/messagingService';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { UserProfileView } from './UserProfileView';
 
 interface MessagingPageProps {
   onCourseClick?: (courseId: string) => void;
@@ -84,13 +86,13 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
               className="text-sm truncate"
               style={{ 
                 fontFamily: 'Arial, sans-serif', 
-                color: conv.unread ? '#3d3d3a' : '#7b7b74',
-                fontWeight: conv.unread ? 500 : 400
+                color: (conv.unread ?? 0) > 0 ? '#3d3d3a' : '#7b7b74',
+                fontWeight: (conv.unread ?? 0) > 0 ? 500 : 400
               }}
             >
               {conv.lastMessage}
             </p>
-            {conv.unread && conv.unread > 0 && (
+            {(conv.unread ?? 0) > 0 && (
               <div 
                 className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: '#d47455' }}
@@ -138,6 +140,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [currentParticipants, setCurrentParticipants] = useState<Participant[]>([]);
   const [editMembersSearchQuery, setEditMembersSearchQuery] = useState('');
   const [editMembersSearchResults, setEditMembersSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   
   const closeGroupModal = () => {
     setShowNewGroup(false);
@@ -637,6 +640,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   return (
     <div className="h-full bg-[#fbf8f7]">
       {/* Mobile View */}
+      {viewingUserId ? (
+        <div className="md:hidden h-full min-h-screen flex flex-col overflow-hidden">
+          <UserProfileView 
+            userId={viewingUserId} 
+            onBack={() => setViewingUserId(null)} 
+          />
+        </div>
+      ) : (
       <div
         className="md:hidden h-full min-h-screen flex flex-col overflow-hidden"
         style={{ paddingBottom: '76px' }}
@@ -800,52 +811,117 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 >
                   <ChevronLeft className="w-6 h-6 text-[#3d3d3a]" />
                 </button>
-                {selectedConv?.avatarUrl ? (
-                  <img
-                    src={selectedConv.avatarUrl}
-                    alt={selectedConv.name}
-                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const fallback = target.nextElementSibling as HTMLElement;
-                      if (fallback) fallback.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
-                  style={{ 
-                    fontFamily: 'Arial, sans-serif',
-                    fontWeight: 600,
-                    backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#7b7b74',
-                    display: selectedConv?.avatarUrl ? 'none' : 'flex'
-                  }}
-                >
-                  {selectedConv?.type === 'course' ? (
-                    <Hash className="w-5 h-5" />
-                  ) : selectedConv?.type === 'dm' ? (
-                    selectedConv.avatar
-                  ) : (
-                    <span className="text-lg">{selectedConv?.avatar}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 
-                    className="text-base truncate"
-                    style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
-                  >
-                    {selectedConv?.name}
-                  </h2>
-                  {selectedConv?.subtitle && (
-                    <p 
-                      className="text-xs truncate"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                {selectedConv?.type === 'dm' ? (
+                  <>
+                    {selectedConv?.avatarUrl ? (
+                      <img
+                        src={selectedConv.avatarUrl}
+                        alt={selectedConv.name}
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                        onClick={() => {
+                          const otherParticipant = currentParticipants.find(p => p.user_id !== user?.id);
+                          if (otherParticipant) {
+                            setViewingUserId(otherParticipant.user_id);
+                          }
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                      onClick={() => {
+                        const otherParticipant = currentParticipants.find(p => p.user_id !== user?.id);
+                        if (otherParticipant) {
+                          setViewingUserId(otherParticipant.user_id);
+                        }
+                      }}
+                      style={{ 
+                        fontFamily: 'Arial, sans-serif',
+                        fontWeight: 600,
+                        backgroundColor: selectedConv?.avatarColor || '#7b7b74',
+                        display: selectedConv?.avatarUrl ? 'none' : 'flex'
+                      }}
                     >
-                      {selectedConv.subtitle}
-                    </p>
-                  )}
-                </div>
+                      {selectedConv.avatar}
+                    </div>
+                    <div 
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => {
+                        const otherParticipant = currentParticipants.find(p => p.user_id !== user?.id);
+                        if (otherParticipant) {
+                          setViewingUserId(otherParticipant.user_id);
+                        }
+                      }}
+                    >
+                      <h2 
+                        className="text-base truncate hover:text-[#d47455] transition-colors"
+                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                      >
+                        {selectedConv?.name}
+                      </h2>
+                      {selectedConv?.subtitle && (
+                        <p 
+                          className="text-xs truncate"
+                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                        >
+                          {selectedConv.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {selectedConv?.avatarUrl ? (
+                      <img
+                        src={selectedConv.avatarUrl}
+                        alt={selectedConv.name}
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
+                      style={{ 
+                        fontFamily: 'Arial, sans-serif',
+                        fontWeight: 600,
+                        backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#7b7b74',
+                        display: selectedConv?.avatarUrl ? 'none' : 'flex'
+                      }}
+                    >
+                      {selectedConv?.type === 'course' ? (
+                        <Hash className="w-5 h-5" />
+                      ) : (
+                        <span className="text-lg">{selectedConv?.avatar}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 
+                        className="text-base truncate"
+                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                      >
+                        {selectedConv?.name}
+                      </h2>
+                      {selectedConv?.subtitle && (
+                        <p 
+                          className="text-xs truncate"
+                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                        >
+                          {selectedConv.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
                 {selectedConv?.type === 'group' && isAdmin && (
                   <div className="flex items-center gap-2">
                     <button
@@ -924,7 +1000,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={senderAvatarUrl}
                               alt={senderName}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1"
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                              onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
@@ -934,7 +1011,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             />
                           ) : null}
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
+                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                            onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                             style={{ 
                               fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
@@ -952,7 +1030,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={senderAvatarUrl}
                               alt={senderName}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1"
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                              onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
@@ -962,7 +1041,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             />
                           ) : null}
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1"
+                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                            onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                             style={{ 
                               fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
@@ -982,7 +1062,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           <div className={`flex w-full items-baseline gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}`}>
                             {!isOwnMessage && (
                               <span 
-                                className="text-xs"
+                                className="text-xs cursor-pointer hover:text-[#d47455] transition-colors"
+                                onClick={() => setViewingUserId(msg.sender_id)}
                                 style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#7b7b74' }}
                               >
                                 {senderName}
@@ -1163,6 +1244,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </div>
         )}
       </div>
+      )}
 
       {/* Group Modal */}
       {showNewGroup && (
