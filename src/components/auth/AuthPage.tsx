@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { LoginPage } from './LoginPage'
 import { SignupForm } from './SignupForm'
 import { ForgotPasswordForm } from './ForgotPasswordPage'
 
 type AuthMode = 'login' | 'signup' | 'forgot-password'
 
-export const AuthPage: React.FC = () => {
-  const [authMode, setAuthMode] = useState<AuthMode>('login')
+interface AuthPageProps {
+  onBack?: () => void;
+  initialMode?: AuthMode;
+}
+
+export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login' }) => {
+  const [authMode, setAuthMode] = useState<AuthMode>(initialMode)
   const [urlError, setUrlError] = useState<string | null>(null)
+
+  // Update auth mode when initialMode prop changes
+  useEffect(() => {
+    setAuthMode(initialMode);
+  }, [initialMode]);
 
   // Check for error in URL parameters
   useEffect(() => {
@@ -38,6 +49,18 @@ export const AuthPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center relative px-4" style={{ backgroundColor: 'var(--background-color, #f9f5f0)', minHeight: '100vh' }}>
+      {/* Back button */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 text-[#3d3d3a] hover:bg-white/50 rounded-xl transition-colors"
+          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Back</span>
+        </button>
+      )}
+      
       {/* Logo at the top - responsive sizing */}
       <div className="flex-shrink-0" style={{ marginTop: 'clamp(20px, 4vh, 60px)', paddingBottom: 'clamp(10px, 2vh, 20px)' }}>
         <div className="flex justify-center">

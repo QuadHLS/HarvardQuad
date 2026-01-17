@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Phone, MapPin, Calendar, Book, Award, Edit2, ChevronRight, LogOut, Save, X, Trash2 } from 'lucide-react';
-// @ts-ignore - Image import is handled by vite-env.d.ts
-import imgBitmap1 from "../assets/80922ffffc76a0f79d25191840d09536bcb80db6.png";
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 

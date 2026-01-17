@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, Search, Calendar as CalendarIcon, Bell, MessageCircle, LayoutDashboard, Briefcase, Store, HomeIcon as HouseIcon, BookOpen, Users, Sparkles } from 'lucide-react';
-// @ts-ignore - Image import is handled by vite-env.d.ts
-import imgBitmap1 from "./assets/80922ffffc76a0f79d25191840d09536bcb80db6.png";
 import { MessagingPage } from './components/MessagingPage';
 import { CoursePage } from './components/CoursePage';
 import { ProfilePage } from './components/ProfilePage';
@@ -13,6 +11,7 @@ import { IconButton } from './components/IconButton';
 import { MobileDashboard } from './components/MobileDashboard';
 import { AuthPage } from './components/auth/AuthPage';
 import { AuthCallback } from './components/auth/AuthCallback';
+import { LandingPage } from './components/LandingPage';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 
@@ -39,6 +38,8 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -440,20 +441,30 @@ export default function App() {
     return <AuthCallback />;
   }
 
-  // Show login page if not authenticated
+  // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f9f5f0]">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00962c] mx-auto"></div>
-          <p className="mt-4 text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto"></div>
+          <p className="mt-4 text-neutral-600" style={{ fontFamily: 'Arial, sans-serif' }}>Loading...</p>
         </div>
       </div>
     );
   }
 
+  // Show landing page if not authenticated
   if (!user) {
-    return <AuthPage />;
+    if (showAuth) {
+      return <AuthPage onBack={() => setShowAuth(false)} initialMode={authMode} />;
+    }
+    
+    return <LandingPage 
+      onSignIn={() => {
+        setAuthMode('login');
+        setShowAuth(true);
+      }}
+    />;
   }
 
   return (
