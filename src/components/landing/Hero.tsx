@@ -48,7 +48,7 @@ export function Hero({ onSignIn }: HeroProps) {
             <span className="line-through">Slack</span>
             <span className="line-through">WhatsApp</span>
             <span className="line-through">Google Calendar</span>
-            <span className="text-neutral-900 font-medium">→ Just Quad</span>
+            <span className="text-neutral-900 font-medium">→ Quad</span>
           </div>
         </div>
       </div>

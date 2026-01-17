@@ -69,19 +69,12 @@ export function Navigation({ activeSection, onSignIn }: NavigationProps) {
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={onSignIn}
-              className="bg-neutral-900 text-neutral-50 px-4 py-1.5 text-sm hover:bg-neutral-800 transition-colors rounded-full"
-            >
-              Sign In
-            </button>
-            <button 
-              className="text-neutral-900 px-4 py-1.5 text-sm hover:text-neutral-500 transition-colors"
-            >
-              Download
-            </button>
-          </div>
+          <button 
+            onClick={onSignIn}
+            className="bg-neutral-900 text-neutral-50 px-4 py-1.5 text-sm hover:bg-neutral-800 transition-colors rounded-full"
+          >
+            Sign In
+          </button>
         </div>
       </div>
     </nav>

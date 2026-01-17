@@ -18,8 +18,8 @@ export function Footer() {
   return (
     <footer className="border-t border-neutral-200" style={{ backgroundColor: '#f7f7f5', paddingTop: '48px', paddingBottom: '48px' }}>
       <div className="max-w-5xl mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-12" style={{ marginBottom: '80px' }}>
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 justify-items-center md:justify-items-start" style={{ marginBottom: '80px' }}>
+          <div className="hidden md:block md:col-span-2">
             <img src="/QUAD.svg" alt="Quad" className="h-16 mb-4" />
           </div>
 
