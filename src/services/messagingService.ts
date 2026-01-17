@@ -82,13 +82,15 @@ export class MessagingService {
     // Get last message for each conversation
     const conversationsWithMessages = await Promise.all(
       conversations.map(async (conv) => {
-        const { data: lastMessage } = await supabase
+        const { data: lastMessageData, error: lastMessageError } = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', conv.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
+        
+        const lastMessage = lastMessageError ? null : lastMessageData;
 
         // Get sender profile if message exists
         if (lastMessage) {
@@ -130,16 +132,34 @@ export class MessagingService {
 
   // Get messages for a conversation
   static async getMessages(conversationId: string, limit: number = 50): Promise<Message[]> {
-    // First get messages
+    // First get messages without nested select to avoid 406 errors
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
-      .select('*, attachments:message_attachments(*)')
+      .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
       .limit(limit);
 
     if (messagesError) throw messagesError;
-    if (!messages) return [];
+    if (!messages || messages.length === 0) return [];
+
+    // Get attachments for all messages in one query
+    const messageIds = messages.map((m: any) => m.id);
+    const { data: allAttachments } = await supabase
+      .from('message_attachments')
+      .select('*')
+      .in('message_id', messageIds);
+
+    // Group attachments by message_id
+    const attachmentsByMessageId = new Map<string, any[]>();
+    if (allAttachments) {
+      allAttachments.forEach((att: any) => {
+        if (!attachmentsByMessageId.has(att.message_id)) {
+          attachmentsByMessageId.set(att.message_id, []);
+        }
+        attachmentsByMessageId.get(att.message_id)!.push(att);
+      });
+    }
 
     // Then get profiles for each sender
     const messagesWithSenders = await Promise.all(
@@ -151,8 +171,8 @@ export class MessagingService {
           .eq('id', msg.sender_id)
           .single();
 
-        // Get public URLs for attachments
-        let attachmentsWithUrls = msg.attachments || [];
+        // Get attachments for this message
+        let attachmentsWithUrls = attachmentsByMessageId.get(msg.id) || [];
         if (attachmentsWithUrls.length > 0) {
           attachmentsWithUrls = await Promise.all(
             attachmentsWithUrls.map(async (att: any) => {
@@ -485,7 +505,7 @@ export class MessagingService {
   }
 
   // Search users by email or name
-  static async searchUsers(query: string): Promise<{ data: Array<{ id: string; email: string; full_name: string | null }> | null; error: any }> {
+  static async searchUsers(query: string): Promise<{ data: Array<{ id: string; email: string; full_name: string | null }> | null; error: Error | null }> {
     const searchTerm = `%${query}%`;
     const { data, error } = await supabase
       .from('profiles')
@@ -496,12 +516,17 @@ export class MessagingService {
     return { data, error };
   }
 
-  // Add participant to group chat (admin only)
+  // Add participant to group chat (all members can add)
   static async addParticipant(conversationId: string, userId: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // Check if user is admin
+    // Prevent users from adding themselves
+    if (user.id === userId) {
+      throw new Error('You cannot add yourself to a group');
+    }
+
+    // Check if user is a participant (any role)
     const { data: participant } = await supabase
       .from('conversation_participants')
       .select('role')
@@ -509,8 +534,8 @@ export class MessagingService {
       .eq('user_id', user.id)
       .single();
 
-    if (participant?.role !== 'admin') {
-      throw new Error('Only admins can add participants');
+    if (!participant) {
+      throw new Error('Only group members can add participants');
     }
 
     const { error } = await supabase
@@ -529,20 +554,42 @@ export class MessagingService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // Check if user is admin or removing themselves
-    if (user.id !== userId) {
-      const { data: participant } = await supabase
+    // Users can always remove themselves
+    if (user.id === userId) {
+      const { error } = await supabase
+        .from('conversation_participants')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return;
+    }
+
+    // For removing others: Check if target is an admin
+    // Only admins can remove other admins
+    const { data: targetParticipant } = await supabase
+      .from('conversation_participants')
+      .select('role')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId)
+      .single();
+
+    if (targetParticipant?.role === 'admin') {
+      // Only admins can remove other admins
+      const { data: currentParticipant } = await supabase
         .from('conversation_participants')
         .select('role')
         .eq('conversation_id', conversationId)
         .eq('user_id', user.id)
         .single();
 
-      if (participant?.role !== 'admin') {
-        throw new Error('Only admins can remove other participants');
+      if (currentParticipant?.role !== 'admin') {
+        throw new Error('Only admins can remove other admins');
       }
     }
 
+    // All members can remove non-admins (RLS policy will enforce this)
     const { error } = await supabase
       .from('conversation_participants')
       .delete()

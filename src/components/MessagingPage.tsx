@@ -1,8 +1,8 @@
 import React from 'react';
-import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Users, User, Paperclip, Download, File, Trash2, Settings } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Paperclip, Download, File, Trash2, Settings } from 'lucide-react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { MessagingService, Conversation as SupabaseConversation, Message, Participant } from '../services/messagingService';
+import { MessagingService, Message, Participant } from '../services/messagingService';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { UserProfileView } from './UserProfileView';
@@ -19,6 +19,12 @@ interface DisplayConversation {
   avatar?: string;
   avatarUrl?: string | null;
   avatarColor?: string;
+  memberAvatars?: Array<{
+    avatarUrl: string | null;
+    initials: string;
+    color: string;
+  }>;
+  totalMembers?: number;
   lastMessage?: string;
   lastMessageTime?: string;
   unread?: number;
@@ -39,7 +45,214 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
       className="bg-white rounded-2xl p-4 active:bg-[#f5f3eb] transition-colors"
     >
       <div className="flex items-start gap-3">
-        {conv.avatarUrl ? (
+        {conv.type === 'group' && conv.memberAvatars && conv.memberAvatars.length > 0 ? (
+          <div className="w-12 h-12 relative flex-shrink-0">
+            {conv.memberAvatars.length === 1 ? (
+              conv.memberAvatars[0].avatarUrl ? (
+                <img
+                  src={conv.memberAvatars[0].avatarUrl}
+                  alt={conv.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm"
+                  style={{ 
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: 600,
+                    backgroundColor: conv.memberAvatars[0].color
+                  }}
+                >
+                  {conv.memberAvatars[0].initials}
+                </div>
+              )
+            ) : conv.memberAvatars.length === 2 ? (
+              <div className="w-12 h-12 relative">
+                {conv.memberAvatars[0].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[0].avatarUrl}
+                    alt=""
+                    className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[0].color
+                    }}
+                  >
+                    {conv.memberAvatars[0].initials}
+                  </div>
+                )}
+                {conv.memberAvatars[1].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[1].avatarUrl}
+                    alt=""
+                    className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[1].color
+                    }}
+                  >
+                    {conv.memberAvatars[1].initials}
+                  </div>
+                )}
+              </div>
+            ) : conv.memberAvatars.length === 3 && (!conv.totalMembers || conv.totalMembers === 3) ? (
+              <div className="w-12 h-12 relative">
+                {conv.memberAvatars[0].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[0].avatarUrl}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[0].color
+                    }}
+                  >
+                    {conv.memberAvatars[0].initials}
+                  </div>
+                )}
+                {conv.memberAvatars[1].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[1].avatarUrl}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[1].color
+                    }}
+                  >
+                    {conv.memberAvatars[1].initials}
+                  </div>
+                )}
+                {conv.memberAvatars[2].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[2].avatarUrl}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[2].color
+                    }}
+                  >
+                    {conv.memberAvatars[2].initials}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-12 h-12 relative">
+                {conv.memberAvatars[0].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[0].avatarUrl}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[0].color
+                    }}
+                  >
+                    {conv.memberAvatars[0].initials}
+                  </div>
+                )}
+                {conv.memberAvatars[1].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[1].avatarUrl}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[1].color
+                    }}
+                  >
+                    {conv.memberAvatars[1].initials}
+                  </div>
+                )}
+                {conv.memberAvatars[2].avatarUrl ? (
+                  <img
+                    src={conv.memberAvatars[2].avatarUrl}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                  />
+                ) : (
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: conv.memberAvatars[2].color
+                    }}
+                  >
+                    {conv.memberAvatars[2].initials}
+                  </div>
+                )}
+                {conv.memberAvatars.length === 4 && conv.memberAvatars[3] && (!conv.totalMembers || conv.totalMembers === 4) ? (
+                  conv.memberAvatars[3].avatarUrl ? (
+                    <img
+                      src={conv.memberAvatars[3].avatarUrl}
+                      alt=""
+                      className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                    />
+                  ) : (
+                    <div 
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                      style={{ 
+                        fontFamily: 'Arial, sans-serif',
+                        fontWeight: 600,
+                        backgroundColor: conv.memberAvatars[3].color
+                      }}
+                    >
+                      {conv.memberAvatars[3].initials}
+                    </div>
+                  )
+                ) : conv.totalMembers && conv.totalMembers > 4 ? (
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                    style={{ 
+                      fontFamily: 'Arial, sans-serif',
+                      fontWeight: 600,
+                      backgroundColor: '#7b7b74'
+                    }}
+                  >
+                    +{conv.totalMembers - 3}
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        ) : conv.avatarUrl ? (
           <img
             src={conv.avatarUrl}
             alt={conv.name}
@@ -52,21 +265,19 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
             }}
           />
         ) : null}
-        <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white text-base"
-          style={{ 
-            fontFamily: 'Arial, sans-serif',
-            fontWeight: 600,
-            backgroundColor: conv.avatarColor || '#7b7b74',
-            display: conv.avatarUrl ? 'none' : 'flex'
-          }}
-        >
-          {conv.type === 'group' ? (
-            <span className="text-xl">{conv.avatar}</span>
-          ) : (
-            conv.avatar
-          )}
-        </div>
+        {conv.type !== 'group' && (
+          <div 
+            className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white text-base"
+            style={{ 
+              fontFamily: 'Arial, sans-serif',
+              fontWeight: 600,
+              backgroundColor: conv.avatarColor || '#7b7b74',
+              display: conv.avatarUrl ? 'none' : 'flex'
+            }}
+          >
+            {conv.avatar}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <h3 
@@ -114,16 +325,36 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
 }
 
 export function MessagingPage({ onCourseClick }: MessagingPageProps) {
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const didConsumeStoredConversationRef = useRef(false);
+  const scrollMessagesToBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }, []);
   const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const hasManuallySelectedRef = useRef(false);
+  const storedConversationIdRef = useRef<string | null>(null);
   
-  // Check if there's a conversation ID from navigation (e.g., from squad detail page)
+  // Clear sessionStorage immediately and capture stored value on mount
   useEffect(() => {
-    const storedConversationId = sessionStorage.getItem('selectedConversationId');
-    if (storedConversationId) {
+    const stored = sessionStorage.getItem('selectedConversationId');
+    if (stored) {
+      storedConversationIdRef.current = stored;
       sessionStorage.removeItem('selectedConversationId');
-      setSelectedConversation(storedConversationId);
     }
+  }, []);
+  
+  const openConversation = useCallback((conversationId: string) => {
+    // Clear stored conversation and mark as manually selected BEFORE setting state
+    storedConversationIdRef.current = null;
+    didConsumeStoredConversationRef.current = true;
+    hasManuallySelectedRef.current = true;
+    // Clear messages immediately to prevent showing old messages
+    setMessages([]);
+    setSelectedConversation(conversationId);
   }, []);
   const [messageInput, setMessageInput] = useState('');
   const [conversations, setConversations] = useState<DisplayConversation[]>([]);
@@ -132,9 +363,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [groups, setGroups] = useState<DisplayConversation[]>([]);
   const [clubs, setClubs] = useState<DisplayConversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const previousConversationRef = useRef<string | null>(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupEmails, setNewGroupEmails] = useState(''); // legacy text entry (kept to avoid breaking; not used for new flow)
   const [newGroupSearchQuery, setNewGroupSearchQuery] = useState('');
   const [newGroupSearchResults, setNewGroupSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
@@ -154,27 +386,51 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   
   // Check if there's a conversation ID from navigation (e.g., from squad detail page)
+  // This should ONLY run once when conversations are first loaded, never after manual selection
   useEffect(() => {
-    if (!loading && conversations.length > 0) {
-      const storedConversationId = sessionStorage.getItem('selectedConversationId');
-      if (storedConversationId) {
-        sessionStorage.removeItem('selectedConversationId');
-        // Verify the conversation exists in the loaded conversations
-        const conversationExists = conversations.some(c => c.id === storedConversationId) ||
-                                   groups.some(g => g.id === storedConversationId) ||
-                                   clubs.some(c => c.id === storedConversationId) ||
-                                   dms.some(d => d.id === storedConversationId);
-        if (conversationExists) {
-          setSelectedConversation(storedConversationId);
-        }
-      }
+    // CRITICAL: Check refs first - if user manually selected, NEVER run
+    if (hasManuallySelectedRef.current || didConsumeStoredConversationRef.current) {
+      return;
     }
-  }, [loading, conversations, groups, clubs, dms]);
+    
+    // Don't run if still loading
+    if (loading) {
+      return;
+    }
+    
+    // Don't run if conversations haven't loaded yet
+    if (conversations.length === 0 && groups.length === 0 && clubs.length === 0 && dms.length === 0) {
+      return;
+    }
+    
+    // Mark as consumed immediately to prevent re-running when conversations update
+    didConsumeStoredConversationRef.current = true;
+    
+    // If we already have a selected conversation, don't override it
+    if (selectedConversation !== null) {
+      storedConversationIdRef.current = null;
+      return;
+    }
+    
+    const storedConversationId = storedConversationIdRef.current;
+    if (!storedConversationId) {
+      return;
+    }
+    
+    // Verify the conversation exists in the loaded conversations
+    const conversationExists = conversations.some(c => c.id === storedConversationId) ||
+                               groups.some(g => g.id === storedConversationId) ||
+                               clubs.some(c => c.id === storedConversationId) ||
+                               dms.some(d => d.id === storedConversationId);
+    if (conversationExists) {
+      setSelectedConversation(storedConversationId);
+    }
+    storedConversationIdRef.current = null;
+  }, [loading, conversations.length, groups.length, clubs.length, dms.length]);
 
   const closeGroupModal = () => {
     setShowNewGroup(false);
     setNewGroupName('');
-    setNewGroupEmails('');
     setNewGroupSearchQuery('');
     setNewGroupSearchResults([]);
     setSelectedGroupMembers([]);
@@ -236,9 +492,47 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 : null;
             }
           } else {
-            // Group chat
+            // Group chat - get member avatars
+            const participants = await MessagingService.getParticipants(conv.id);
+            const totalMembers = participants.length;
+            // Show first 3 members, then indicate if there are more
+            const membersToShow = totalMembers > 4 ? 3 : Math.min(totalMembers, 4);
+            const memberAvatars = participants.slice(0, membersToShow).map(p => {
+              const memberName = p.profile?.full_name || p.profile?.email || '?';
+              const initials = memberName
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+              const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+              const color = colors[memberName.charCodeAt(0) % colors.length];
+              return {
+                avatarUrl: p.profile?.avatar_url && p.profile.avatar_url.trim() !== '' 
+                  ? p.profile.avatar_url 
+                  : null,
+                initials,
+                color
+              };
+            });
+            
             avatar = '👥';
             avatarColor = '#d47455';
+            
+            return {
+              id: conv.id,
+              name: displayName,
+              type: conv.type,
+              avatar,
+              avatarUrl: null,
+              avatarColor,
+              memberAvatars,
+              totalMembers: totalMembers,
+              lastMessage,
+              lastMessageTime,
+              unread: conv.unread_count || 0,
+              messages: []
+            };
           }
 
           return {
@@ -286,6 +580,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   // Load messages when conversation is selected
   useEffect(() => {
     if (selectedConversation) {
+      // Only clear messages if switching to a different conversation
+      if (previousConversationRef.current !== selectedConversation) {
+        setMessages([]);
+        setMessagesLoading(true);
+        previousConversationRef.current = selectedConversation;
+      }
+      
       // Mark messages as read immediately when opening the conversation
       const markReadAndRefresh = async () => {
         try {
@@ -305,12 +606,26 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       loadParticipants(selectedConversation);
     } else {
       // Reset state when no conversation is selected
+      setMessages([]);
       setIsAdmin(false);
       setCurrentParticipants([]);
       setShowEditMembers(false);
       setShowDeleteConfirm(false);
     }
   }, [selectedConversation]);
+
+  useLayoutEffect(() => {
+    if (!selectedConversation) return;
+    scrollMessagesToBottom();
+  }, [selectedConversation, messages.length, pendingAttachments.length, scrollMessagesToBottom]);
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const timer = setTimeout(() => {
+      scrollMessagesToBottom();
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [selectedConversation, messages.length, pendingAttachments.length, scrollMessagesToBottom]);
 
   // Periodically mark messages as read while viewing the conversation
   useEffect(() => {
@@ -370,9 +685,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   };
 
   const loadMessages = async (conversationId: string) => {
+    setMessagesLoading(true);
     try {
       const msgs = await MessagingService.getMessages(conversationId);
       setMessages(msgs);
+      setMessagesLoading(false);
       // Mark messages as read after loading (in case it wasn't already marked)
       MessagingService.markAsRead(conversationId).then(() => {
         // Update unread count locally for immediate UI feedback
@@ -403,6 +720,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       });
     } catch (error) {
       console.error('Error loading messages:', error);
+      setMessagesLoading(false);
     }
   };
 
@@ -517,19 +835,28 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     const timer = setTimeout(async () => {
       try {
         const { data } = await MessagingService.searchUsers(newGroupSearchQuery.trim());
-        setNewGroupSearchResults(data || []);
+        // Filter out current user - they're automatically added as creator
+        if (data) {
+          setNewGroupSearchResults(data.filter(u => u.id !== user?.id));
+        } else {
+          setNewGroupSearchResults([]);
+        }
       } catch (error) {
         console.error('Error searching users for group:', error);
         setNewGroupSearchResults([]);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [newGroupSearchQuery]);
+  }, [newGroupSearchQuery, user]);
 
-  const handleAddGroupMember = (user: { id: string; email: string; full_name: string | null }) => {
+  const handleAddGroupMember = (userToAdd: { id: string; email: string; full_name: string | null }) => {
+    // Prevent adding yourself - you're automatically added as creator
+    if (userToAdd.id === user?.id) {
+      return;
+    }
     setSelectedGroupMembers((prev) => {
-      if (prev.some((m) => m.id === user.id)) return prev;
-      return [...prev, user];
+      if (prev.some((m) => m.id === userToAdd.id)) return prev;
+      return [...prev, userToAdd];
     });
     setNewGroupSearchQuery('');
     setNewGroupSearchResults([]);
@@ -597,9 +924,9 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   };
 
   const handleCreateGroup = async () => {
-    // Require at least 3 people total (creator + 2 selected)
-    if (!newGroupName.trim() || selectedGroupMembers.length < 2 || !user) {
-      alert('Add a group name and at least 2 members (3 people including you).');
+    // Require at least 2 people total (creator + 1 selected)
+    if (!newGroupName.trim() || selectedGroupMembers.length < 1 || !user) {
+      alert('Add a group name and at least 1 member (2 incl. you).');
       return;
     }
 
@@ -703,10 +1030,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   }, [editMembersSearchQuery, currentParticipants, user]);
 
   return (
-    <div className="h-full bg-[#fbf8f7]">
+    <div className="h-full bg-[#fbf8f7] overflow-hidden">
       {/* Mobile View */}
       {viewingUserId ? (
-        <div className="md:hidden h-full min-h-screen flex flex-col overflow-hidden">
+        <div
+          className="md:hidden flex flex-col overflow-hidden"
+          style={{ height: 'calc(100dvh - 76px)' }}
+        >
           <UserProfileView 
             userId={viewingUserId} 
             onBack={() => setViewingUserId(null)} 
@@ -714,8 +1044,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
         </div>
       ) : (
       <div
-        className="md:hidden h-full min-h-screen flex flex-col overflow-hidden"
-        style={{ paddingBottom: '76px' }}
+        className="md:hidden flex flex-col overflow-hidden"
+        style={{ height: 'calc(100dvh - 76px)' }}
       >
         {!selectedConversation ? (
           /* Conversations List */
@@ -820,7 +1150,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <ConversationItem
                               key={conv.id}
                               conv={conv}
-                              onClick={() => setSelectedConversation(conv.id)}
+                              onClick={() => openConversation(conv.id)}
                             />
                           ))
                         )}
@@ -854,7 +1184,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <ConversationItem
                               key={conv.id}
                               conv={conv}
-                              onClick={() => setSelectedConversation(conv.id)}
+                              onClick={() => openConversation(conv.id)}
                             />
                           ))
                         )}
@@ -881,7 +1211,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <ConversationItem
                               key={conv.id}
                               conv={conv}
-                              onClick={() => setSelectedConversation(conv.id)}
+                              onClick={() => openConversation(conv.id)}
                             />
                           ))
                         )}
@@ -894,8 +1224,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </>
         ) : (
           /* Chat View */
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setSelectedConversation(null)}
@@ -968,7 +1298,214 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   </>
                 ) : (
                   <>
-                    {selectedConv?.avatarUrl ? (
+                    {selectedConv?.type === 'group' && selectedConv?.memberAvatars && selectedConv.memberAvatars.length > 0 ? (
+                      <div className="w-10 h-10 relative flex-shrink-0">
+                        {selectedConv.memberAvatars.length === 1 ? (
+                          selectedConv.memberAvatars[0].avatarUrl ? (
+                            <img
+                              src={selectedConv.memberAvatars[0].avatarUrl}
+                              alt={selectedConv.name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div 
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: selectedConv.memberAvatars[0].color
+                              }}
+                            >
+                              {selectedConv.memberAvatars[0].initials}
+                            </div>
+                          )
+                        ) : selectedConv.memberAvatars.length === 2 ? (
+                          <div className="w-10 h-10 relative">
+                            {selectedConv.memberAvatars[0].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[0].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[0].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[0].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[1].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[1].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[1].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[1].initials}
+                              </div>
+                            )}
+                          </div>
+                        ) : selectedConv.memberAvatars.length === 3 && (!selectedConv.totalMembers || selectedConv.totalMembers === 3) ? (
+                          <div className="w-10 h-10 relative">
+                            {selectedConv.memberAvatars[0].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[0].avatarUrl}
+                                alt=""
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[0].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[0].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[1].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[1].avatarUrl}
+                                alt=""
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[1].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[1].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[2].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[2].avatarUrl}
+                                alt=""
+                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[2].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[2].initials}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 relative">
+                            {selectedConv.memberAvatars[0].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[0].avatarUrl}
+                                alt=""
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[0].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[0].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[1].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[1].avatarUrl}
+                                alt=""
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[1].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[1].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[2].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[2].avatarUrl}
+                                alt=""
+                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[2].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[2].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars.length === 4 && selectedConv.memberAvatars[3] && (!selectedConv.totalMembers || selectedConv.totalMembers === 4) ? (
+                              selectedConv.memberAvatars[3].avatarUrl ? (
+                                <img
+                                  src={selectedConv.memberAvatars[3].avatarUrl}
+                                  alt=""
+                                  className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                                />
+                              ) : (
+                                <div 
+                                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                  style={{ 
+                                    fontFamily: 'Arial, sans-serif',
+                                    fontWeight: 600,
+                                    backgroundColor: selectedConv.memberAvatars[3].color
+                                  }}
+                                >
+                                  {selectedConv.memberAvatars[3].initials}
+                                </div>
+                              )
+                            ) : selectedConv.totalMembers && selectedConv.totalMembers > 4 ? (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: '#7b7b74'
+                                }}
+                              >
+                                +{selectedConv.totalMembers - 3}
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    ) : selectedConv?.avatarUrl ? (
                       <img
                         src={selectedConv.avatarUrl}
                         alt={selectedConv.name}
@@ -981,21 +1518,23 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         }}
                       />
                     ) : null}
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
-                      style={{ 
-                        fontFamily: 'Arial, sans-serif',
-                        fontWeight: 600,
-                        backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#7b7b74',
-                        display: selectedConv?.avatarUrl ? 'none' : 'flex'
-                      }}
-                    >
-                      {selectedConv?.type === 'course' ? (
-                        <Hash className="w-5 h-5" />
-                      ) : (
-                        <span className="text-lg">{selectedConv?.avatar}</span>
-                      )}
-                    </div>
+                    {selectedConv?.type !== 'group' && (
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
+                        style={{ 
+                          fontFamily: 'Arial, sans-serif',
+                          fontWeight: 600,
+                          backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#7b7b74',
+                          display: selectedConv?.avatarUrl ? 'none' : 'flex'
+                        }}
+                      >
+                        {selectedConv?.type === 'course' ? (
+                          <Hash className="w-5 h-5" />
+                        ) : (
+                          <span className="text-lg">{selectedConv?.avatar}</span>
+                        )}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <h2 
                         className="text-base truncate"
@@ -1014,7 +1553,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     </div>
                   </>
                 )}
-                {selectedConv?.type === 'group' && isAdmin && !clubs.some(c => c.id === selectedConversation) && (
+                {selectedConv?.type === 'group' && !clubs.some(c => c.id === selectedConversation) && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleOpenEditMembers}
@@ -1023,20 +1562,26 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     >
                       <Settings className="w-5 h-5 text-[#3d3d3a]" />
                     </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
-                      aria-label="Delete group"
-                    >
-                      <Trash2 className="w-5 h-5 text-[#d47455]" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
+                        aria-label="Delete group"
+                      >
+                        <Trash2 className="w-5 h-5 text-[#d47455]" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-4 space-y-1">
-              {messages.length === 0 ? (
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 pb-4 space-y-1">
+              {messagesLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading messages...</p>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No messages yet</p>
                 </div>
@@ -1072,14 +1617,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
                   );
                   
-                  const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup;
-                  const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup; // Only show on top if it's also the last (single message)
+                  const isDM = selectedConv?.type === 'dm';
+                  const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup && !isDM;
+                  const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup && !isDM; // Only show on top if it's also the last (single message)
                   const showOwnTimestamp = isOwnMessage && (
                     !nextMsg ||
                     nextMsg.sender_id !== user?.id ||
                     new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
                   );
                   const showNameAndTime = (!isOwnMessage && isFirstInGroup) || showOwnTimestamp;
+                  const showName = !isOwnMessage && isFirstInGroup && !isDM;
                   
                   return (
                     <div 
@@ -1092,7 +1639,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={senderAvatarUrl}
                               alt={senderName}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                              style={{ marginTop: 'auto', marginBottom: '0' }}
                               onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
@@ -1103,13 +1651,15 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             />
                           ) : null}
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
                             onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                             style={{ 
                               fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
                               backgroundColor: avatarColor,
-                              display: senderAvatarUrl ? 'none' : 'flex'
+                              display: senderAvatarUrl ? 'none' : 'flex',
+                              marginTop: 'auto',
+                              marginBottom: '0'
                             }}
                           >
                             {senderAvatar}
@@ -1122,7 +1672,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={senderAvatarUrl}
                               alt={senderName}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                              style={{ marginTop: 'auto', marginBottom: '0' }}
                               onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
@@ -1133,26 +1684,28 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             />
                           ) : null}
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs mb-1 cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
+                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
                             onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                             style={{ 
                               fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
                               backgroundColor: avatarColor,
-                              display: senderAvatarUrl ? 'none' : 'flex'
+                              display: senderAvatarUrl ? 'none' : 'flex',
+                              marginTop: 'auto',
+                              marginBottom: '0'
                             }}
                           >
                             {senderAvatar}
                           </div>
                         </>
                       )}
-                      {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && (
+                      {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && !isDM && (
                         <div className="w-8 h-8 flex-shrink-0" />
                       )}
-                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} ${isOwnMessage ? 'max-w-[65%]' : 'max-w-[65%]'}`}>
+                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`} style={{ maxWidth: '65%' }}>
                         {showNameAndTime && (
-                          <div className={`flex w-full items-baseline gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}`}>
-                            {!isOwnMessage && (
+                          <div className={`flex items-baseline gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}`} style={{ width: '100%' }}>
+                            {showName && (
                               <span 
                                 className="text-xs cursor-pointer hover:text-[#d47455] transition-colors"
                                 onClick={() => setViewingUserId(msg.sender_id)}
@@ -1161,12 +1714,22 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 {senderName}
                               </span>
                             )}
-                            <span 
-                              className="text-xs"
-                              style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                            >
-                              {formatTime(msg.created_at)}
-                            </span>
+                            {isOwnMessage && (
+                              <span 
+                                className="text-xs ml-auto"
+                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                              >
+                                {formatTime(msg.created_at)}
+                              </span>
+                            )}
+                            {!isOwnMessage && (
+                              <span 
+                                className="text-xs"
+                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                              >
+                                {formatTime(msg.created_at)}
+                              </span>
+                            )}
                           </div>
                         )}
                         {msg.message_type === 'image' && msg.attachments && msg.attachments.length > 0 ? (
@@ -1174,8 +1737,9 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img 
                               src={msg.attachments[0].url} 
                               alt="Shared image"
-                              className="max-w-full rounded-lg"
+                              className="max-w-full rounded-xl"
                               style={{ maxHeight: '400px', objectFit: 'contain' }}
+                              onLoad={scrollMessagesToBottom}
                             />
                             <button
                               type="button"
@@ -1239,7 +1803,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 ? 'bg-[#d47455] text-white' 
                                 : 'bg-white border border-[#e7ded1]'
                             }`}
-                            style={{ fontFamily: 'Arial, sans-serif' }}
+                            style={{ fontFamily: 'Arial, sans-serif', width: 'fit-content', maxWidth: '100%' }}
                           >
                             <p 
                               className="text-sm"
@@ -1257,6 +1821,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   );
                 })
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {pendingAttachments.length > 0 && (
@@ -1301,7 +1866,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               </div>
             )}
 
-            <div className="bg-white border-t border-[#e7ded1] p-4 flex-shrink-0">
+            <div className="bg-white border-t border-[#e7ded1] p-4 flex-shrink-0 z-10">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -1448,10 +2013,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               )}
               <div className="flex gap-2 justify-end items-center">
                 <span
-                  className={`text-xs ${!newGroupName.trim() || selectedGroupMembers.length < 2 ? 'text-[#d47455]' : 'text-transparent'}`}
+                  className={`text-xs ${!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'text-[#d47455]' : 'text-transparent'}`}
                   style={{ minHeight: '16px' }}
                 >
-                  {!newGroupName.trim() || selectedGroupMembers.length < 2 ? 'Needs a name and 2+ members (3 incl. you)' : ''}
+                  {!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'Needs 2 incl. you' : ''}
                 </span>
                 <Button
                   type="button"
@@ -1464,9 +2029,9 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 <Button
                   type="button"
                   onClick={handleCreateGroup}
-                  disabled={!newGroupName.trim() || selectedGroupMembers.length < 2}
+                  disabled={!newGroupName.trim() || selectedGroupMembers.length < 1}
                   className="min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white disabled:opacity-60 disabled:hover:bg-[#d47455]"
-                  title={!newGroupName.trim() || selectedGroupMembers.length < 2 ? 'Add a name and at least 2 members (3 incl. you)' : undefined}
+                  title={!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'Needs 2 incl. you' : undefined}
                 >
                   Create Group
                 </Button>
@@ -1524,7 +2089,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
                     const avatarColor = colors[(name || '?').charCodeAt(0) % colors.length];
                     const isCurrentUser = p.user_id === user?.id;
-                    const canRemove = isAdmin && (p.role === 'member' || (p.role === 'admin' && isCurrentUser));
+                    // Regular members cannot remove admins; admins can remove anyone
+                    const canRemove = !isCurrentUser && (isAdmin || p.role !== 'admin');
 
                     return (
                       <div
@@ -1552,16 +2118,27 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             )}
                           </div>
                         </div>
-                        {canRemove && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveMemberFromGroup(p.user_id)}
-                            className="text-[#d47455] hover:text-[#c06545] text-sm"
-                            aria-label={`Remove ${name}`}
-                          >
-                            Remove
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {isCurrentUser ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMemberFromGroup(p.user_id)}
+                              className="text-[#d47455] hover:text-[#c06545] text-sm font-medium"
+                              aria-label="Leave group"
+                            >
+                              Leave
+                            </button>
+                          ) : canRemove ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMemberFromGroup(p.user_id)}
+                              className="text-[#d47455] hover:text-[#c06545] text-sm"
+                              aria-label={`Remove ${name}`}
+                            >
+                              Remove
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })}
@@ -1696,13 +2273,220 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             {conversations.map((conv) => (
               <div
                 key={conv.id}
-                onClick={() => setSelectedConversation(conv.id)}
+                onClick={() => openConversation(conv.id)}
                 className={`px-6 py-4 cursor-pointer border-b border-[#f5f3eb] hover:bg-[#faf9f7] transition-colors ${
                   selectedConversation === conv.id ? 'bg-[#faf9f7]' : ''
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  {conv.avatarUrl ? (
+                  {conv.type === 'group' && conv.memberAvatars && conv.memberAvatars.length > 0 ? (
+                    <div className="w-10 h-10 relative flex-shrink-0">
+                      {conv.memberAvatars.length === 1 ? (
+                        conv.memberAvatars[0].avatarUrl ? (
+                          <img
+                            src={conv.memberAvatars[0].avatarUrl}
+                            alt={conv.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs"
+                            style={{ 
+                              fontFamily: 'Arial, sans-serif',
+                              fontWeight: 600,
+                              backgroundColor: conv.memberAvatars[0].color
+                            }}
+                          >
+                            {conv.memberAvatars[0].initials}
+                          </div>
+                        )
+                      ) : conv.memberAvatars.length === 2 ? (
+                        <div className="w-10 h-10 relative">
+                          {conv.memberAvatars[0].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[0].avatarUrl}
+                              alt=""
+                              className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[0].color
+                              }}
+                            >
+                              {conv.memberAvatars[0].initials}
+                            </div>
+                          )}
+                          {conv.memberAvatars[1].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[1].avatarUrl}
+                              alt=""
+                              className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[1].color
+                              }}
+                            >
+                              {conv.memberAvatars[1].initials}
+                            </div>
+                          )}
+                        </div>
+                      ) : conv.memberAvatars.length === 3 ? (
+                        <div className="w-10 h-10 relative">
+                          {conv.memberAvatars[0].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[0].avatarUrl}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[0].color
+                              }}
+                            >
+                              {conv.memberAvatars[0].initials}
+                            </div>
+                          )}
+                          {conv.memberAvatars[1].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[1].avatarUrl}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[1].color
+                              }}
+                            >
+                              {conv.memberAvatars[1].initials}
+                            </div>
+                          )}
+                          {conv.memberAvatars[2].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[2].avatarUrl}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[2].color
+                              }}
+                            >
+                              {conv.memberAvatars[2].initials}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 relative">
+                          {conv.memberAvatars[0].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[0].avatarUrl}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[0].color
+                              }}
+                            >
+                              {conv.memberAvatars[0].initials}
+                            </div>
+                          )}
+                          {conv.memberAvatars[1].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[1].avatarUrl}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[1].color
+                              }}
+                            >
+                              {conv.memberAvatars[1].initials}
+                            </div>
+                          )}
+                          {conv.memberAvatars[2].avatarUrl ? (
+                            <img
+                              src={conv.memberAvatars[2].avatarUrl}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                            />
+                          ) : (
+                            <div 
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: conv.memberAvatars[2].color
+                              }}
+                            >
+                              {conv.memberAvatars[2].initials}
+                            </div>
+                          )}
+                          {conv.memberAvatars.length === 4 && conv.memberAvatars[3] ? (
+                            conv.memberAvatars[3].avatarUrl ? (
+                              <img
+                                src={conv.memberAvatars[3].avatarUrl}
+                                alt=""
+                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: conv.memberAvatars[3].color
+                                }}
+                              >
+                                {conv.memberAvatars[3].initials}
+                              </div>
+                            )
+                          ) : conv.totalMembers && conv.totalMembers > 4 ? (
+                            <div 
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[7px] absolute bottom-0 right-0 border-2 border-white"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: '#7b7b74'
+                              }}
+                            >
+                              +{conv.totalMembers - 3}
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  ) : conv.avatarUrl ? (
                     <img
                       src={conv.avatarUrl}
                       alt={conv.name}
@@ -1715,17 +2499,19 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       }}
                     />
                   ) : null}
-                  <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
-                    style={{ 
-                      fontFamily: 'Arial, sans-serif',
-                      fontWeight: 600,
-                      backgroundColor: conv.type === 'course' ? '#d47455' : conv.avatarColor || '#7b7b74',
-                      display: conv.avatarUrl ? 'none' : 'flex'
-                    }}
-                  >
-                    {conv.type === 'course' ? <Hash className="w-5 h-5" /> : conv.avatar}
-                  </div>
+                  {conv.type !== 'group' && (
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
+                      style={{ 
+                        fontFamily: 'Arial, sans-serif',
+                        fontWeight: 600,
+                        backgroundColor: conv.type === 'course' ? '#d47455' : conv.avatarColor || '#7b7b74',
+                        display: conv.avatarUrl ? 'none' : 'flex'
+                      }}
+                    >
+                      {conv.type === 'course' ? <Hash className="w-5 h-5" /> : conv.avatar}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <h3 
                       className="text-sm mb-1 truncate"
@@ -1751,23 +2537,245 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             <>
               <div className="bg-white border-b border-[#e7ded1] px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 
-                      className="text-xl"
-                      style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
-                    >
-                      {selectedConv.name}
-                    </h2>
-                    {selectedConv.subtitle && (
-                      <p 
-                        className="text-sm"
-                        style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  <div className="flex items-center gap-3">
+                    {selectedConv.type === 'group' && selectedConv.memberAvatars && selectedConv.memberAvatars.length > 0 ? (
+                      <div className="w-12 h-12 relative flex-shrink-0">
+                        {selectedConv.memberAvatars.length === 1 ? (
+                          selectedConv.memberAvatars[0].avatarUrl ? (
+                            <img
+                              src={selectedConv.memberAvatars[0].avatarUrl}
+                              alt={selectedConv.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div 
+                              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm"
+                              style={{ 
+                                fontFamily: 'Arial, sans-serif',
+                                fontWeight: 600,
+                                backgroundColor: selectedConv.memberAvatars[0].color
+                              }}
+                            >
+                              {selectedConv.memberAvatars[0].initials}
+                            </div>
+                          )
+                        ) : selectedConv.memberAvatars.length === 2 ? (
+                          <div className="w-12 h-12 relative">
+                            {selectedConv.memberAvatars[0].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[0].avatarUrl}
+                                alt=""
+                                className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[0].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[0].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[1].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[1].avatarUrl}
+                                alt=""
+                                className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[1].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[1].initials}
+                              </div>
+                            )}
+                          </div>
+                        ) : selectedConv.memberAvatars.length === 3 ? (
+                          <div className="w-12 h-12 relative">
+                            {selectedConv.memberAvatars[0].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[0].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[0].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[0].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[1].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[1].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[1].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[1].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[2].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[2].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[2].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[2].initials}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 relative">
+                            {selectedConv.memberAvatars[0].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[0].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[0].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[0].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[1].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[1].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[1].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[1].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars[2].avatarUrl ? (
+                              <img
+                                src={selectedConv.memberAvatars[2].avatarUrl}
+                                alt=""
+                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                              />
+                            ) : (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: selectedConv.memberAvatars[2].color
+                                }}
+                              >
+                                {selectedConv.memberAvatars[2].initials}
+                              </div>
+                            )}
+                            {selectedConv.memberAvatars.length === 4 && selectedConv.memberAvatars[3] ? (
+                              selectedConv.memberAvatars[3].avatarUrl ? (
+                                <img
+                                  src={selectedConv.memberAvatars[3].avatarUrl}
+                                  alt=""
+                                  className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                                />
+                              ) : (
+                                <div 
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                                  style={{ 
+                                    fontFamily: 'Arial, sans-serif',
+                                    fontWeight: 600,
+                                    backgroundColor: selectedConv.memberAvatars[3].color
+                                  }}
+                                >
+                                  {selectedConv.memberAvatars[3].initials}
+                                </div>
+                              )
+                            ) : selectedConv.totalMembers && selectedConv.totalMembers > 4 ? (
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif',
+                                  fontWeight: 600,
+                                  backgroundColor: '#7b7b74'
+                                }}
+                              >
+                                +{selectedConv.totalMembers - 3}
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    ) : selectedConv.avatarUrl ? (
+                      <img
+                        src={selectedConv.avatarUrl}
+                        alt={selectedConv.name}
+                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div>
+                      <h2 
+                        className="text-xl"
+                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
                       >
-                        {selectedConv.subtitle}
-                      </p>
-                    )}
+                        {selectedConv.name}
+                      </h2>
+                      {selectedConv.subtitle && (
+                        <p 
+                          className="text-sm"
+                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                        >
+                          {selectedConv.subtitle}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {selectedConv.type === 'group' && isAdmin && !clubs.some(c => c.id === selectedConversation) && (
+                  {selectedConv.type === 'group' && !clubs.some(c => c.id === selectedConversation) && (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleOpenEditMembers}
@@ -1776,13 +2784,15 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       >
                         <Settings className="w-5 h-5 text-[#3d3d3a]" />
                       </button>
-                      <button
-                        onClick={() => setShowDeleteConfirm(true)}
-                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
-                        aria-label="Delete group"
-                      >
-                        <Trash2 className="w-5 h-5 text-[#d47455]" />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => setShowDeleteConfirm(true)}
+                          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
+                          aria-label="Delete group"
+                        >
+                          <Trash2 className="w-5 h-5 text-[#d47455]" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1825,14 +2835,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
                     );
                     
-                    const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup;
-                    const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup; // Only show on top if it's also the last (single message)
+                    const isDM = selectedConv?.type === 'dm';
+                    const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup && !isDM;
+                    const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup && !isDM; // Only show on top if it's also the last (single message)
                     const showOwnTimestamp = isOwnMessage && (
                       !nextMsg ||
                       nextMsg.sender_id !== user?.id ||
                       new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
                     );
                     const showNameAndTime = (!isOwnMessage && isFirstInGroup) || showOwnTimestamp; // show time for own msg if not grouped with next within 2 min
+                    const showName = !isOwnMessage && isFirstInGroup && !isDM;
                     
                     return (
                       <div 
@@ -1845,7 +2857,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={senderAvatarUrl}
                                 alt={senderName}
-                                className="w-10 h-10 rounded-full object-cover flex-shrink-0 mb-1"
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                                style={{ marginTop: 'auto', marginBottom: '0' }}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
@@ -1855,12 +2868,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               />
                             ) : null}
                             <div 
-                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
+                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: avatarColor,
-                                display: senderAvatarUrl ? 'none' : 'flex'
+                                display: senderAvatarUrl ? 'none' : 'flex',
+                                marginTop: 'auto',
+                                marginBottom: '0'
                               }}
                             >
                               {senderAvatar}
@@ -1873,7 +2888,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={senderAvatarUrl}
                                 alt={senderName}
-                                className="w-10 h-10 rounded-full object-cover flex-shrink-0 mb-1"
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                                style={{ marginTop: 'auto', marginBottom: '0' }}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
@@ -1883,25 +2899,27 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               />
                             ) : null}
                             <div 
-                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white mb-1"
+                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: avatarColor,
-                                display: senderAvatarUrl ? 'none' : 'flex'
+                                display: senderAvatarUrl ? 'none' : 'flex',
+                                marginTop: 'auto',
+                                marginBottom: '0'
                               }}
                             >
                               {senderAvatar}
                             </div>
                           </>
                         )}
-                        {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && (
+                        {!showAvatarOnTop && !showAvatarOnLeft && !isOwnMessage && !isDM && (
                           <div className="w-10 h-10 flex-shrink-0" />
                         )}
-                        <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} ${isOwnMessage ? 'max-w-[65%]' : 'max-w-[65%]'}`}>
+                        <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`} style={{ maxWidth: '65%' }}>
                           {showNameAndTime && (
-                            <div className={`flex w-full items-baseline gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}`}>
-                              {!isOwnMessage && (
+                            <div className={`flex items-baseline gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}`} style={{ width: '100%' }}>
+                              {showName && (
                                 <span 
                                   className="text-xs"
                                   style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#7b7b74' }}
@@ -1909,12 +2927,22 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                   {senderName}
                                 </span>
                               )}
-                              <span 
-                                className="text-xs"
-                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
-                              >
-                                {formatTime(msg.created_at)}
-                              </span>
+                              {isOwnMessage && (
+                                <span 
+                                  className="text-xs ml-auto"
+                                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                                >
+                                  {formatTime(msg.created_at)}
+                                </span>
+                              )}
+                              {!isOwnMessage && (
+                                <span 
+                                  className="text-xs"
+                                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                                >
+                                  {formatTime(msg.created_at)}
+                                </span>
+                              )}
                             </div>
                           )}
                           {msg.message_type === 'image' && msg.attachments && msg.attachments.length > 0 ? (
@@ -1922,7 +2950,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img 
                                 src={msg.attachments[0].url} 
                                 alt="Shared image"
-                                className="max-w-full rounded-lg"
+                                className="max-w-full rounded-xl"
                                 style={{ maxHeight: '400px', objectFit: 'contain' }}
                               />
                               <button
@@ -1957,24 +2985,24 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                   </p>
                                   {msg.attachments[0].file_size && (
                                     <div className="flex items-center justify-between gap-2 text-xs mb-1">
-                                      <span 
+                                      <span
                                         style={{ color: isOwnMessage ? 'rgba(255,255,255,0.8)' : '#7b7b74' }}
                                       >
                                         {(msg.attachments[0].file_size / 1024).toFixed(1)} KB
                                       </span>
-                                  <button
-                                    type="button"
-                                    aria-label="Download"
-                                    onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
-                                    className={`inline-flex items-center px-2.5 py-1 rounded-lg transition-colors ${
-                                      isOwnMessage 
-                                        ? 'bg-white/20 hover:bg-white/30 text-white' 
-                                        : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#3d3d3a]'
-                                    }`}
-                                    style={{ fontFamily: 'Arial, sans-serif' }}
-                                  >
-                                    <Download className="w-3 h-3" />
-                                  </button>
+                                      <button
+                                        type="button"
+                                        aria-label="Download"
+                                        onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
+                                        className={`inline-flex items-center px-2.5 py-1 rounded-lg transition-colors ${
+                                          isOwnMessage 
+                                            ? 'bg-white/20 hover:bg-white/30 text-white' 
+                                            : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#3d3d3a]'
+                                        }`}
+                                        style={{ fontFamily: 'Arial, sans-serif' }}
+                                      >
+                                        <Download className="w-3 h-3" />
+                                      </button>
                                     </div>
                                   )}
                                 </div>
@@ -1987,7 +3015,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                   ? 'bg-[#d47455] text-white' 
                                   : 'bg-white border border-[#e7ded1]'
                               }`}
-                              style={{ fontFamily: 'Arial, sans-serif' }}
+                              style={{ fontFamily: 'Arial, sans-serif', width: 'fit-content', maxWidth: '100%' }}
                             >
                               <p 
                                 className="text-sm"

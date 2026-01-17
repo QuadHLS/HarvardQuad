@@ -29,8 +29,8 @@ BEGIN
     RAISE EXCEPTION 'Group name cannot be empty';
   END IF;
 
-  IF participant_user_ids IS NULL OR array_length(participant_user_ids, 1) < 2 THEN
-    RAISE EXCEPTION 'Group must have at least 2 participants (3 including creator)';
+  IF participant_user_ids IS NULL OR array_length(participant_user_ids, 1) < 1 THEN
+    RAISE EXCEPTION 'Group must have at least 1 participant (2 including creator)';
   END IF;
 
   -- Create group conversation

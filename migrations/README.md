@@ -9,7 +9,13 @@ This directory contains SQL migrations to set up the messaging backend.
 Execute these SQL files in order in your Supabase SQL Editor:
 
 1. **create_messaging_tables.sql** - Creates all tables, indexes, and triggers
-2. **messaging_rls_policies.sql** - Sets up Row Level Security policies
+2. **fix_dm_creation.sql** - Creates DM creation function
+3. **fix_group_creation.sql** - Creates group creation function
+4. **fix_participants_insert_policy.sql** - Sets up INSERT policy for participants
+5. **fix_participants_delete_policy.sql** - Sets up DELETE policy for participants
+6. **fix_policy_consistency.sql** - Ensures all policies use helper functions
+7. **fix_admin_transfer_on_leave.sql** - Sets up admin transfer and auto-delete trigger
+8. **add_last_read_at.sql** - Adds last_read_at column
 
 ### 2. Create Storage Buckets
 

@@ -49,6 +49,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsSidebarExpanded(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    // Check on mount as well
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     const fetchProfile = async () => {
       if (!user) {
         setProfileLoading(false);
@@ -610,7 +623,10 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <div
+          className={`flex-1 ${currentView === 'messaging' ? 'overflow-hidden' : 'overflow-auto'}`}
+          style={{ backgroundColor: currentView === 'messaging' ? '#fbf8f7' : '#FBF9F5' }}
+        >
           {currentView === 'course' && (
             <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
               <CoursePage courseId={selectedCourse} onBack={handleBackFromCourse} previousView={previousView} />
@@ -659,182 +675,21 @@ export default function App() {
           {currentView === 'dashboard' && (
             <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl px-4 md:px-12 py-4 md:py-8 min-h-full">
               <div className="md:hidden">
-                <MobileDashboard
-                  greeting={greeting}
-                  formattedDate={formattedDate}
-                  time={time}
-                  ampm={ampm}
-                  isPastFivePM={isPastFivePM}
-                  handleCourseClick={handleCourseClick}
-                  userName={profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
-                />
+                <h1 
+                  className="text-[32px] text-[#3d3d3a]"
+                  style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
+                >
+                  {greeting}, {profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
+                </h1>
               </div>
 
               <div className="hidden md:block">
-                <div className="mb-6">
-                  <h1 
-                    className="text-[56px] text-[#3d3d3a] mb-2"
-                    style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
-                  >
-                    {greeting}, {profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
-                  </h1>
-                  <p 
-                    className="text-[26px] text-[#7b7b74]"
-                    style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
-                  >
-                    You have <span style={{ fontWeight: 700 }}>3</span> assignments left this week
-                  </p>
-                </div>
-
-                <div className="text-right mb-8">
-                  <div className="flex items-center justify-end gap-2 mb-1">
-                    <span className={`w-3 h-3 rounded-full ${
-                      isPastFivePM 
-                        ? 'bg-gradient-to-br from-[#919FC7] to-[#586595]' 
-                        : 'bg-gradient-to-br from-[#eeaf90] to-[#d97757]'
-                    }`}></span>
-                    <span 
-                      className="text-[56px] text-[#3d3d3a]"
-                      style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
-                    >
-                      {time} <span className="text-[#3d3d39]">{ampm}</span>
-                    </span>
-                  </div>
-                  <p 
-                    className="text-[24px] text-[#7b7b74]"
-                    style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
-                  >
-                    {formattedDate}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-[1fr_320px] gap-16">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 
-                        className="text-[24px] text-[#3d3d3a]"
-                        style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
-                      >
-                        This Week
-                      </h2>
-                      <button 
-                        className="text-[14px] text-[#8c867d] hover:text-[#3d3d3a]"
-                        style={{ fontFamily: 'Arial, sans-serif' }}
-                      >
-                        View All
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="bg-[#fefefc] border border-[#e7ded1] rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-1 h-12 bg-[#d97757] rounded-sm flex-shrink-0"></div>
-                        <div className="flex-1 min-w-0">
-                          <h3 
-                            className="text-[15px] text-[#3d3d3a] mb-0.5"
-                            style={{ fontFamily: 'Lora, serif', fontWeight: 700 }}
-                          >
-                            Case Brief: Hawkins v. McGee
-                          </h3>
-                          <p 
-                            className="text-[14px] text-[#7b7b74]"
-                            style={{ fontFamily: 'Arial, sans-serif' }}
-                          >
-                            Contracts • Tomorrow, 9:00 AM
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="bg-[#fefefc] border border-[#e7ded1] rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-1 h-12 bg-[#8c9e8c] rounded-sm flex-shrink-0"></div>
-                        <div className="flex-1 min-w-0">
-                          <h3 
-                            className="text-[15px] text-[#3d3d3a] mb-0.5"
-                            style={{ fontFamily: 'Lora, serif', fontWeight: 700 }}
-                          >
-                            Memo Draft 1
-                          </h3>
-                          <p 
-                            className="text-[14px] text-[#7b7b74]"
-                            style={{ fontFamily: 'Arial, sans-serif' }}
-                          >
-                            Legal Writing • Friday, 5:00 PM
-                          </p>
-                        </div>
-                      </div>
-
-                      <button className="w-full bg-[#fefefc] border-2 border-dashed border-[#c7bcaa] rounded-xl p-4 text-[14px] text-[#8c867d] hover:border-[#8c867d] transition-colors active:bg-[#f5f3eb]"
-                        style={{ fontFamily: 'Arial, sans-serif' }}
-                      >
-                        + Add new task
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h2 
-                      className="text-[24px] text-[#3d3d3a] mb-4"
-                      style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
-                    >
-                      Today's Classes
-                    </h2>
-
-                    <div className="space-y-3">
-                      <div 
-                        className="bg-[#f0eee6] rounded-xl p-4 cursor-pointer hover:bg-[#e8e5da] transition-colors"
-                        onClick={() => handleCourseClick('contracts-101')}
-                      >
-                        <h3 
-                          className="text-[16px] text-[#3d3d3a] mb-1"
-                          style={{ fontFamily: 'Lora, serif', fontWeight: 700 }}
-                        >
-                          Contracts
-                        </h3>
-                        <p 
-                          className="text-[15px] text-[#3d3d3a]"
-                          style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
-                        >
-                          8:15 AM - 10:00 AM • WCC 1015
-                        </p>
-                      </div>
-
-                      <div 
-                        className="bg-[#f0eee6] rounded-xl p-4 cursor-pointer hover:bg-[#e8e5da] transition-colors"
-                        onClick={() => handleCourseClick('property-law')}
-                      >
-                        <h3 
-                          className="text-[16px] text-[#3d3d3a] mb-1"
-                          style={{ fontFamily: 'Lora, serif', fontWeight: 700 }}
-                        >
-                          Property
-                        </h3>
-                        <p 
-                          className="text-[15px] text-[#3d3d3a]"
-                          style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
-                        >
-                          1:00 PM - 3:00 PM • WCC 1010
-                        </p>
-                      </div>
-
-                      <div 
-                        className="bg-[#f0eee6] rounded-xl p-4 cursor-pointer hover:bg-[#e8e5da] transition-colors"
-                        onClick={() => handleCourseClick('legal-writing')}
-                      >
-                        <h3 
-                          className="text-[16px] text-[#3d3d3a] mb-1"
-                          style={{ fontFamily: 'Lora, serif', fontWeight: 700 }}
-                        >
-                          Legal Writing
-                        </h3>
-                        <p 
-                          className="text-[15px] text-[#3d3d3a]"
-                          style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
-                        >
-                          5:00 PM - 7:30 PM • Pound 102
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <h1 
+                  className="text-[56px] text-[#3d3d3a]"
+                  style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
+                >
+                  {greeting}, {profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
+                </h1>
               </div>
             </div>
           )}
