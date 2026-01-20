@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Paperclip, Download, File, Trash2, Settings } from 'lucide-react';
+import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Paperclip, Download, File, Trash2, Settings, MoreVertical, Ban, UserCheck } from 'lucide-react';
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessagingService, Message, Participant } from '../services/messagingService';
@@ -37,15 +37,57 @@ interface DisplayConversation {
   }>;
 }
 
+// Get initials from club name (first letter of first two words, or first two letters if single word)
+function getClubInitials(name: string): string {
+  const words = name.trim().split(/\s+/);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 // Conversation Item Component
-function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClick: () => void }) {
+function ConversationItem({ 
+  conv, 
+  onClick, 
+  isClub = false,
+  showMenu = false,
+  onMenuClick,
+  menuOpen = false,
+  onBlock,
+  isBlocked = false,
+  blockLoading = false,
+  onCloseMenu
+}: { 
+  conv: DisplayConversation; 
+  onClick: () => void; 
+  isClub?: boolean;
+  showMenu?: boolean;
+  onMenuClick?: (e: React.MouseEvent) => void;
+  menuOpen?: boolean;
+  onBlock?: () => void;
+  isBlocked?: boolean;
+  blockLoading?: boolean;
+  onCloseMenu?: () => void;
+}) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl p-4 active:bg-[#f5f3eb] transition-colors"
+      className="bg-white rounded-2xl p-4 active:bg-[#f5f3eb] transition-colors relative"
     >
-      <div className="flex items-start gap-3">
-        {conv.type === 'group' && conv.memberAvatars && conv.memberAvatars.length > 0 ? (
+      <div className="flex items-center gap-3">
+        {isClub ? (
+          <div 
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0"
+            style={{ 
+              fontFamily: 'Arial, sans-serif',
+              fontWeight: 600,
+              backgroundColor: conv.avatarColor || '#d47455'
+            }}
+          >
+            {getClubInitials(conv.name)}
+          </div>
+        ) : conv.type === 'group' && conv.memberAvatars && conv.memberAvatars.length > 0 ? (
           <div className="w-12 h-12 relative flex-shrink-0">
             {conv.memberAvatars.length === 1 ? (
               conv.memberAvatars[0].avatarUrl ? (
@@ -72,11 +114,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[0].avatarUrl}
                     alt=""
-                    className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                    className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 "
                   />
                 ) : (
                   <div 
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 border-2 border-white"
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -90,11 +132,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[1].avatarUrl}
                     alt=""
-                    className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                    className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 "
                   />
                 ) : (
                   <div 
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 border-2 border-white"
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -111,11 +153,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[0].avatarUrl}
                     alt=""
-                    className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                   />
                 ) : (
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -129,11 +171,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[1].avatarUrl}
                     alt=""
-                    className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                   />
                 ) : (
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -147,11 +189,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[2].avatarUrl}
                     alt=""
-                    className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                    className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                   />
                 ) : (
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -168,11 +210,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[0].avatarUrl}
                     alt=""
-                    className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                   />
                 ) : (
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -186,11 +228,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[1].avatarUrl}
                     alt=""
-                    className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                   />
                 ) : (
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -204,11 +246,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   <img
                     src={conv.memberAvatars[2].avatarUrl}
                     alt=""
-                    className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 "
                   />
                 ) : (
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -223,11 +265,11 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                     <img
                       src={conv.memberAvatars[3].avatarUrl}
                       alt=""
-                      className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                      className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                     />
                   ) : (
                     <div 
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                       style={{ 
                         fontFamily: 'Arial, sans-serif',
                         fontWeight: 600,
@@ -239,7 +281,7 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
                   )
                 ) : conv.totalMembers && conv.totalMembers > 4 ? (
                   <div 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                     style={{ 
                       fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
@@ -319,7 +361,54 @@ function ConversationItem({ conv, onClick }: { conv: DisplayConversation; onClic
             )}
           </div>
         </div>
+        {showMenu && (
+          <button
+            onClick={onMenuClick}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors flex-shrink-0 self-center"
+            aria-label="More options"
+          >
+            <MoreVertical className="w-5 h-5 text-[#7b7b74]" />
+          </button>
+        )}
       </div>
+      {menuOpen && onCloseMenu && (
+        <>
+          <div 
+            className="fixed inset-0 z-40"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCloseMenu();
+            }}
+          />
+          <div className="absolute right-4 top-12 bg-white rounded-xl shadow-lg border border-[#e7ded1] z-50 min-w-[140px] overflow-hidden">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onBlock?.();
+              }}
+              disabled={blockLoading}
+              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[#f5f3eb] transition-colors text-left"
+            >
+              {blockLoading ? (
+                <div className="w-4 h-4 border-2 border-[#7b7b74]/30 border-t-[#7b7b74] rounded-full animate-spin" />
+              ) : isBlocked ? (
+                <UserCheck className="w-4 h-4 text-[#3d3d3a]" />
+              ) : (
+                <Ban className="w-4 h-4 text-[#d47455]" />
+              )}
+              <span 
+                className="text-sm"
+                style={{ 
+                  fontFamily: 'Arial, sans-serif', 
+                  color: isBlocked ? '#3d3d3a' : '#d47455' 
+                }}
+              >
+                {isBlocked ? 'Unblock' : 'Block'}
+              </span>
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -373,12 +462,22 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userSearchResults, setUserSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'friends' | 'groups' | 'squads'>('friends');
+  const [isConversationBlocked, setIsConversationBlocked] = useState(false);
+  const [showDmMenu, setShowDmMenu] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [listMenuOpenId, setListMenuOpenId] = useState<string | null>(null);
+  const [listBlockLoading, setListBlockLoading] = useState<string | null>(null);
+  const [blockedConversations, setBlockedConversations] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingAttachments, setPendingAttachments] = useState<
     Array<{ file: File; type: 'image' | 'file'; url: string; name: string; size: number }>
   >([]);
   const [showEditMembers, setShowEditMembers] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [isEditingGroupName, setIsEditingGroupName] = useState(false);
+  const [groupNameLoading, setGroupNameLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentParticipants, setCurrentParticipants] = useState<Participant[]>([]);
   const [editMembersSearchQuery, setEditMembersSearchQuery] = useState('');
@@ -436,10 +535,20 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     setSelectedGroupMembers([]);
   };
 
-  // Fetch conversations on mount
+  // Fetch conversations on mount and subscribe to real-time updates
   useEffect(() => {
     if (user) {
       loadConversations();
+
+      // Subscribe to conversation and participant changes
+      const channel = MessagingService.subscribeToConversations(user.id, () => {
+        // Reload conversations when any change happens
+        loadConversations();
+      });
+
+      return () => {
+        MessagingService.unsubscribeFromConversations(channel);
+      };
     }
   }, [user]);
 
@@ -603,11 +712,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       markReadAndRefresh();
       loadMessages(selectedConversation);
       checkAdminStatus(selectedConversation);
+      checkBlockStatus(selectedConversation);
       loadParticipants(selectedConversation);
     } else {
       // Reset state when no conversation is selected
       setMessages([]);
       setIsAdmin(false);
+      setIsConversationBlocked(false);
       setCurrentParticipants([]);
       setShowEditMembers(false);
       setShowDeleteConfirm(false);
@@ -626,6 +737,34 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     }, 120);
     return () => clearTimeout(timer);
   }, [selectedConversation, messages.length, pendingAttachments.length, scrollMessagesToBottom]);
+
+  // Subscribe to real-time messages for the selected conversation
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    const messageChannel = MessagingService.subscribeToMessages(selectedConversation, (newMessage) => {
+      // Add the new message to the list if it's not already there
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
+      });
+      // Mark as read since we're viewing the conversation
+      MessagingService.markAsRead(selectedConversation).catch(console.error);
+      // Update conversation list to show latest message
+      loadConversations();
+    });
+
+    // Subscribe to participant changes for the current conversation
+    const participantChannel = MessagingService.subscribeToParticipants(selectedConversation, () => {
+      // Reload participants when changes happen
+      loadParticipants(selectedConversation);
+    });
+
+    return () => {
+      MessagingService.unsubscribeFromMessages(messageChannel);
+      MessagingService.unsubscribeFromParticipants(participantChannel);
+    };
+  }, [selectedConversation]);
 
   // Periodically mark messages as read while viewing the conversation
   useEffect(() => {
@@ -671,6 +810,65 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
+    }
+  };
+
+  const checkBlockStatus = async (conversationId: string) => {
+    try {
+      const canSend = await MessagingService.canSendDmMessage(conversationId);
+      setIsConversationBlocked(!canSend);
+    } catch (error) {
+      console.error('Error checking block status:', error);
+      setIsConversationBlocked(false);
+    }
+  };
+
+  const handleBlockToggle = async () => {
+    const otherParticipant = currentParticipants.find(p => p.user_id !== user?.id);
+    if (!otherParticipant) return;
+    
+    setBlockLoading(true);
+    try {
+      if (isConversationBlocked) {
+        await MessagingService.unblockUser(otherParticipant.user_id);
+        setIsConversationBlocked(false);
+      } else {
+        await MessagingService.blockUser(otherParticipant.user_id);
+        setIsConversationBlocked(true);
+      }
+    } catch (error) {
+      console.error('Error toggling block:', error);
+    } finally {
+      setBlockLoading(false);
+      setShowDmMenu(false);
+    }
+  };
+
+  const handleListBlockToggle = async (convId: string) => {
+    setListBlockLoading(convId);
+    try {
+      // Get participants for this conversation
+      const participants = await MessagingService.getParticipants(convId);
+      const otherParticipant = participants.find(p => p.user_id !== user?.id);
+      if (!otherParticipant) return;
+
+      const isBlocked = blockedConversations.has(convId);
+      if (isBlocked) {
+        await MessagingService.unblockUser(otherParticipant.user_id);
+        setBlockedConversations(prev => {
+          const next = new Set(prev);
+          next.delete(convId);
+          return next;
+        });
+      } else {
+        await MessagingService.blockUser(otherParticipant.user_id);
+        setBlockedConversations(prev => new Set(prev).add(convId));
+      }
+    } catch (error) {
+      console.error('Error toggling block from list:', error);
+    } finally {
+      setListBlockLoading(null);
+      setListMenuOpenId(null);
     }
   };
 
@@ -756,6 +954,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
   const handleSendMessage = async () => {
     if (!selectedConversation || !user) return;
+    if (isConversationBlocked && selectedConv?.type === 'dm') return; // Don't send if blocked (DMs only)
     const hasText = messageInput.trim().length > 0;
     const hasAttachments = pendingAttachments.length > 0;
     if (!hasText && !hasAttachments) return;
@@ -946,12 +1145,33 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     setShowEditMembers(true);
     setEditMembersSearchQuery('');
     setEditMembersSearchResults([]);
+    // Initialize the group name edit field with current name
+    setEditGroupName(selectedConv?.name || '');
+    setIsEditingGroupName(false);
   };
 
   const handleCloseEditMembers = () => {
     setShowEditMembers(false);
     setEditMembersSearchQuery('');
     setEditMembersSearchResults([]);
+    setIsEditingGroupName(false);
+    setEditGroupName('');
+  };
+
+  const handleUpdateGroupName = async () => {
+    if (!selectedConversation || !editGroupName.trim()) return;
+    setGroupNameLoading(true);
+    try {
+      await MessagingService.updateGroupName(selectedConversation, editGroupName.trim());
+      // Reload conversations to get the updated name from the database
+      await loadConversations();
+      setIsEditingGroupName(false);
+    } catch (error) {
+      console.error('Error updating group name:', error);
+      alert('Error updating group name. Please try again.');
+    } finally {
+      setGroupNameLoading(false);
+    }
   };
 
   const handleAddMemberToGroup = async (userId: string) => {
@@ -989,7 +1209,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     // Prevent deletion of club group chats
     const isClubChat = clubs.some(c => c.id === selectedConversation);
     if (isClubChat) {
-      alert('Club group chats cannot be deleted. Delete the club from the Clubs page instead.');
+      alert('Squad group chats cannot be deleted. Delete the squad from the Squads page instead.');
       setShowDeleteConfirm(false);
       return;
     }
@@ -1051,18 +1271,51 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           /* Conversations List */
           <>
             <div className="px-4 pt-6 pb-4 flex-shrink-0">
-              <h1 
-                className="text-3xl mb-4"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
-              >
-                Messages
-              </h1>
+              {/* Tab Bar */}
+              <div className="flex bg-white rounded-2xl p-1 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('friends')}
+                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                    mobileTab === 'friends'
+                      ? 'bg-[#d47455] text-white'
+                      : 'text-[#7b7b74] hover:text-[#3d3d3a]'
+                  }`}
+                  style={{ fontFamily: 'Arial, sans-serif' }}
+                >
+                  Friends
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('groups')}
+                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                    mobileTab === 'groups'
+                      ? 'bg-[#d47455] text-white'
+                      : 'text-[#7b7b74] hover:text-[#3d3d3a]'
+                  }`}
+                  style={{ fontFamily: 'Arial, sans-serif' }}
+                >
+                  Groups
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('squads')}
+                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                    mobileTab === 'squads'
+                      ? 'bg-[#d47455] text-white'
+                      : 'text-[#7b7b74] hover:text-[#3d3d3a]'
+                  }`}
+                  style={{ fontFamily: 'Arial, sans-serif' }}
+                >
+                  Squads
+                </button>
+              </div>
 
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
                 <input
                   type="text"
-                  placeholder="Search for users..."
+                  placeholder={mobileTab === 'friends' ? "Search for people..." : mobileTab === 'groups' ? "Search your groups..." : "Search your squads..."}
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
                   onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
@@ -1130,20 +1383,12 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   </div>
                 ) : (
                   <>
-                    {/* DMs Section */}
-                    <div className="mb-4">
-                      <div className="mb-2">
-                        <h2 
-                          className="text-sm font-semibold"
-                          style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
-                        >
-                          DMs
-                        </h2>
-                      </div>
+                    {/* Friends (DMs) Tab */}
+                    {mobileTab === 'friends' && (
                       <div className="space-y-2">
                         {dms.length === 0 ? (
-                          <p className="text-sm text-center py-4" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
-                            No direct messages
+                          <p className="text-sm text-center py-8" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                            No direct messages yet
                           </p>
                         ) : (
                           dms.map((conv) => (
@@ -1151,60 +1396,60 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               key={conv.id}
                               conv={conv}
                               onClick={() => openConversation(conv.id)}
+                              showMenu={true}
+                              onMenuClick={(e) => {
+                                e.stopPropagation();
+                                setListMenuOpenId(listMenuOpenId === conv.id ? null : conv.id);
+                              }}
+                              menuOpen={listMenuOpenId === conv.id}
+                              onBlock={() => handleListBlockToggle(conv.id)}
+                              isBlocked={blockedConversations.has(conv.id)}
+                              blockLoading={listBlockLoading === conv.id}
+                              onCloseMenu={() => setListMenuOpenId(null)}
                             />
                           ))
                         )}
                       </div>
-                    </div>
+                    )}
 
-                    {/* Groups Section */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h2 
-                          className="text-sm font-semibold"
-                          style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
-                        >
-                          Groups
-                        </h2>
-                        <button
-                          type="button"
-                          className="w-6 h-6 rounded-full bg-[#d47455] flex items-center justify-center"
-                          onClick={() => setShowNewGroup(true)}
-                        >
-                          <Plus className="w-4 h-4 text-white" />
-                        </button>
+                    {/* Groups Tab */}
+                    {mobileTab === 'groups' && (
+                      <div>
+                        <div className="flex items-center justify-end mb-3">
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d47455] text-white text-sm"
+                            onClick={() => setShowNewGroup(true)}
+                            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                          >
+                            <Plus className="w-4 h-4" />
+                            New Group
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {groups.length === 0 ? (
+                            <p className="text-sm text-center py-8" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                              No group chats yet
+                            </p>
+                          ) : (
+                            groups.map((conv) => (
+                              <ConversationItem
+                                key={conv.id}
+                                conv={conv}
+                                onClick={() => openConversation(conv.id)}
+                              />
+                            ))
+                          )}
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        {groups.length === 0 ? (
-                          <p className="text-sm text-center py-4" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
-                            No group chats
-                          </p>
-                        ) : (
-                          groups.map((conv) => (
-                            <ConversationItem
-                              key={conv.id}
-                              conv={conv}
-                              onClick={() => openConversation(conv.id)}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </div>
+                    )}
 
-                    {/* Clubs Section */}
-                    <div className="mb-4">
-                      <div className="mb-2">
-                        <h2 
-                          className="text-sm font-semibold"
-                          style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
-                        >
-                          Clubs
-                        </h2>
-                      </div>
+                    {/* Squads Tab */}
+                    {mobileTab === 'squads' && (
                       <div className="space-y-2">
                         {clubs.length === 0 ? (
-                          <p className="text-sm text-center py-4" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
-                            No club chats
+                          <p className="text-sm text-center py-8" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                            No squad chats yet
                           </p>
                         ) : (
                           clubs.map((conv) => (
@@ -1212,11 +1457,12 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               key={conv.id}
                               conv={conv}
                               onClick={() => openConversation(conv.id)}
+                              isClub={true}
                             />
                           ))
                         )}
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>
@@ -1295,10 +1541,64 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         </p>
                       )}
                     </div>
+                    {/* DM Menu */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowDmMenu(!showDmMenu)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
+                        aria-label="More options"
+                      >
+                        <MoreVertical className="w-5 h-5 text-[#3d3d3a]" />
+                      </button>
+                      {showDmMenu && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowDmMenu(false)}
+                          />
+                          <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-[#e7ded1] z-50 min-w-[160px] overflow-hidden">
+                            <button
+                              onClick={handleBlockToggle}
+                              disabled={blockLoading}
+                              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[#f5f3eb] transition-colors text-left"
+                            >
+                              {blockLoading ? (
+                                <div className="w-4 h-4 border-2 border-[#7b7b74]/30 border-t-[#7b7b74] rounded-full animate-spin" />
+                              ) : isConversationBlocked ? (
+                                <UserCheck className="w-4 h-4 text-[#3d3d3a]" />
+                              ) : (
+                                <Ban className="w-4 h-4 text-[#d47455]" />
+                              )}
+                              <span 
+                                className="text-sm"
+                                style={{ 
+                                  fontFamily: 'Arial, sans-serif', 
+                                  color: isConversationBlocked ? '#3d3d3a' : '#d47455' 
+                                }}
+                              >
+                                {isConversationBlocked ? 'Unblock' : 'Block'}
+                              </span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>
-                    {selectedConv?.type === 'group' && selectedConv?.memberAvatars && selectedConv.memberAvatars.length > 0 ? (
+                    {/* Club header - show club initials */}
+                    {clubs.some(c => c.id === selectedConversation) ? (
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-base flex-shrink-0"
+                        style={{ 
+                          fontFamily: 'Arial, sans-serif',
+                          fontWeight: 600,
+                          backgroundColor: selectedConv?.avatarColor || '#d47455'
+                        }}
+                      >
+                        {selectedConv?.name ? getClubInitials(selectedConv.name) : ''}
+                      </div>
+                    ) : selectedConv?.type === 'group' && selectedConv?.memberAvatars && selectedConv.memberAvatars.length > 0 ? (
                       <div className="w-10 h-10 relative flex-shrink-0">
                         {selectedConv.memberAvatars.length === 1 ? (
                           selectedConv.memberAvatars[0].avatarUrl ? (
@@ -1325,11 +1625,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1343,11 +1643,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1364,11 +1664,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
                                 alt=""
-                                className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1382,11 +1682,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
                                 alt=""
-                                className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
                               <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1400,11 +1700,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
                                 alt=""
-                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                               />
                             ) : (
                               <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1421,11 +1721,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
                                 alt=""
-                                className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1439,11 +1739,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
                                 alt=""
-                                className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
                               <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1457,11 +1757,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
                                 alt=""
-                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1476,11 +1776,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 <img
                                   src={selectedConv.memberAvatars[3].avatarUrl}
                                   alt=""
-                                  className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                                  className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 "
                                 />
                               ) : (
                                 <div 
-                                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                   style={{ 
                                     fontFamily: 'Arial, sans-serif',
                                     fontWeight: 600,
@@ -1492,7 +1792,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               )
                             ) : selectedConv.totalMembers && selectedConv.totalMembers > 4 ? (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -1867,36 +2167,47 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             )}
 
             <div className="bg-white border-t border-[#e7ded1] p-4 flex-shrink-0 z-10">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="*/*"
-                className="hidden"
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleFileSelect}
-                  className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
+              {isConversationBlocked && selectedConv?.type === 'dm' ? (
+                <div 
+                  className="text-center py-3 px-4 bg-[#f5f3eb] rounded-2xl"
+                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
                 >
-                  <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
-                </button>
-                <input
-                  type="text"
-                  placeholder="Message..."
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-2xl border-0 text-sm"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                />
-                <button
-                  onClick={handleSendMessage}
-                  className="w-10 h-10 rounded-full bg-[#d47455] flex items-center justify-center"
-                >
-                  <Send className="w-5 h-5 text-white" />
-                </button>
-              </div>
+                  You can't message this user
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="*/*"
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleFileSelect}
+                      className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
+                    >
+                      <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
+                    </button>
+                    <input
+                      type="text"
+                      placeholder="Message..."
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                      className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-2xl border-0 text-sm"
+                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      className="w-10 h-10 rounded-full bg-[#d47455] flex items-center justify-center"
+                    >
+                      <Send className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -2044,7 +2355,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       {/* Edit Members Modal */}
       {showEditMembers && selectedConv && !clubs.some(c => c.id === selectedConversation) && (
         <div
-          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
+          className="fixed inset-0 z-[70] flex items-start justify-center px-4 pt-20"
           role="dialog"
           aria-modal="true"
         >
@@ -2054,23 +2365,62 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             aria-hidden="true"
           />
           <div className="relative w-full max-w-lg bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75] max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                className="text-lg font-semibold"
-                style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
-              >
-                Edit Group Members
-              </h2>
-              <button
-                type="button"
-                onClick={handleCloseEditMembers}
-                className="w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#3d3d3a] hover:bg-[#e8e5dc]"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleCloseEditMembers}
+              className="absolute top-2 right-1 w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#3d3d3a] hover:bg-[#e8e5dc]"
+              aria-label="Close"
+            >
+              ×
+            </button>
             <div className="space-y-4">
+              {/* Group Name */}
+              <div>
+                <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}>
+                  Group Name
+                </h3>
+                {isEditingGroupName ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editGroupName}
+                      onChange={(e) => setEditGroupName(e.target.value)}
+                      placeholder="Enter group name"
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      onClick={handleUpdateGroupName}
+                      disabled={groupNameLoading || !editGroupName.trim()}
+                      className="bg-[#d47455] hover:bg-[#c06545] text-white"
+                    >
+                      {groupNameLoading ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsEditingGroupName(false);
+                        setEditGroupName(selectedConv?.name || '');
+                      }}
+                      variant="outline"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between px-3 py-2 bg-[#f5f3eb] rounded-lg">
+                    <span className="text-sm" style={{ color: '#3d3d3a' }}>
+                      {selectedConv?.name || 'Unnamed Group'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingGroupName(true)}
+                      className="text-[#d47455] hover:text-[#c06545] text-sm font-medium"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Current Members */}
               <div>
                 <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}>
@@ -2092,15 +2442,34 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     // Regular members cannot remove admins; admins can remove anyone
                     const canRemove = !isCurrentUser && (isAdmin || p.role !== 'admin');
 
+                    const avatarUrl = profile?.avatar_url && profile.avatar_url.trim() !== '' ? profile.avatar_url : null;
+
                     return (
                       <div
                         key={p.id}
                         className="flex items-center justify-between px-3 py-2 bg-[#f5f3eb] rounded-lg"
                       >
                         <div className="flex items-center gap-3">
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={name}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
                           <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm"
-                            style={{ backgroundColor: avatarColor, fontWeight: 600 }}
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
+                            style={{ 
+                              backgroundColor: avatarColor, 
+                              fontWeight: 600,
+                              display: avatarUrl ? 'none' : 'flex'
+                            }}
                           >
                             {avatar}
                           </div>
@@ -2306,11 +2675,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[0].avatarUrl}
                               alt=""
-                              className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                             />
                           ) : (
                             <div 
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2324,11 +2693,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[1].avatarUrl}
                               alt=""
-                              className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                              className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                             />
                           ) : (
                             <div 
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2345,11 +2714,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[0].avatarUrl}
                               alt=""
-                              className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                             />
                           ) : (
                             <div 
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2363,11 +2732,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[1].avatarUrl}
                               alt=""
-                              className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                             />
                           ) : (
                             <div 
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2381,11 +2750,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[2].avatarUrl}
                               alt=""
-                              className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                              className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                             />
                           ) : (
                             <div 
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2402,11 +2771,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[0].avatarUrl}
                               alt=""
-                              className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                             />
                           ) : (
                             <div 
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2420,11 +2789,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[1].avatarUrl}
                               alt=""
-                              className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                             />
                           ) : (
                             <div 
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2438,11 +2807,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <img
                               src={conv.memberAvatars[2].avatarUrl}
                               alt=""
-                              className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 "
                             />
                           ) : (
                             <div 
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2457,11 +2826,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={conv.memberAvatars[3].avatarUrl}
                                 alt=""
-                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 "
                               />
                             ) : (
                               <div 
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2473,7 +2842,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             )
                           ) : conv.totalMembers && conv.totalMembers > 4 ? (
                             <div 
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[7px] absolute bottom-0 right-0 border-2 border-white"
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[7px] absolute bottom-0 right-0 "
                               style={{ 
                                 fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
@@ -2538,7 +2907,19 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               <div className="bg-white border-b border-[#e7ded1] px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {selectedConv.type === 'group' && selectedConv.memberAvatars && selectedConv.memberAvatars.length > 0 ? (
+                    {/* Club header - show club initials */}
+                    {clubs.some(c => c.id === selectedConversation) ? (
+                      <div 
+                        className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0"
+                        style={{ 
+                          fontFamily: 'Arial, sans-serif',
+                          fontWeight: 600,
+                          backgroundColor: selectedConv.avatarColor || '#d47455'
+                        }}
+                      >
+                        {getClubInitials(selectedConv.name)}
+                      </div>
+                    ) : selectedConv.type === 'group' && selectedConv.memberAvatars && selectedConv.memberAvatars.length > 0 ? (
                       <div className="w-12 h-12 relative flex-shrink-0">
                         {selectedConv.memberAvatars.length === 1 ? (
                           selectedConv.memberAvatars[0].avatarUrl ? (
@@ -2565,11 +2946,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
                                 alt=""
-                                className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                                className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 border-2 border-white"
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2583,11 +2964,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
                                 alt=""
-                                className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                                className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 "
                               />
                             ) : (
                               <div 
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 border-2 border-white"
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2604,11 +2985,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2622,11 +3003,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2640,11 +3021,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2661,11 +3042,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2679,11 +3060,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2697,11 +3078,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
                                 alt=""
-                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 "
                               />
                             ) : (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -2716,11 +3097,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 <img
                                   src={selectedConv.memberAvatars[3].avatarUrl}
                                   alt=""
-                                  className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 border-2 border-white"
+                                  className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                                 />
                               ) : (
                                 <div 
-                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 border-2 border-white"
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                                   style={{ 
                                     fontFamily: 'Arial, sans-serif',
                                     fontWeight: 600,
@@ -2732,7 +3113,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               )
                             ) : selectedConv.totalMembers && selectedConv.totalMembers > 4 ? (
                               <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 border-2 border-white"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                 style={{ 
                                   fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
@@ -3078,37 +3459,48 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               )}
 
               <div className="bg-white border-t border-[#e7ded1] p-6">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="*/*"
-                  className="hidden"
-                />
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleFileSelect}
-                    className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
+                {isConversationBlocked && selectedConv?.type === 'dm' ? (
+                  <div 
+                    className="text-center py-3 px-4 bg-[#f5f3eb] rounded-xl"
+                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
                   >
-                    <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Message..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-xl border-0"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    className="px-6 py-3 bg-[#d47455] text-white rounded-xl hover:bg-[#c06545] transition-colors"
-                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-                  >
-                    Send
-                  </button>
-                </div>
+                    You can't message this user
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="*/*"
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleFileSelect}
+                        className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
+                      >
+                        <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
+                      </button>
+                      <input
+                        type="text"
+                        placeholder="Message..."
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-xl border-0"
+                        style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      />
+                      <button
+                        onClick={handleSendMessage}
+                        className="px-6 py-3 bg-[#d47455] text-white rounded-xl hover:bg-[#c06545] transition-colors"
+                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                      >
+                        Send
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </>
           ) : (

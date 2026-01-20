@@ -448,6 +448,32 @@ export class MessagingService {
     return conversation as Conversation;
   }
 
+  // Update group name
+  static async updateGroupName(conversationId: string, newName: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Check if user is a participant
+    const { data: participant } = await supabase
+      .from('conversation_participants')
+      .select('role')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!participant) {
+      throw new Error('You are not a member of this group');
+    }
+
+    const { error } = await supabase
+      .from('conversations')
+      .update({ name: newName.trim() })
+      .eq('id', conversationId)
+      .eq('type', 'group');
+
+    if (error) throw error;
+  }
+
   // Mark messages as read for the current user in a conversation
   static async markAsRead(conversationId: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -769,5 +795,125 @@ export class MessagingService {
   // Unsubscribe from messages
   static unsubscribeFromMessages(channel: ReturnType<typeof supabase.channel>) {
     supabase.removeChannel(channel);
+  }
+
+  // Subscribe to conversation updates (for conversation list)
+  static subscribeToConversations(
+    userId: string,
+    callback: () => void
+  ) {
+    return supabase
+      .channel(`conversations:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        },
+        () => {
+          callback();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversation_participants',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          callback();
+        }
+      )
+      .subscribe();
+  }
+
+  // Unsubscribe from conversations
+  static unsubscribeFromConversations(channel: ReturnType<typeof supabase.channel>) {
+    supabase.removeChannel(channel);
+  }
+
+  // Subscribe to participant changes for a specific conversation
+  static subscribeToParticipants(
+    conversationId: string,
+    callback: () => void
+  ) {
+    return supabase
+      .channel(`participants:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversation_participants',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          callback();
+        }
+      )
+      .subscribe();
+  }
+
+  // Unsubscribe from participants
+  static unsubscribeFromParticipants(channel: ReturnType<typeof supabase.channel>) {
+    supabase.removeChannel(channel);
+  }
+
+  // Block a user
+  static async blockUser(userId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('block_user', { target_user_id: userId });
+    if (error) throw error;
+    return data;
+  }
+
+  // Unblock a user
+  static async unblockUser(userId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('unblock_user', { target_user_id: userId });
+    if (error) throw error;
+    return data;
+  }
+
+  // Check if a user is blocked (either direction)
+  static async isUserBlocked(userId: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    
+    const { data, error } = await supabase.rpc('is_user_blocked', { 
+      user_a: user.id, 
+      user_b: userId 
+    });
+    if (error) {
+      console.error('Error checking block status:', error);
+      return false;
+    }
+    return data;
+  }
+
+  // Get list of blocked users
+  static async getBlockedUsers(): Promise<Array<{
+    blocked_id: string;
+    blocked_at: string;
+    full_name: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  }>> {
+    const { data, error } = await supabase.rpc('get_blocked_users');
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Check if can send message in a DM (respects blocks)
+  static async canSendDmMessage(conversationId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('can_send_dm_message', { 
+      conv_id: conversationId 
+    });
+    if (error) {
+      console.error('Error checking if can send DM:', error);
+      return true; // Default to allowing in case of error
+    }
+    return data;
   }
 }
