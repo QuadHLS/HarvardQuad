@@ -1287,7 +1287,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   }, [editMembersSearchQuery, currentParticipants, user]);
 
   return (
-    <div className="h-full bg-[#fbf8f7] overflow-hidden">
+    <div className="h-full bg-[#fbf8f7] overflow-hidden" style={{ overscrollBehavior: 'none' }}>
       {/* Mobile View */}
       {viewingUserId ? (
         <div
@@ -1302,7 +1302,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       ) : (
       <div
         className="md:hidden flex flex-col overflow-hidden"
-        style={{ height: 'calc(100dvh - 76px)' }}
+        style={{ height: 'calc(100dvh - 76px)', overscrollBehavior: 'none' }}
       >
         {!selectedConversation ? (
           /* Conversations List */
@@ -1507,7 +1507,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </>
         ) : (
           /* Chat View */
-          <div className="h-full flex flex-col overflow-hidden bg-[#fbf8f7]">
+          <div 
+            className="h-full flex flex-col overflow-hidden bg-[#fbf8f7]"
+            style={{ overscrollBehavior: 'none' }}
+          >
             <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
               <div className="flex items-center gap-3">
                 <button
@@ -1913,7 +1916,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               </div>
             </div>
 
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-1">
+            <div 
+              ref={messagesContainerRef} 
+              className="flex-1 overflow-y-auto p-4 space-y-1"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+            >
               {messagesLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading messages...</p>
