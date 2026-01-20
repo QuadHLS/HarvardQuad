@@ -2231,14 +2231,23 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     >
                       <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
                     </button>
-                    <input
-                      type="text"
+                    <textarea
                       placeholder="Message..."
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                      className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-2xl border-0 text-sm"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      rows={1}
+                      className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-2xl border-0 text-sm resize-none"
+                      style={{ 
+                        fontFamily: 'Arial, sans-serif', 
+                        color: '#3d3d3a',
+                        maxHeight: '120px',
+                        minHeight: '44px'
+                      }}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                      }}
                     />
                     <button
                       onClick={handleSendMessage}
@@ -3533,14 +3542,30 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       >
                         <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
                       </button>
-                      <input
-                        type="text"
+                      <textarea
                         placeholder="Message..."
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-xl border-0"
-                        style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                        onKeyDown={(e) => {
+                          // On desktop, Shift+Enter for new line, Enter to send
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        rows={1}
+                        className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-xl border-0 resize-none"
+                        style={{ 
+                          fontFamily: 'Arial, sans-serif', 
+                          color: '#3d3d3a',
+                          maxHeight: '120px',
+                          minHeight: '44px'
+                        }}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                        }}
                       />
                       <button
                         onClick={handleSendMessage}
