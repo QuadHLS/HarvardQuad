@@ -2166,7 +2166,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               </div>
             )}
 
-            <div className="bg-white border-t border-[#e7ded1] p-4 flex-shrink-0 z-10">
+            <div 
+              className="bg-white border-t border-[#e7ded1] p-4 flex-shrink-0 z-10"
+              style={{ touchAction: 'none' }}
+              onTouchMove={(e) => e.preventDefault()}
+            >
               {isConversationBlocked && selectedConv?.type === 'dm' ? (
                 <div 
                   className="text-center py-3 px-4 bg-[#f5f3eb] rounded-2xl"
@@ -3458,7 +3462,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 </div>
               )}
 
-              <div className="bg-white border-t border-[#e7ded1] p-6">
+              <div 
+                className="bg-white border-t border-[#e7ded1] p-6"
+                style={{ touchAction: 'none' }}
+                onTouchMove={(e) => e.preventDefault()}
+              >
                 {isConversationBlocked && selectedConv?.type === 'dm' ? (
                   <div 
                     className="text-center py-3 px-4 bg-[#f5f3eb] rounded-xl"
