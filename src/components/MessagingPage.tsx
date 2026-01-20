@@ -1507,7 +1507,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </>
         ) : (
           /* Chat View */
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#fbf8f7]">
+          <div className="h-full flex flex-col overflow-hidden bg-[#fbf8f7]">
             <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
               <div className="flex items-center gap-3">
                 <button
