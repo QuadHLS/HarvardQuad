@@ -417,6 +417,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const didConsumeStoredConversationRef = useRef(false);
+  const loadConversationsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingConversationsRef = useRef(false);
   const scrollMessagesToBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -536,6 +538,20 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     setSelectedGroupMembers([]);
   };
 
+  // Debounced conversation loader to prevent excessive reloads
+  const debouncedLoadConversations = useCallback(() => {
+    // Clear any pending timeout
+    if (loadConversationsTimeoutRef.current) {
+      clearTimeout(loadConversationsTimeoutRef.current);
+    }
+    // Debounce by 500ms to batch rapid updates
+    loadConversationsTimeoutRef.current = setTimeout(() => {
+      if (!isLoadingConversationsRef.current) {
+        loadConversations();
+      }
+    }, 500);
+  }, []);
+
   // Fetch conversations on mount and subscribe to real-time updates
   useEffect(() => {
     if (user) {
@@ -543,18 +559,25 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
       // Subscribe to conversation and participant changes
       const channel = MessagingService.subscribeToConversations(user.id, () => {
-        // Reload conversations when any change happens
-        loadConversations();
+        // Use debounced version to prevent rapid reloads
+        debouncedLoadConversations();
       });
 
       return () => {
         MessagingService.unsubscribeFromConversations(channel);
+        if (loadConversationsTimeoutRef.current) {
+          clearTimeout(loadConversationsTimeoutRef.current);
+        }
       };
     }
-  }, [user]);
+  }, [user, debouncedLoadConversations]);
 
   // Load conversations from Supabase
   const loadConversations = async () => {
+    // Prevent concurrent loads
+    if (isLoadingConversationsRef.current) return;
+    isLoadingConversationsRef.current = true;
+    
     try {
       setLoading(true);
       const convs = await MessagingService.getConversations();
@@ -684,6 +707,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       console.error('Error loading conversations:', error);
     } finally {
       setLoading(false);
+      isLoadingConversationsRef.current = false;
     }
   };
 
@@ -751,8 +775,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       });
       // Mark as read since we're viewing the conversation
       MessagingService.markAsRead(selectedConversation).catch(console.error);
-      // Update conversation list to show latest message
-      loadConversations();
+      // Update conversation list to show latest message (debounced)
+      debouncedLoadConversations();
     });
 
     // Subscribe to participant changes for the current conversation
@@ -1483,7 +1507,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </>
         ) : (
           /* Chat View */
-          <div className="h-full flex flex-col overflow-hidden bg-[#fbf8f7]">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#fbf8f7]">
             <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
               <div className="flex items-center gap-3">
                 <button
@@ -1889,7 +1913,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               </div>
             </div>
 
-            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 pb-4 space-y-1">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-1">
               {messagesLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading messages...</p>
@@ -2180,7 +2204,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             )}
 
             <div 
-              className="bg-white border-t border-[#e7ded1] p-4 flex-shrink-0 z-10"
+              className="bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 flex-shrink-0"
               style={{ touchAction: 'none' }}
               onTouchMove={(e) => e.preventDefault()}
             >

@@ -798,23 +798,14 @@ export class MessagingService {
   }
 
   // Subscribe to conversation updates (for conversation list)
+  // Only listens to participant changes for the current user
+  // (removed broad conversations table listener that triggered on ALL conversation changes)
   static subscribeToConversations(
     userId: string,
     callback: () => void
   ) {
     return supabase
       .channel(`conversations:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          callback();
-        }
-      )
       .on(
         'postgres_changes',
         {
