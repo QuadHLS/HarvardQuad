@@ -798,8 +798,8 @@ export class MessagingService {
   }
 
   // Subscribe to conversation updates (for conversation list)
-  // Only listens to participant changes for the current user
-  // (removed broad conversations table listener that triggered on ALL conversation changes)
+  // Only listens to INSERT/DELETE on participant changes for the current user
+  // (not UPDATE, which happens when marking messages as read and would cause constant reloads)
   static subscribeToConversations(
     userId: string,
     callback: () => void
@@ -809,7 +809,19 @@ export class MessagingService {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'conversation_participants',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          callback();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
           schema: 'public',
           table: 'conversation_participants',
           filter: `user_id=eq.${userId}`,

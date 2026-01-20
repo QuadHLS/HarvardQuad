@@ -722,19 +722,22 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       }
       
       // Mark messages as read immediately when opening the conversation
-      const markReadAndRefresh = async () => {
-        try {
-          await MessagingService.markAsRead(selectedConversation);
-          // Small delay to ensure database update propagates
-          await new Promise(resolve => setTimeout(resolve, 100));
-          // Refresh conversations to update unread count after marking as read
-          await loadConversations();
-        } catch (err) {
-          console.error('Error marking messages as read:', err);
-        }
-      };
-      
-      markReadAndRefresh();
+      // Mark as read without refreshing - just update local state
+      MessagingService.markAsRead(selectedConversation).then(() => {
+        // Update unread count locally without full reload
+        setConversations(prev => prev.map(conv => 
+          conv.id === selectedConversation ? { ...conv, unread: 0 } : conv
+        ));
+        setDms(prev => prev.map(conv => 
+          conv.id === selectedConversation ? { ...conv, unread: 0 } : conv
+        ));
+        setGroups(prev => prev.map(conv => 
+          conv.id === selectedConversation ? { ...conv, unread: 0 } : conv
+        ));
+        setClubs(prev => prev.map(conv => 
+          conv.id === selectedConversation ? { ...conv, unread: 0 } : conv
+        ));
+      }).catch(err => console.error('Error marking messages as read:', err));
       loadMessages(selectedConversation);
       checkAdminStatus(selectedConversation);
       checkBlockStatus(selectedConversation);
@@ -915,29 +918,19 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       setMessagesLoading(false);
       // Mark messages as read after loading (in case it wasn't already marked)
       MessagingService.markAsRead(conversationId).then(() => {
-        // Update unread count locally for immediate UI feedback
+        // Update unread count locally for immediate UI feedback - no full reload needed
         setConversations(prev => prev.map(conv => 
-          conv.id === conversationId 
-            ? { ...conv, unread: 0 }
-            : conv
+          conv.id === conversationId ? { ...conv, unread: 0 } : conv
         ));
         setDms(prev => prev.map(conv =>
-          conv.id === conversationId 
-            ? { ...conv, unread: 0 }
-            : conv
+          conv.id === conversationId ? { ...conv, unread: 0 } : conv
         ));
         setGroups(prev => prev.map(conv =>
-          conv.id === conversationId 
-            ? { ...conv, unread: 0 }
-            : conv
+          conv.id === conversationId ? { ...conv, unread: 0 } : conv
         ));
         setClubs(prev => prev.map(conv =>
-          conv.id === conversationId 
-            ? { ...conv, unread: 0 }
-            : conv
+          conv.id === conversationId ? { ...conv, unread: 0 } : conv
         ));
-        // Also refresh conversations to ensure consistency
-        loadConversations();
       }).catch(err => {
         console.error('Error marking messages as read:', err);
       });
@@ -1007,8 +1000,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
       revokePendingUrls();
       // Real-time subscription will handle adding the new message
-      // Just refresh conversation list to update last message preview
-      loadConversations();
+      // Use debounced reload to update last message preview
+      debouncedLoadConversations();
     } catch (error) {
       console.error('Error sending message:', error);
       // Restore input on error
@@ -1506,10 +1499,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             </div>
           </>
         ) : (
-          /* Chat View */
+          /* Chat View - Fixed position sitting above nav bar */
           <div 
-            className="h-full flex flex-col overflow-hidden bg-[#fbf8f7]"
-            style={{ overscrollBehavior: 'none' }}
+            className="fixed left-0 right-0 top-0 flex flex-col bg-[#fbf8f7] z-[55]"
+            style={{ bottom: '76px' }}
           >
             <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
               <div className="flex items-center gap-3">
