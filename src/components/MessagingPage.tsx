@@ -478,6 +478,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [editGroupName, setEditGroupName] = useState('');
   const [isEditingGroupName, setIsEditingGroupName] = useState(false);
   const [groupNameLoading, setGroupNameLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentParticipants, setCurrentParticipants] = useState<Participant[]>([]);
   const [editMembersSearchQuery, setEditMembersSearchQuery] = useState('');
@@ -954,13 +955,21 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
   const handleSendMessage = async () => {
     if (!selectedConversation || !user) return;
+    if (sendingMessage) return; // Prevent double-sends
     if (isConversationBlocked && selectedConv?.type === 'dm') return; // Don't send if blocked (DMs only)
     const hasText = messageInput.trim().length > 0;
     const hasAttachments = pendingAttachments.length > 0;
     if (!hasText && !hasAttachments) return;
 
+    setSendingMessage(true);
+    // Clear input immediately for better UX
+    const textToSend = messageInput.trim();
+    const attachmentsToSend = [...pendingAttachments];
+    setMessageInput('');
+    setPendingAttachments([]);
+
     try {
-      for (const att of pendingAttachments) {
+      for (const att of attachmentsToSend) {
         if (att.type === 'image') {
           await MessagingService.sendImageMessage(selectedConversation, att.file);
         } else {
@@ -969,16 +978,20 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       }
 
       if (hasText) {
-        await MessagingService.sendTextMessage(selectedConversation, messageInput.trim());
-        setMessageInput('');
+        await MessagingService.sendTextMessage(selectedConversation, textToSend);
       }
 
       revokePendingUrls();
-      setPendingAttachments([]);
-      await loadMessages(selectedConversation);
-      await loadConversations(); // Refresh to update last message
+      // Real-time subscription will handle adding the new message
+      // Just refresh conversation list to update last message preview
+      loadConversations();
     } catch (error) {
       console.error('Error sending message:', error);
+      // Restore input on error
+      setMessageInput(textToSend);
+      setPendingAttachments(attachmentsToSend);
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -1470,7 +1483,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           </>
         ) : (
           /* Chat View */
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="h-full flex flex-col overflow-hidden bg-[#fbf8f7]">
             <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
               <div className="flex items-center gap-3">
                 <button
@@ -2205,9 +2218,15 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     />
                     <button
                       onClick={handleSendMessage}
-                      className="w-10 h-10 rounded-full bg-[#d47455] flex items-center justify-center"
+                      disabled={sendingMessage}
+                      className="w-10 h-10 rounded-full bg-[#d47455] flex items-center justify-center relative"
                     >
                       <Send className="w-5 h-5 text-white" />
+                      {sendingMessage && (
+                        <div className="absolute inset-0 bg-[#d47455] rounded-full flex items-center justify-center">
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        </div>
+                      )}
                     </button>
                   </div>
                 </>
@@ -3501,10 +3520,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       />
                       <button
                         onClick={handleSendMessage}
-                        className="px-6 py-3 bg-[#d47455] text-white rounded-xl hover:bg-[#c06545] transition-colors"
+                        disabled={sendingMessage}
+                        className="px-6 py-3 text-white rounded-xl transition-colors bg-[#d47455] hover:bg-[#c06545] relative"
                         style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
                       >
                         Send
+                        {sendingMessage && (
+                          <div className="absolute inset-0 bg-[#d47455] rounded-xl flex items-center justify-center">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          </div>
+                        )}
                       </button>
                     </div>
                   </>
