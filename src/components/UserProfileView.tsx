@@ -97,9 +97,9 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
   }
 
   return (
-    <div className="h-full bg-[#FBF9F5]">
+    <div className="h-full bg-[#FBF9F5] overflow-hidden">
       {/* Mobile View */}
-      <div className="md:hidden min-h-full overflow-y-auto" style={{ paddingBottom: '70px' }}>
+      <div className="md:hidden h-full overflow-y-auto" style={{ paddingBottom: '70px' }}>
         {/* Header with Back Button and Profile */}
         <div 
           className="px-5 pt-10 pb-8"

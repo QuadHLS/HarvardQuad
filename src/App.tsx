@@ -61,6 +61,7 @@ export default function App() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+  const [isMessageInputFocused, setIsMessageInputFocused] = useState(false);
 
   // Update URL and sessionStorage when view changes
   const updateURL = useCallback((view: ViewState, course?: string, squad?: string, previous?: ViewState) => {
@@ -261,6 +262,24 @@ export default function App() {
       window.removeEventListener('profileUpdated', handleProfileUpdate);
     };
   }, [user]);
+
+  // Listen for message input focus events to hide/show bottom navigation
+  useEffect(() => {
+    const handleMessageInputFocus = (event: Event) => {
+      const customEvent = event as CustomEvent<{ focused: boolean }>;
+      if (customEvent.detail) {
+        setIsMessageInputFocused(customEvent.detail.focused);
+      }
+    };
+
+    document.addEventListener('messageInputFocused', handleMessageInputFocus);
+    window.addEventListener('messageInputFocused', handleMessageInputFocus);
+
+    return () => {
+      document.removeEventListener('messageInputFocused', handleMessageInputFocus);
+      window.removeEventListener('messageInputFocused', handleMessageInputFocus);
+    };
+  }, []);
 
   const formatTime = (date: Date) => {
     let hours = date.getHours();
@@ -862,8 +881,12 @@ export default function App() {
       </div>
 
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-[#fbf8f7] border-t border-[#e7ded1] z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur-0"
-        style={{ backgroundColor: '#fbf8f7' }}
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-[#fbf8f7] border-t border-[#e7ded1] z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] transition-transform duration-300 ease-in-out"
+        style={{ 
+          backgroundColor: '#fbf8f7',
+          transform: isMessageInputFocused && currentView === 'messaging' ? 'translateY(100%)' : 'translateY(0)',
+          willChange: 'transform'
+        }}
       >
         <div className="flex items-center justify-around px-1 py-2">
           <button

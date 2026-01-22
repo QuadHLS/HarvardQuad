@@ -24,6 +24,7 @@ export function ProfilePage() {
   const [deletingAvatar, setDeletingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editValues, setEditValues] = useState({
+    full_name: '',
     phone: '',
     location: '',
     gpa: '',
@@ -90,6 +91,7 @@ export function ProfilePage() {
   useEffect(() => {
     if (profile && isEditing) {
       setEditValues({
+        full_name: profile.full_name || '',
         phone: profile.phone || '',
         location: profile.location || '',
         gpa: profile.gpa || '',
@@ -103,11 +105,28 @@ export function ProfilePage() {
     setIsEditing(true);
   };
 
+  // Function to capitalize first letter of each word
+  const capitalizeWords = (text: string): string => {
+    return text
+      .split(' ')
+      .map(word => {
+        if (!word) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const capitalized = capitalizeWords(e.target.value);
+    setEditValues({ ...editValues, full_name: capitalized });
+  };
+
   const handleCancel = () => {
     setIsEditing(false);
     // Reset to original values
     if (profile) {
       setEditValues({
+        full_name: profile.full_name || '',
         phone: profile.phone || '',
         location: profile.location || '',
         gpa: profile.gpa || '',
@@ -125,6 +144,7 @@ export function ProfilePage() {
       const { error } = await supabase
         .from('profiles')
         .update({
+          full_name: editValues.full_name.trim() || null,
           phone: editValues.phone || null,
           location: editValues.location || null,
           gpa: editValues.gpa || null,
@@ -144,6 +164,7 @@ export function ProfilePage() {
       // Update local profile state
       setProfile({
         ...profile,
+        full_name: editValues.full_name.trim() || null,
         phone: editValues.phone || null,
         location: editValues.location || null,
         gpa: editValues.gpa || null,
@@ -501,12 +522,23 @@ export function ProfilePage() {
                 )}
               </div>
             )}
-            <h1 
-              className="text-3xl text-white mb-1"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
-            >
-              {profile?.full_name || user?.email?.split('@')[0] || 'User'}
-            </h1>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editValues.full_name}
+                onChange={handleNameChange}
+                className="text-3xl text-[#3d3d3a] mb-1 rounded-xl px-4 py-2 w-full max-w-xs text-center focus:outline-none focus:ring-2 focus:ring-white/70"
+                style={{ fontFamily: 'Lora, serif', fontWeight: 600, backgroundColor: '#F1EFE7' }}
+                placeholder="Enter your name"
+              />
+            ) : (
+              <h1 
+                className="text-3xl text-white mb-1"
+                style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+              >
+                {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+              </h1>
+            )}
             <p 
               className="text-sm text-white/90 mb-5"
               style={{ fontFamily: 'Arial, sans-serif' }}
@@ -911,7 +943,7 @@ export function ProfilePage() {
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 relative">
             <div className="max-w-4xl">
               <div className="flex items-start gap-6 mb-8">
                 <div className="flex flex-col items-center">
@@ -997,9 +1029,20 @@ export function ProfilePage() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-[24px] mb-1 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
-                    {profile?.full_name || user?.email?.split('@')[0] || 'User'}
-                  </h3>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editValues.full_name}
+                      onChange={handleNameChange}
+                      className="text-[24px] mb-1 text-[#1a1a1a] w-full px-3 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                      style={{ fontFamily: 'Lora, serif', fontWeight: 600, backgroundColor: '#F1EFE7' }}
+                      placeholder="Enter your name"
+                    />
+                  ) : (
+                    <h3 className="text-[24px] mb-1 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+                      {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                    </h3>
+                  )}
                   <p className="text-[14px] text-[#999] mb-3" style={{ fontFamily: 'Arial, sans-serif' }}>
                     {getClassYearDisplay()}
                   </p>
@@ -1191,6 +1234,30 @@ export function ProfilePage() {
                 </div>
               </div>
 
+            </div>
+            
+            {/* Sign Out Button - Bottom Right */}
+            <div className="absolute bottom-6 right-6 z-10">
+              <button 
+                onClick={async () => {
+                  const { error } = await signOut();
+                  if (error) {
+                    console.error('Error signing out:', error);
+                    alert('Failed to sign out. Please try again.');
+                  }
+                }}
+                className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border-[#f5f3eb] hover:bg-[#fef3ef] transition-colors"
+              >
+                <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center">
+                  <LogOut className="w-5 h-5 text-[#d47455]" />
+                </div>
+                <span 
+                  className="text-sm"
+                  style={{ fontFamily: 'Arial, sans-serif', color: '#d47455', fontWeight: 600 }}
+                >
+                  Sign Out
+                </span>
+              </button>
             </div>
           </div>
         </div>

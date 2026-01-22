@@ -605,7 +605,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const scrollMessagesToBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    container.scrollTop = container.scrollHeight;
+    // Force a reflow to ensure scrollHeight is calculated correctly
+    const height = container.offsetHeight;
+    const scrollHeight = container.scrollHeight;
+    // Only scroll if there's actually content to scroll to
+    if (scrollHeight > height) {
+      container.scrollTop = scrollHeight;
+    }
   }, []);
   const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -631,6 +637,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     setSelectedConversation(conversationId);
   }, []);
   const [messageInput, setMessageInput] = useState('');
+  const [isMessageInputFocused, setIsMessageInputFocused] = useState(false);
+  const isSendingRef = useRef(false);
   const [conversations, setConversations] = useState<DisplayConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [dms, setDms] = useState<DisplayConversation[]>([]);
@@ -945,17 +953,23 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   }, [selectedConversation]);
 
   useLayoutEffect(() => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || messagesLoading || messages.length === 0) return;
+    // Scroll immediately when messages are loaded
     scrollMessagesToBottom();
-  }, [selectedConversation, messages.length, pendingAttachments.length, scrollMessagesToBottom]);
+  }, [selectedConversation, messages.length, pendingAttachments.length, messagesLoading, scrollMessagesToBottom]);
 
   useEffect(() => {
-    if (!selectedConversation) return;
-    const timer = setTimeout(() => {
-      scrollMessagesToBottom();
-    }, 120);
-    return () => clearTimeout(timer);
-  }, [selectedConversation, messages.length, pendingAttachments.length, scrollMessagesToBottom]);
+    if (!selectedConversation || messagesLoading || messages.length === 0) return;
+    // Scroll after messages are loaded and rendered with multiple attempts
+    const timer1 = setTimeout(() => scrollMessagesToBottom(), 10);
+    const timer2 = setTimeout(() => scrollMessagesToBottom(), 100);
+    const timer3 = setTimeout(() => scrollMessagesToBottom(), 300);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [selectedConversation, messages.length, pendingAttachments.length, messagesLoading, scrollMessagesToBottom]);
 
   // Subscribe to real-time messages for the selected conversation
   useEffect(() => {
@@ -1105,8 +1119,21 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     setMessagesLoading(true);
     try {
       const msgs = await MessagingService.getMessages(conversationId);
+      // Set messages first
       setMessages(msgs);
-      setMessagesLoading(false);
+      
+      // Wait for React to render, then set loading to false and scroll
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setMessagesLoading(false);
+          // Multiple scroll attempts to ensure messages are visible
+          setTimeout(() => scrollMessagesToBottom(), 0);
+          setTimeout(() => scrollMessagesToBottom(), 50);
+          setTimeout(() => scrollMessagesToBottom(), 150);
+          setTimeout(() => scrollMessagesToBottom(), 300);
+        });
+      });
+      
       // Mark messages as read after loading (in case it wasn't already marked)
       MessagingService.markAsRead(conversationId).then(() => {
         // Update unread count locally for immediate UI feedback - no full reload needed
@@ -1183,6 +1210,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     const hasAttachments = pendingAttachments.length > 0;
     if (!hasText && !hasAttachments) return;
 
+    isSendingRef.current = true;
     setSendingMessage(true);
     // Clear input immediately for better UX
     const textToSend = messageInput.trim();
@@ -1214,6 +1242,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       setPendingAttachments(attachmentsToSend);
     } finally {
       setSendingMessage(false);
+      // Reset the sending flag after a short delay to allow blur to complete
+      setTimeout(() => {
+        isSendingRef.current = false;
+      }, 200);
     }
   };
 
@@ -2411,8 +2443,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             )}
 
             <div 
-              className="bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 flex-shrink-0"
-              style={{ touchAction: 'none' }}
+              className="bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 flex-shrink-0 relative z-50 transition-transform duration-300 ease-in-out"
+              style={{ 
+                touchAction: 'none',
+                transform: isMessageInputFocused ? 'translateY(70px)' : 'translateY(0)'
+              }}
               onTouchMove={(e) => e.preventDefault()}
             >
               {isConversationBlocked && selectedConv?.type === 'dm' ? (
@@ -2443,6 +2478,47 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       placeholder="Message..."
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
+                      onFocus={() => {
+                        setIsMessageInputFocused(true);
+                        const event = new CustomEvent('messageInputFocused', { 
+                          detail: { focused: true },
+                          bubbles: true,
+                          cancelable: true
+                        });
+                        document.dispatchEvent(event);
+                        window.dispatchEvent(event);
+                      }}
+                      onBlur={(e) => {
+                        // Delay blur to allow send button click to register first
+                        setTimeout(() => {
+                          // Don't hide if we just sent a message (will be handled by send button)
+                          if (isSendingRef.current) {
+                            setIsMessageInputFocused(false);
+                            const event = new CustomEvent('messageInputFocused', { 
+                              detail: { focused: false },
+                              bubbles: true,
+                              cancelable: true
+                            });
+                            document.dispatchEvent(event);
+                            window.dispatchEvent(event);
+                            return;
+                          }
+                          // Check if the related target is the send button or if we're still focused
+                          const relatedTarget = e.relatedTarget as HTMLElement;
+                          const activeElement = document.activeElement;
+                          // Only hide if we're not focusing back into the textarea or another input
+                          if (!relatedTarget?.closest('button[onClick]') && activeElement !== mobileTextareaRef.current) {
+                            setIsMessageInputFocused(false);
+                            const event = new CustomEvent('messageInputFocused', { 
+                              detail: { focused: false },
+                              bubbles: true,
+                              cancelable: true
+                            });
+                            document.dispatchEvent(event);
+                            window.dispatchEvent(event);
+                          }
+                        }, 150);
+                      }}
                       rows={1}
                       className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-2xl border-0 text-sm resize-none"
                       style={{ 
@@ -2458,7 +2534,17 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       }}
                     />
                     <button
-                      onClick={handleSendMessage}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        await handleSendMessage();
+                        // Blur the textarea after sending to reset focus state
+                        setTimeout(() => {
+                          if (mobileTextareaRef.current) {
+                            mobileTextareaRef.current.blur();
+                          }
+                        }, 50);
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
                       disabled={sendingMessage}
                       className="w-10 h-10 rounded-full bg-[#d47455] flex items-center justify-center relative"
                     >
