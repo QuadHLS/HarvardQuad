@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Menu, Search, Calendar as CalendarIcon, Bell, MessageCircle, LayoutDashboard, Briefcase, Store, HomeIcon as HouseIcon, BookOpen, Users, Sparkles } from 'lucide-react';
 import { MessagingPage } from './components/MessagingPage';
 import { CoursePage } from './components/CoursePage';
@@ -30,16 +30,157 @@ interface ProfileData {
 
 export default function App() {
   const { user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<ViewState>('dashboard');
-  const [selectedCourse, setSelectedCourse] = useState<string>('');
-  const [selectedSquad, setSelectedSquad] = useState<string>('');
+  
+  // Parse URL to get initial state (memoized to only calculate once)
+  const initialState = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return { view: 'dashboard' as ViewState, course: '', squad: '', previous: 'dashboard' as ViewState };
+    }
+    
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view') || sessionStorage.getItem('currentView') || 'dashboard';
+    const course = params.get('course') || sessionStorage.getItem('selectedCourse') || '';
+    const squad = params.get('squad') || sessionStorage.getItem('selectedSquad') || '';
+    const previous = params.get('previous') || sessionStorage.getItem('previousView') || 'dashboard';
+    
+    const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
+    return {
+      view: (validViews.includes(view as ViewState) ? view : 'dashboard') as ViewState,
+      course,
+      squad,
+      previous: (validViews.includes(previous as ViewState) ? previous : 'dashboard') as ViewState,
+    };
+  }, []); // Only calculate once on mount
+  const [currentView, setCurrentView] = useState<ViewState>(initialState.view);
+  const [selectedCourse, setSelectedCourse] = useState<string>(initialState.course);
+  const [selectedSquad, setSelectedSquad] = useState<string>(initialState.squad);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  const [previousView, setPreviousView] = useState<ViewState>('dashboard');
+  const [previousView, setPreviousView] = useState<ViewState>(initialState.previous);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+
+  // Update URL and sessionStorage when view changes
+  const updateURL = useCallback((view: ViewState, course?: string, squad?: string, previous?: ViewState) => {
+    if (typeof window === 'undefined') return;
+    
+    const params = new URLSearchParams();
+    params.set('view', view);
+    if (course) params.set('course', course);
+    if (squad) params.set('squad', squad);
+    if (previous) params.set('previous', previous);
+    
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ view, course, squad, previous }, '', newURL);
+    
+    // Also save to sessionStorage
+    sessionStorage.setItem('currentView', view);
+    if (previous) sessionStorage.setItem('previousView', previous);
+    if (course) {
+      sessionStorage.setItem('selectedCourse', course);
+    } else {
+      sessionStorage.removeItem('selectedCourse');
+    }
+    if (squad) {
+      sessionStorage.setItem('selectedSquad', squad);
+    } else {
+      sessionStorage.removeItem('selectedSquad');
+    }
+  }, []);
+
+  // Track if this is the initial mount
+  const isInitialMount = useRef(true);
+  const hasInitializedURL = useRef(false);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state) {
+        const { view, course, squad, previous } = event.state;
+        if (view) {
+          setCurrentView(view);
+          setSelectedCourse(course || '');
+          setSelectedSquad(squad || '');
+          if (previous) setPreviousView(previous);
+        }
+      } else {
+        // Fallback to URL params if state is not available
+        const params = new URLSearchParams(window.location.search);
+        const view = params.get('view');
+        const course = params.get('course');
+        const squad = params.get('squad');
+        const previous = params.get('previous');
+        
+        if (view) {
+          const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
+          if (validViews.includes(view as ViewState)) {
+            setCurrentView(view as ViewState);
+            setSelectedCourse(course || '');
+            setSelectedSquad(squad || '');
+            if (previous && validViews.includes(previous as ViewState)) {
+              setPreviousView(previous as ViewState);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []); // Only set up listener once
+
+  // Initialize URL on mount (only once when user is available)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user || hasInitializedURL.current) return;
+    
+    // Read current state values - they're already initialized from URL/sessionStorage
+    const params = new URLSearchParams(window.location.search);
+    const urlView = params.get('view');
+    
+    // Get current values from state (they're in the closure from initial render)
+    // Since we only run this once when user becomes available, the values are correct
+    const currentViewValue = initialState.view;
+    const currentCourseValue = initialState.course;
+    const currentSquadValue = initialState.squad;
+    const currentPreviousValue = initialState.previous;
+    
+    // Only replace URL if it doesn't match current state
+    if (urlView !== currentViewValue) {
+      const state = { 
+        view: currentViewValue, 
+        course: currentCourseValue, 
+        squad: currentSquadValue, 
+        previous: currentPreviousValue 
+      };
+      const newParams = new URLSearchParams();
+      newParams.set('view', currentViewValue);
+      if (currentCourseValue) newParams.set('course', currentCourseValue);
+      if (currentSquadValue) newParams.set('squad', currentSquadValue);
+      if (currentPreviousValue) newParams.set('previous', currentPreviousValue);
+      window.history.replaceState(state, '', `${window.location.pathname}?${newParams.toString()}`);
+    }
+    
+    hasInitializedURL.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Only run when user changes
+
+  // Update URL when state changes (but not on initial mount)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (user && hasInitializedURL.current) {
+      updateURL(currentView, selectedCourse || undefined, selectedSquad || undefined, previousView);
+    }
+  }, [currentView, selectedCourse, selectedSquad, previousView, user, updateURL]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -215,55 +356,69 @@ export default function App() {
   const isMessagingView = currentView === 'messaging';
 
   const handleCourseClick = (courseId: string) => {
-    setPreviousView(currentView);
+    const newPrevious = currentView;
+    setPreviousView(newPrevious);
     setSelectedCourse(courseId);
     setCurrentView('course');
     setIsSidebarExpanded(false);
+    updateURL('course', courseId, undefined, newPrevious);
   };
 
   const handleBackFromCourse = () => {
     setCurrentView(previousView);
+    setSelectedCourse('');
+    updateURL(previousView, undefined, undefined, previousView);
   };
 
   const handleHomeClick = () => {
     setCurrentView('dashboard');
     setIsSidebarExpanded(false);
+    updateURL('dashboard', undefined, undefined, previousView);
   };
 
   const handleProfileClick = () => {
     setCurrentView('profile');
     setIsSidebarExpanded(false);
+    updateURL('profile', undefined, undefined, previousView);
   };
 
   const handleClassesClick = () => {
     setCurrentView('classes');
     setIsSidebarExpanded(false);
+    updateURL('classes', undefined, undefined, previousView);
   };
 
   const handleSquadsClick = () => {
     setCurrentView('squads');
     setIsSidebarExpanded(false);
+    updateURL('squads', undefined, undefined, previousView);
   };
 
   const handleSquadDetailClick = (squadId: string) => {
-    setPreviousView(currentView);
+    const newPrevious = currentView;
+    setPreviousView(newPrevious);
     setSelectedSquad(squadId);
     setCurrentView('squad-detail');
     setIsSidebarExpanded(false);
+    updateURL('squad-detail', undefined, squadId, newPrevious);
   };
 
   const handleBackFromSquadDetail = () => {
     setCurrentView(previousView);
+    setSelectedSquad('');
+    updateURL(previousView, undefined, undefined, previousView);
   };
 
   const handleCalendarClick = () => {
     setCurrentView('calendar');
     setIsSidebarExpanded(false);
+    updateURL('calendar', undefined, undefined, previousView);
   };
 
   const handleMessagingClick = () => {
     setCurrentView('messaging');
     setIsSidebarExpanded(false);
+    updateURL('messaging', undefined, undefined, previousView);
   };
 
   function NotificationDropdown() {
@@ -448,6 +603,16 @@ export default function App() {
       </div>
     );
   }
+
+  // Clear saved state when user logs out (must be before any early returns)
+  useEffect(() => {
+    if (!user && typeof window !== 'undefined') {
+      sessionStorage.removeItem('currentView');
+      sessionStorage.removeItem('previousView');
+      sessionStorage.removeItem('selectedCourse');
+      sessionStorage.removeItem('selectedSquad');
+    }
+  }, [user]);
 
   // Handle auth callback route
   if (window.location.pathname === '/auth/callback') {

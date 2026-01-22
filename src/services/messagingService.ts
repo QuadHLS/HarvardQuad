@@ -70,7 +70,7 @@ export class MessagingService {
 
     const conversationIds = participants.map(p => p.conversation_id);
 
-    // Get conversations with last message
+    // Get conversations
     const { data: conversations, error: conversationsError } = await supabase
       .from('conversations')
       .select('*')
@@ -78,9 +78,10 @@ export class MessagingService {
       .order('updated_at', { ascending: false });
 
     if (conversationsError) throw conversationsError;
+    if (!conversations || conversations.length === 0) return [];
 
-    // Get last message for each conversation
-    const conversationsWithMessages = await Promise.all(
+    // Get last message for each conversation (batched with Promise.all for parallel execution)
+    const lastMessagesResults = await Promise.all(
       conversations.map(async (conv) => {
         const { data: lastMessageData, error: lastMessageError } = await supabase
           .from('messages')
@@ -90,21 +91,61 @@ export class MessagingService {
           .limit(1)
           .maybeSingle();
         
-        const lastMessage = lastMessageError ? null : lastMessageData;
+        return {
+          conversationId: conv.id,
+          lastMessage: lastMessageError ? null : lastMessageData,
+        };
+      })
+    );
 
-        // Get sender profile if message exists
-        if (lastMessage) {
-          const { data: senderProfile } = await supabase
-            .from('profiles')
-            .select('full_name, email, avatar_url')
-            .eq('id', lastMessage.sender_id)
-            .single();
-          
-          if (senderProfile) {
-            lastMessage.sender = senderProfile;
-          }
+    // Create a map of conversation_id -> last message
+    const lastMessagesByConvId = new Map<string, any>();
+    lastMessagesResults.forEach((result) => {
+      if (result.lastMessage) {
+        lastMessagesByConvId.set(result.conversationId, result.lastMessage);
+      }
+    });
+
+    // Get all unique sender IDs from last messages
+    const senderIds = Array.from(lastMessagesByConvId.values())
+      .map((msg: any) => msg.sender_id)
+      .filter((id: string) => id);
+    const uniqueSenderIds = [...new Set(senderIds)];
+
+    // Batch fetch all sender profiles in one query
+    const profilesBySenderId = new Map<string, any>();
+    if (uniqueSenderIds.length > 0) {
+      const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url')
+        .in('id', uniqueSenderIds);
+
+      if (allProfiles) {
+        allProfiles.forEach((profile: any) => {
+          profilesBySenderId.set(profile.id, profile);
+        });
+      }
+    }
+
+    // Attach sender profiles to last messages
+    lastMessagesByConvId.forEach((lastMessage, convId) => {
+      if (lastMessage.sender_id) {
+        const senderProfile = profilesBySenderId.get(lastMessage.sender_id);
+        if (senderProfile) {
+          lastMessage.sender = {
+            full_name: senderProfile.full_name,
+            email: senderProfile.email,
+            avatar_url: senderProfile.avatar_url,
+          };
         }
+      }
+    });
 
+    // Get unread counts for all conversations (batched with Promise.all)
+    const conversationsWithMessages = await Promise.all(
+      conversations.map(async (conv) => {
+        const lastMessage = lastMessagesByConvId.get(conv.id);
+        
         // Get unread count - messages created after last_read_at (or joined_at if never read)
         const participant = participants.find(p => p.conversation_id === conv.id);
         // Use last_read_at if available, otherwise fall back to joined_at
@@ -161,40 +202,51 @@ export class MessagingService {
       });
     }
 
-    // Then get profiles for each sender
-    const messagesWithSenders = await Promise.all(
-      messages.map(async (msg: any) => {
-        // Get sender profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, email, avatar_url')
-          .eq('id', msg.sender_id)
-          .single();
+    // Get all unique sender IDs and fetch all profiles in one query
+    const uniqueSenderIds = [...new Set(messages.map((m: any) => m.sender_id))];
+    const { data: allProfiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, avatar_url')
+      .in('id', uniqueSenderIds);
 
-        // Get attachments for this message
-        let attachmentsWithUrls = attachmentsByMessageId.get(msg.id) || [];
-        if (attachmentsWithUrls.length > 0) {
-          attachmentsWithUrls = await Promise.all(
-            attachmentsWithUrls.map(async (att: any) => {
-              const { data } = supabase.storage
-                .from(att.storage_bucket)
-                .getPublicUrl(att.file_path);
+    // Create a map of sender_id -> profile for quick lookup
+    const profilesBySenderId = new Map<string, any>();
+    if (allProfiles) {
+      allProfiles.forEach((profile: any) => {
+        profilesBySenderId.set(profile.id, profile);
+      });
+    }
 
-              return {
-                ...att,
-                url: data.publicUrl,
-              };
-            })
-          );
-        }
+    // Build messages with profiles and attachments
+    const messagesWithSenders = messages.map((msg: any) => {
+      // Get sender profile from map
+      const profile = profilesBySenderId.get(msg.sender_id) || null;
 
-        return {
-          ...msg,
-          sender: profile || null,
-          attachments: attachmentsWithUrls,
-        };
-      })
-    );
+      // Get attachments for this message
+      let attachmentsWithUrls = attachmentsByMessageId.get(msg.id) || [];
+      if (attachmentsWithUrls.length > 0) {
+        attachmentsWithUrls = attachmentsWithUrls.map((att: any) => {
+          const { data } = supabase.storage
+            .from(att.storage_bucket)
+            .getPublicUrl(att.file_path);
+
+          return {
+            ...att,
+            url: data.publicUrl,
+          };
+        });
+      }
+
+      return {
+        ...msg,
+        sender: profile ? {
+          full_name: profile.full_name,
+          email: profile.email,
+          avatar_url: profile.avatar_url,
+        } : null,
+        attachments: attachmentsWithUrls,
+      };
+    });
 
     return messagesWithSenders as Message[];
   }

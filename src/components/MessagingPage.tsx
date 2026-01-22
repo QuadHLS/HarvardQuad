@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, Send, ChevronLeft, Plus, Hash, MessageCircle, Paperclip, Download, File, Trash2, Settings, MoreVertical, Ban, UserCheck } from 'lucide-react';
-import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessagingService, Message, Participant } from '../services/messagingService';
 import { Input } from './ui/input';
@@ -46,8 +46,191 @@ function getClubInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-// Conversation Item Component
-function ConversationItem({ 
+// Extract YouTube video ID from various URL formats
+function extractYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtube\.com\/watch\?.+&v=)([a-zA-Z0-9_-]{11})/,
+    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+  return null;
+}
+
+// Extract domain from URL
+function getDomainFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.replace('www.', '');
+  } catch {
+    return url;
+  }
+}
+
+// Link Preview Component (iMessage style)
+const LinkPreview: React.FC<{ url: string; isOwnMessage: boolean }> = ({ url, isOwnMessage }) => {
+  const domain = getDomainFromUrl(url);
+  
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="block rounded-xl overflow-hidden border transition-opacity hover:opacity-90 bg-white border-[#e7ded1]"
+      style={{ maxWidth: '280px', marginTop: '4px' }}
+    >
+      <div className="p-3">
+        <div 
+          className="text-sm truncate"
+          style={{ 
+            color: '#3d3d3a',
+            fontFamily: 'Arial, sans-serif'
+          }}
+        >
+          {domain}
+        </div>
+      </div>
+    </a>
+  );
+};
+
+// Check if message is YouTube-only (no other text or links)
+function isYouTubeOnly(content: string): boolean {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = content.split(urlRegex);
+  
+  let hasYouTube = false;
+  let hasOtherContent = false;
+  
+  parts.forEach((part) => {
+    if (urlRegex.test(part)) {
+      urlRegex.lastIndex = 0;
+      const videoId = extractYouTubeVideoId(part);
+      if (videoId) {
+        hasYouTube = true;
+      } else {
+        hasOtherContent = true;
+      }
+    } else if (part.trim()) {
+      hasOtherContent = true;
+    }
+  });
+  
+  return hasYouTube && !hasOtherContent;
+}
+
+// Check if message is link-only (no YouTube, no other text)
+function isLinkOnly(content: string): boolean {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = content.split(urlRegex);
+  
+  let hasLinks = false;
+  let hasOtherContent = false;
+  
+  parts.forEach((part) => {
+    if (urlRegex.test(part)) {
+      urlRegex.lastIndex = 0;
+      const videoId = extractYouTubeVideoId(part);
+      if (!videoId) {
+        hasLinks = true;
+      } else {
+        hasOtherContent = true; // YouTube is considered other content for this check
+      }
+    } else if (part.trim()) {
+      hasOtherContent = true;
+    }
+  });
+  
+  return hasLinks && !hasOtherContent;
+}
+
+// Render message content with YouTube embeds and link previews
+function renderMessageContent(content: string, isOwnMessage: boolean): React.ReactNode {
+  // Regex to find URLs in text
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = content.split(urlRegex);
+  
+  const textElements: React.ReactNode[] = [];
+  const youtubeEmbeds: string[] = [];
+  const linkPreviews: { url: string; index: number }[] = [];
+  
+  parts.forEach((part, index) => {
+    if (urlRegex.test(part)) {
+      // Reset regex lastIndex
+      urlRegex.lastIndex = 0;
+      
+      const videoId = extractYouTubeVideoId(part);
+      if (videoId) {
+        // Don't add the link text for YouTube URLs, just collect the video ID
+        youtubeEmbeds.push(videoId);
+      } else {
+        // Regular link - collect for preview card
+        linkPreviews.push({ url: part, index });
+      }
+    } else if (part) {
+      // Split by newlines and preserve them
+      const lines = part.split('\n');
+      lines.forEach((line, lineIndex) => {
+        if (lineIndex > 0) {
+          textElements.push(<br key={`br-${index}-${lineIndex}`} />);
+        }
+        if (line) {
+          textElements.push(<span key={`text-${index}-${lineIndex}`}>{line}</span>);
+        }
+      });
+    }
+  });
+  
+  const hasText = textElements.length > 0;
+  const hasYouTube = youtubeEmbeds.length > 0;
+  const hasLinks = linkPreviews.length > 0;
+  
+  // If we have YouTube embeds or link previews, show them with text
+  if (hasYouTube || hasLinks) {
+    return (
+      <div className="flex flex-col gap-2">
+        {hasText && <span>{textElements}</span>}
+        {linkPreviews.map((link, idx) => (
+          <LinkPreview 
+            key={`link-${link.index}`} 
+            url={link.url} 
+            isOwnMessage={isOwnMessage} 
+          />
+        ))}
+        {youtubeEmbeds.map((videoId, idx) => (
+          <div 
+            key={`yt-${idx}`} 
+            className="rounded-lg overflow-hidden"
+            style={{ maxWidth: '100%', aspectRatio: '16/9' }}
+          >
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title="YouTube video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full border-0"
+              style={{ minHeight: '180px', maxHeight: '280px' }}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  return <>{textElements}</>;
+}
+
+// Conversation Item Component (memoized to prevent unnecessary re-renders)
+const ConversationItem = memo(function ConversationItem({ 
   conv, 
   onClick, 
   isClub = false,
@@ -411,7 +594,7 @@ function ConversationItem({
       )}
     </div>
   );
-}
+});
 
 export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -472,6 +655,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [listBlockLoading, setListBlockLoading] = useState<string | null>(null);
   const [blockedConversations, setBlockedConversations] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mobileTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const desktopTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [pendingAttachments, setPendingAttachments] = useState<
     Array<{ file: File; type: 'image' | 'file'; url: string; name: string; size: number }>
   >([]);
@@ -582,106 +767,112 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       setLoading(true);
       const convs = await MessagingService.getConversations();
       
-      const displayConvs: DisplayConversation[] = await Promise.all(
-        convs.map(async (conv) => {
-          // For DMs, get the other participant's info
-          let displayName = conv.name || 'Unnamed';
-          let avatar = '?';
-          let avatarColor = '#7b7b74';
+      // Batch fetch all participants for all conversations to avoid N+1 queries
+      const allParticipantsResults = await Promise.all(
+        convs.map(conv => MessagingService.getParticipants(conv.id))
+      );
+      const participantsByConvId = new Map<string, Participant[]>();
+      convs.forEach((conv, index) => {
+        participantsByConvId.set(conv.id, allParticipantsResults[index]);
+      });
 
-          // Format last message
-          let lastMessage = 'No messages yet';
-          let lastMessageTime = '';
-          if (conv.last_message) {
-            if (conv.last_message.message_type === 'text') {
-              lastMessage = conv.last_message.content || '[Message]';
-            } else if (conv.last_message.message_type === 'image') {
-              lastMessage = '📷 Image';
-            } else {
-              lastMessage = '📎 File';
-            }
-            lastMessageTime = formatTime(conv.last_message.created_at);
-          }
+      const displayConvs: DisplayConversation[] = convs.map((conv) => {
+        // For DMs, get the other participant's info
+        let displayName = conv.name || 'Unnamed';
+        let avatar = '?';
+        let avatarColor = '#7b7b74';
 
-          let avatarUrl: string | null = null;
-
-          if (conv.type === 'dm') {
-            const participants = await MessagingService.getParticipants(conv.id);
-            const otherParticipant = participants.find(p => p.user_id !== user?.id);
-            if (otherParticipant?.profile) {
-              displayName = otherParticipant.profile.full_name || otherParticipant.profile.email?.split('@')[0] || 'Unknown';
-              avatar = (otherParticipant.profile.full_name || otherParticipant.profile.email || '?')
-                .split(' ')
-                .map(n => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2);
-              // Generate color from name (fallback)
-              const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
-              avatarColor = colors[displayName.charCodeAt(0) % colors.length];
-              // Use actual avatar URL if available
-              avatarUrl = otherParticipant.profile.avatar_url && otherParticipant.profile.avatar_url.trim() !== '' 
-                ? otherParticipant.profile.avatar_url 
-                : null;
-            }
+        // Format last message
+        let lastMessage = 'No messages yet';
+        let lastMessageTime = '';
+        if (conv.last_message) {
+          if (conv.last_message.message_type === 'text') {
+            lastMessage = conv.last_message.content || '[Message]';
+          } else if (conv.last_message.message_type === 'image') {
+            lastMessage = '📷 Image';
           } else {
-            // Group chat - get member avatars
-            const participants = await MessagingService.getParticipants(conv.id);
-            const totalMembers = participants.length;
-            // Show first 3 members, then indicate if there are more
-            const membersToShow = totalMembers > 4 ? 3 : Math.min(totalMembers, 4);
-            const memberAvatars = participants.slice(0, membersToShow).map(p => {
-              const memberName = p.profile?.full_name || p.profile?.email || '?';
-              const initials = memberName
-                .split(' ')
-                .map(n => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2);
-              const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
-              const color = colors[memberName.charCodeAt(0) % colors.length];
-              return {
-                avatarUrl: p.profile?.avatar_url && p.profile.avatar_url.trim() !== '' 
-                  ? p.profile.avatar_url 
-                  : null,
-                initials,
-                color
-              };
-            });
-            
-            avatar = '👥';
-            avatarColor = '#d47455';
-            
-            return {
-              id: conv.id,
-              name: displayName,
-              type: conv.type,
-              avatar,
-              avatarUrl: null,
-              avatarColor,
-              memberAvatars,
-              totalMembers: totalMembers,
-              lastMessage,
-              lastMessageTime,
-              unread: conv.unread_count || 0,
-              messages: []
-            };
+            lastMessage = '📎 File';
           }
+          lastMessageTime = formatTime(conv.last_message.created_at);
+        }
 
+        let avatarUrl: string | null = null;
+        const participants = participantsByConvId.get(conv.id) || [];
+
+        if (conv.type === 'dm') {
+          const otherParticipant = participants.find(p => p.user_id !== user?.id);
+          if (otherParticipant?.profile) {
+            displayName = otherParticipant.profile.full_name || otherParticipant.profile.email?.split('@')[0] || 'Unknown';
+            avatar = (otherParticipant.profile.full_name || otherParticipant.profile.email || '?')
+              .split(' ')
+              .map(n => n[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2);
+            // Generate color from name (fallback)
+            const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+            avatarColor = colors[displayName.charCodeAt(0) % colors.length];
+            // Use actual avatar URL if available
+            avatarUrl = otherParticipant.profile.avatar_url && otherParticipant.profile.avatar_url.trim() !== '' 
+              ? otherParticipant.profile.avatar_url 
+              : null;
+          }
+        } else {
+          // Group chat - get member avatars
+          const totalMembers = participants.length;
+          // Show first 3 members, then indicate if there are more
+          const membersToShow = totalMembers > 4 ? 3 : Math.min(totalMembers, 4);
+          const memberAvatars = participants.slice(0, membersToShow).map(p => {
+            const memberName = p.profile?.full_name || p.profile?.email || '?';
+            const initials = memberName
+              .split(' ')
+              .map(n => n[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2);
+            const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+            const color = colors[memberName.charCodeAt(0) % colors.length];
+            return {
+              avatarUrl: p.profile?.avatar_url && p.profile.avatar_url.trim() !== '' 
+                ? p.profile.avatar_url 
+                : null,
+              initials,
+              color
+            };
+          });
+          
+          avatar = '👥';
+          avatarColor = '#d47455';
+          
           return {
             id: conv.id,
             name: displayName,
             type: conv.type,
             avatar,
-            avatarUrl,
+            avatarUrl: null,
             avatarColor,
+            memberAvatars,
+            totalMembers: totalMembers,
             lastMessage,
             lastMessageTime,
             unread: conv.unread_count || 0,
-            messages: [] // Will load when selected
+            messages: []
           };
-        })
-      );
+        }
+
+        return {
+          id: conv.id,
+          name: displayName,
+          type: conv.type,
+          avatar,
+          avatarUrl,
+          avatarColor,
+          lastMessage,
+          lastMessageTime,
+          unread: conv.unread_count || 0,
+          messages: [] // Will load when selected
+        };
+      });
 
       // Get all squad conversation IDs to identify club groups
       const { data: squads } = await supabase
@@ -969,6 +1160,20 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       setPendingAttachments([]);
     };
   }, [selectedConversation]);
+
+  // Reset textarea heights when message input is cleared
+  useEffect(() => {
+    if (messageInput === '') {
+      if (mobileTextareaRef.current) {
+        mobileTextareaRef.current.style.height = 'auto';
+        mobileTextareaRef.current.style.height = '44px';
+      }
+      if (desktopTextareaRef.current) {
+        desktopTextareaRef.current.style.height = 'auto';
+        desktopTextareaRef.current.style.height = '44px';
+      }
+    }
+  }, [messageInput]);
 
   const handleSendMessage = async () => {
     if (!selectedConversation || !user) return;
@@ -1405,13 +1610,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto min-h-0">
-              <div className="px-4 pb-4">
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading...</p>
-                  </div>
-                ) : (
+            <div className="flex-1 overflow-auto min-h-0 flex flex-col">
+              {loading ? (
+                <div className="flex items-center justify-center flex-1">
+                  <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading...</p>
+                </div>
+              ) : (
+                <div className="px-4 pb-4">
                   <>
                     {/* Friends (DMs) Tab */}
                     {mobileTab === 'friends' && (
@@ -1494,8 +1699,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       </div>
                     )}
                   </>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -1957,12 +2162,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   const isDM = selectedConv?.type === 'dm';
                   const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup && !isDM;
                   const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup && !isDM; // Only show on top if it's also the last (single message)
-                  const showOwnTimestamp = isOwnMessage && (
-                    !nextMsg ||
-                    nextMsg.sender_id !== user?.id ||
-                    new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
-                  );
-                  const showNameAndTime = (!isOwnMessage && isFirstInGroup) || showOwnTimestamp;
+                  // Show timestamp if previous message was more than 2 minutes ago (or no previous message)
+                  const showTimestamp = !prevMsg || 
+                    new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 120000;
+                  const showNameAndTime = (!isOwnMessage && isFirstInGroup) || (isOwnMessage && showTimestamp);
                   const showName = !isOwnMessage && isFirstInGroup && !isDM;
                   
                   return (
@@ -2051,7 +2254,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 {senderName}
                               </span>
                             )}
-                            {isOwnMessage && (
+                            {showTimestamp && isOwnMessage && (
                               <span 
                                 className="text-xs ml-auto"
                                 style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
@@ -2059,7 +2262,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 {formatTime(msg.created_at)}
                               </span>
                             )}
-                            {!isOwnMessage && (
+                            {showTimestamp && !isOwnMessage && (
                               <span 
                                 className="text-xs"
                                 style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
@@ -2133,6 +2336,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               </div>
                             </div>
                           </div>
+                        ) : isYouTubeOnly(msg.content) || isLinkOnly(msg.content) ? (
+                          <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '100%' }}>
+                            {renderMessageContent(msg.content, isOwnMessage)}
+                          </div>
                         ) : (
                           <div
                             className={`inline-block rounded-xl px-3 py-1.5 ${
@@ -2142,15 +2349,15 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             }`}
                             style={{ fontFamily: 'Arial, sans-serif', width: 'fit-content', maxWidth: '100%' }}
                           >
-                            <p 
+                            <div 
                               className="text-sm"
                               style={{ 
                                 color: isOwnMessage ? '#ffffff' : '#3d3d3a', 
                                 lineHeight: 1.5 
                               }}
                             >
-                              {msg.content}
-                            </p>
+                              {renderMessageContent(msg.content, isOwnMessage)}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2232,6 +2439,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
                     </button>
                     <textarea
+                      ref={mobileTextareaRef}
                       placeholder="Message..."
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
@@ -2694,8 +2902,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             </div>
           </div>
           
-          <div className="flex-1 overflow-auto">
-            {conversations.map((conv) => (
+          <div className="flex-1 overflow-auto flex flex-col">
+            {loading ? (
+              <div className="flex items-center justify-center flex-1">
+                <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading...</p>
+              </div>
+            ) : (
+              conversations.map((conv) => (
               <div
                 key={conv.id}
                 onClick={() => openConversation(conv.id)}
@@ -2953,7 +3166,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   </div>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
 
@@ -3275,12 +3489,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     const isDM = selectedConv?.type === 'dm';
                     const showAvatarOnLeft = !isOwnMessage && isLastInGroup && !isFirstInGroup && !isDM;
                     const showAvatarOnTop = !isOwnMessage && isFirstInGroup && isLastInGroup && !isDM; // Only show on top if it's also the last (single message)
-                    const showOwnTimestamp = isOwnMessage && (
-                      !nextMsg ||
-                      nextMsg.sender_id !== user?.id ||
-                      new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime() > 120000
-                    );
-                    const showNameAndTime = (!isOwnMessage && isFirstInGroup) || showOwnTimestamp; // show time for own msg if not grouped with next within 2 min
+                    // Show timestamp if previous message was more than 2 minutes ago (or no previous message)
+                    const showTimestamp = !prevMsg || 
+                      new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 120000;
+                    const showNameAndTime = (!isOwnMessage && isFirstInGroup) || (isOwnMessage && showTimestamp);
                     const showName = !isOwnMessage && isFirstInGroup && !isDM;
                     
                     return (
@@ -3364,7 +3576,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                   {senderName}
                                 </span>
                               )}
-                              {isOwnMessage && (
+                              {showTimestamp && isOwnMessage && (
                                 <span 
                                   className="text-xs ml-auto"
                                   style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
@@ -3372,7 +3584,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                   {formatTime(msg.created_at)}
                                 </span>
                               )}
-                              {!isOwnMessage && (
+                              {showTimestamp && !isOwnMessage && (
                                 <span 
                                   className="text-xs"
                                   style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
@@ -3445,6 +3657,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 </div>
                               </div>
                             </div>
+                          ) : isYouTubeOnly(msg.content) || isLinkOnly(msg.content) ? (
+                            <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '100%' }}>
+                              {renderMessageContent(msg.content, isOwnMessage)}
+                            </div>
                           ) : (
                             <div
                               className={`inline-block rounded-xl px-3 py-1.5 ${
@@ -3454,15 +3670,15 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               }`}
                               style={{ fontFamily: 'Arial, sans-serif', width: 'fit-content', maxWidth: '100%' }}
                             >
-                              <p 
+                              <div 
                                 className="text-sm"
                                 style={{ 
                                   color: isOwnMessage ? '#ffffff' : '#3d3d3a', 
                                   lineHeight: 1.5 
                                 }}
                               >
-                                {msg.content}
-                              </p>
+                                {renderMessageContent(msg.content, isOwnMessage)}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -3543,6 +3759,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
                       </button>
                       <textarea
+                        ref={desktopTextareaRef}
                         placeholder="Message..."
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
@@ -3550,7 +3767,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           // On desktop, Shift+Enter for new line, Enter to send
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            handleSendMessage();
+                            // Only send if there's content or attachments
+                            if (messageInput.trim().length > 0 || pendingAttachments.length > 0) {
+                              handleSendMessage();
+                            }
                           }
                         }}
                         rows={1}
