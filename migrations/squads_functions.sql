@@ -34,8 +34,12 @@ BEGIN
     RAISE EXCEPTION 'Squad category cannot be empty';
   END IF;
 
-  IF privacy_type NOT IN ('open', 'locked', 'private') THEN
-    RAISE EXCEPTION 'Privacy type must be open, locked, or private';
+  IF squad_category NOT IN ('sports', 'social', 'academic', 'hobbies') THEN
+    RAISE EXCEPTION 'Squad category must be one of: sports, social, academic, hobbies';
+  END IF;
+
+  IF privacy_type NOT IN ('open', 'private') THEN
+    RAISE EXCEPTION 'Privacy type must be open (public) or private';
   END IF;
 
   -- Create group chat first (using existing function)

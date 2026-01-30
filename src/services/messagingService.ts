@@ -707,11 +707,12 @@ export class MessagingService {
     if (convError) throw convError;
     if (!conversation) throw new Error('Conversation not found');
 
-    // For groups, check if user is admin
+    // For groups, allow creator or admin to delete (regular groups have no admin; creator can delete)
     if (conversation.type === 'group') {
       const isAdmin = await this.isAdmin(conversationId);
-      if (!isAdmin) {
-        throw new Error('Only admins can delete group conversations');
+      const isCreator = conversation.created_by === user.id;
+      if (!isAdmin && !isCreator) {
+        throw new Error('Only the creator or an admin can delete this group');
       }
     } else {
       // For DMs, check if user is the creator (though DMs typically shouldn't be deletable)

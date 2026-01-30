@@ -7,7 +7,7 @@ export interface Squad {
   category: string;
   meeting_times: string | null;
   location: string | null;
-  type: 'open' | 'locked' | 'private';
+  type: 'open' | 'private';
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -51,7 +51,7 @@ export class SquadsService {
     category: string,
     meetingTimes: string | null,
     location: string | null,
-    privacyType: 'open' | 'locked' | 'private' = 'open'
+    privacyType: 'open' | 'private' = 'open'
   ): Promise<Squad> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -129,6 +129,7 @@ export class SquadsService {
       .single();
 
     if (error) throw error;
+    if (!squad) throw new Error('Squad not found');
 
     // Get member count
     const { count: memberCount } = await supabase
@@ -140,6 +141,16 @@ export class SquadsService {
       ...squad,
       member_count: memberCount || 0,
     } as Squad;
+  }
+
+  // Add members to a squad (creator/admins only). Also adds them to the squad's group chat.
+  static async addSquadMembers(squadId: string, userIds: string[]): Promise<void> {
+    if (!userIds.length) return;
+    const { error } = await supabase.rpc('add_squad_members', {
+      squad_id_param: squadId,
+      user_ids_param: userIds,
+    });
+    if (error) throw error;
   }
 
   // Join a squad
@@ -157,6 +168,15 @@ export class SquadsService {
       squad_id_param: squadId,
     });
 
+    if (error) throw error;
+  }
+
+  // Remove a member from a squad (admins only; enforced by RPC)
+  static async removeSquadMember(squadId: string, userId: string): Promise<void> {
+    const { error } = await supabase.rpc('remove_squad_member', {
+      squad_id_param: squadId,
+      user_id_to_remove: userId,
+    });
     if (error) throw error;
   }
 
@@ -202,7 +222,72 @@ export class SquadsService {
     return (documents || []) as SquadDocument[];
   }
 
-  // Delete a squad (only creator can delete)
+  // Add a squad document (admins only; name + optional URL or storage metadata)
+  static async addSquadDocument(
+    squadId: string,
+    name: string,
+    fileUrl: string | null = null,
+    opts?: { file_path?: string | null; file_size?: number | null; mime_type?: string | null; storage_bucket?: string | null }
+  ): Promise<SquadDocument> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const row: Record<string, unknown> = {
+      squad_id: squadId,
+      name: name.trim(),
+      file_url: fileUrl?.trim() || null,
+      created_by: user.id,
+    };
+    if (opts?.file_path !== undefined) row.file_path = opts.file_path;
+    if (opts?.file_size !== undefined) row.file_size = opts.file_size;
+    if (opts?.mime_type !== undefined) row.mime_type = opts.mime_type;
+    if (opts?.storage_bucket !== undefined) row.storage_bucket = opts.storage_bucket;
+    const { data, error } = await supabase
+      .from('squad_documents')
+      .insert(row)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as SquadDocument;
+  }
+
+  static readonly BUCKET = 'squad-documents';
+
+  // Upload a file to squad storage and add a squad document (admins only). displayName is the label shown in the list; defaults to file.name.
+  static async uploadAndAddSquadDocument(squadId: string, file: File, displayName?: string): Promise<SquadDocument> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const name = (displayName?.trim() || file.name).trim() || file.name;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${squadId}/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage
+      .from(SquadsService.BUCKET)
+      .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from(SquadsService.BUCKET).getPublicUrl(path);
+    return SquadsService.addSquadDocument(squadId, name, publicUrl, {
+      file_path: path,
+      file_size: file.size,
+      mime_type: file.type || null,
+      storage_bucket: SquadsService.BUCKET,
+    });
+  }
+
+  // Update squad (admins only; name, info, category, type)
+  static async updateSquad(
+    squadId: string,
+    updates: { name?: string; info?: string | null; category?: string; type?: 'open' | 'private' }
+  ): Promise<void> {
+    const payload: Record<string, unknown> = {};
+    if (updates.name !== undefined) payload.name = updates.name.trim();
+    if (updates.info !== undefined) payload.info = updates.info?.trim() || null;
+    if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.type !== undefined) payload.type = updates.type;
+    if (Object.keys(payload).length === 0) return;
+    const { error } = await supabase.from('squads').update(payload).eq('id', squadId);
+    if (error) throw error;
+  }
+
+  // Delete a squad (admins only; RLS enforces)
   static async deleteSquad(squadId: string): Promise<void> {
     const { error } = await supabase
       .from('squads')
@@ -210,5 +295,33 @@ export class SquadsService {
       .eq('id', squadId);
 
     if (error) throw error;
+  }
+
+  // Delete a squad document (admins only). Also removes the file from storage if present.
+  static async deleteSquadDocument(squadId: string, documentId: string): Promise<void> {
+    const { data: doc, error: fetchError } = await supabase
+      .from('squad_documents')
+      .select('file_path, storage_bucket')
+      .eq('id', documentId)
+      .eq('squad_id', squadId)
+      .single();
+
+    if (fetchError || !doc) throw new Error('Document not found');
+
+    if (doc.file_path && doc.storage_bucket) {
+      try {
+        await supabase.storage.from(doc.storage_bucket as string).remove([doc.file_path as string]);
+      } catch {
+        // Continue to delete row even if storage delete fails (e.g. file already removed)
+      }
+    }
+
+    const { error: deleteError } = await supabase
+      .from('squad_documents')
+      .delete()
+      .eq('id', documentId)
+      .eq('squad_id', squadId);
+
+    if (deleteError) throw deleteError;
   }
 }

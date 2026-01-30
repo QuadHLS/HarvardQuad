@@ -412,14 +412,12 @@ export function ProfilePage() {
         <div className="md:hidden h-screen w-full bg-[#FBF9F5] flex items-center justify-center fixed inset-0">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto"></div>
-            <p className="mt-4 text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>Loading profile...</p>
           </div>
         </div>
         {/* Desktop View */}
         <div className="hidden md:flex h-full w-full bg-[#FBF9F5] items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto"></div>
-            <p className="mt-4 text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>Loading profile...</p>
           </div>
         </div>
       </>

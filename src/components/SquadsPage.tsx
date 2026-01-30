@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, Lock, Globe, Plus, Dumbbell, PartyPopper, BookOpen, UtensilsCrossed, Building2, ChevronRight, Sparkles, ChevronDown } from 'lucide-react';
+import { Search, Users, Plus, Dumbbell, PartyPopper, BookOpen, Gamepad2, ChevronRight, ChevronDown, Globe, Lock } from 'lucide-react';
 import { SquadsService, Squad } from '../services/squadsService';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { SquadMakingModal, CreateSquadPayload } from './SquadMakingModal';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SquadsPageProps {
@@ -19,20 +17,13 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
   const [squads, setSquads] = useState<Squad[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
-  // Create squad form state
-  const [squadName, setSquadName] = useState('');
-  const [squadInfo, setSquadInfo] = useState('');
-  const [squadCategory, setSquadCategory] = useState('');
-  const [meetingTimes, setMeetingTimes] = useState('');
-  const [location, setLocation] = useState('');
-  const [privacyType, setPrivacyType] = useState<'open' | 'locked' | 'private'>('open');
   const [creating, setCreating] = useState(false);
 
   const categories = [
     { id: 'sports', label: 'Sports', icon: Dumbbell, color: '#7ba05b' },
     { id: 'social', label: 'Social', icon: PartyPopper, color: '#d47455' },
-    { id: 'academic', label: 'Academic', icon: BookOpen, color: '#7b9fb8' }
+    { id: 'academic', label: 'Academic', icon: BookOpen, color: '#7b9fb8' },
+    { id: 'hobbies', label: 'Hobbies', icon: Gamepad2, color: '#c89b6e' },
   ];
 
   // Load squads on mount
@@ -54,33 +45,26 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
     }
   };
 
-  const handleCreateSquad = async () => {
-    if (!squadName.trim() || !squadCategory) {
+  const handleCreateSquadFromPayload = async (payload: CreateSquadPayload) => {
+    if (!payload.name.trim() || !payload.category) {
       alert('Please fill in the required fields (name and category).');
       return;
     }
-
+    const privacyType = payload.type === 'public' ? 'open' : 'private';
     try {
       setCreating(true);
-      await SquadsService.createSquad(
-        squadName.trim(),
-        squadInfo.trim() || null,
-        squadCategory,
-        meetingTimes.trim() || null,
-        location.trim() || null,
+      const squad = await SquadsService.createSquad(
+        payload.name.trim(),
+        payload.description.trim() || null,
+        payload.category,
+        null,
+        null,
         privacyType
       );
-      
-      // Reset form
-      setSquadName('');
-      setSquadInfo('');
-      setSquadCategory('');
-      setMeetingTimes('');
-      setLocation('');
-      setPrivacyType('open');
+      if (payload.members?.length) {
+        await SquadsService.addSquadMembers(squad.id, payload.members);
+      }
       setShowCreateModal(false);
-      
-      // Reload squads
       await loadSquads();
     } catch (error) {
       console.error('Error creating squad:', error);
@@ -96,7 +80,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
   };
 
   const mySquads = squads.filter(s => s.is_joined);
-  const displaySquads = activeTab === 'my-squads' ? mySquads : squads;
+  // All squads tab: only show public (open) squads; private squads are invite-only
+  const displaySquads = activeTab === 'my-squads' ? mySquads : squads.filter(s => s.type === 'open');
 
   const filteredSquads = displaySquads.filter(squad => {
     // Filter by category if selected
@@ -239,8 +224,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
           {/* Squads List */}
           <div className="px-4 pb-4 space-y-3">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading squads...</p>
+              <div className="flex items-center justify-center min-h-[60vh] py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
               </div>
             ) : filteredSquads.length === 0 ? (
               <div className="flex items-center justify-center py-8">
@@ -250,7 +235,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
               </div>
             ) : (
               filteredSquads.map((squad) => {
-                const Icon = squad.type === 'open' ? Globe : squad.type === 'locked' ? Lock : Users;
+                const Icon = squad.type === 'open' ? Globe : Lock;
                 const squadColor = getCategoryColor(squad.category);
                 
                 return (
@@ -439,8 +424,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
 
         <div className="grid grid-cols-2 gap-6">
           {loading ? (
-            <div className="col-span-2 flex items-center justify-center py-12">
-              <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading squads...</p>
+            <div className="col-span-2 flex items-center justify-center min-h-[60vh] py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
             </div>
           ) : filteredSquads.length === 0 ? (
             <div className="col-span-2 flex items-center justify-center py-12">
@@ -450,7 +435,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
             </div>
           ) : (
             filteredSquads.map((squad) => {
-              const Icon = squad.type === 'open' ? Globe : squad.type === 'locked' ? Lock : Users;
+              const Icon = squad.type === 'open' ? Globe : Lock;
               const squadColor = getCategoryColor(squad.category);
               
               return (
@@ -510,148 +495,11 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
         </div>
       </div>
 
-      {/* Create Squad Modal */}
-      {showCreateModal && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowCreateModal(false)}
-            aria-hidden="true"
-          />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75]">
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                className="text-lg font-semibold"
-                style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
-              >
-                Create New Squad
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#3d3d3a] hover:bg-[#e8e5dc]"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              {/* Squad Name */}
-              <div>
-                <label className="text-sm font-medium mb-2 block" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                  Squad Name <span className="text-[#d47455]">*</span>
-                </label>
-                <Input
-                  placeholder="Enter squad name"
-                  value={squadName}
-                  onChange={(e) => setSquadName(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Squad Info/Description */}
-              <div>
-                <label className="text-sm font-medium mb-2 block" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                  Description
-                </label>
-                <textarea
-                  placeholder="Describe your squad..."
-                  value={squadInfo}
-                  onChange={(e) => setSquadInfo(e.target.value)}
-                  className="w-full min-h-[80px] px-3 py-2 rounded-md border border-[#e7ded1] bg-white text-sm resize-none"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="text-sm font-medium mb-2 block" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                  Category <span className="text-[#d47455]">*</span>
-                </label>
-              <Select value={squadCategory} onValueChange={setSquadCategory}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="bg-white" style={{ backgroundColor: 'white' }}>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              </div>
-
-              {/* Meeting Times */}
-              <div>
-                <label className="text-sm font-medium mb-2 block" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                  Meeting Times
-                </label>
-                <Input
-                  placeholder="e.g., Monday, Wednesday, Friday • 6:30 AM"
-                  value={meetingTimes}
-                  onChange={(e) => setMeetingTimes(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="text-sm font-medium mb-2 block" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                  Location
-                </label>
-                <Input
-                  placeholder="e.g., Campus Quad"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Privacy Type */}
-              <div>
-                <label className="text-sm font-medium mb-2 block" style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}>
-                  Privacy
-                </label>
-              <Select value={privacyType} onValueChange={(value) => setPrivacyType(value as 'open' | 'locked' | 'private')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white" style={{ backgroundColor: 'white' }}>
-                  <SelectItem value="open" className="[&>span:has(svg)]:!hidden pr-2">Open - Anyone can join</SelectItem>
-                  <SelectItem value="locked" className="[&>span:has(svg)]:!hidden pr-2">Locked - Request to join</SelectItem>
-                  <SelectItem value="private" className="[&>span:has(svg)]:!hidden pr-2">Private - Invite only</SelectItem>
-                </SelectContent>
-              </Select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <Button
-                variant="outline"
-                onClick={() => setShowCreateModal(false)}
-                disabled={creating}
-                className="min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateSquad}
-                disabled={creating || !squadName.trim() || !squadCategory}
-                style={{ backgroundColor: '#d47455', color: 'white' }}
-                className="min-w-[96px] justify-center"
-              >
-                {creating ? 'Creating...' : 'Create Squad'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SquadMakingModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onCreate={handleCreateSquadFromPayload}
+      />
     </div>
   );
 }

@@ -389,7 +389,9 @@ function Step2({ formData, setFormData }: {
       </div>
 
       {loading && (
-        <p className="text-sm text-gray-500 flex-shrink-0 mt-4" style={{ fontFamily: 'Arial, sans-serif' }}>Loading courses...</p>
+        <div className="flex-shrink-0 mt-4 flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d47455]"></div>
+        </div>
       )}
       {error && (
         <p className="text-sm text-red-600 flex-shrink-0 mt-4" style={{ fontFamily: 'Arial, sans-serif' }}>{error}</p>

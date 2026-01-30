@@ -16,6 +16,7 @@ interface DisplayConversation {
   id: string;
   name: string;
   type: 'dm' | 'group';
+  created_by?: string;
   avatar?: string;
   avatarUrl?: string | null;
   avatarColor?: string;
@@ -856,6 +857,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             id: conv.id,
             name: displayName,
             type: conv.type,
+            created_by: conv.created_by,
             avatar,
             avatarUrl: null,
             avatarColor,
@@ -872,6 +874,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           id: conv.id,
           name: displayName,
           type: conv.type,
+          created_by: conv.created_by,
           avatar,
           avatarUrl,
           avatarColor,
@@ -1159,6 +1162,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   };
 
   const selectedConv = conversations.find(c => c.id === selectedConversation);
+  const isCreator = Boolean(selectedConv?.created_by && user?.id && selectedConv.created_by === user.id);
+  const canManageGroup = isAdmin || isCreator;
 
   const formatTime = (dateString: string): string => {
     const date = new Date(dateString);
@@ -1645,7 +1650,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             <div className="flex-1 overflow-auto min-h-0 flex flex-col">
               {loading ? (
                 <div className="flex items-center justify-center flex-1">
-                  <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading...</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
                 </div>
               ) : (
                 <div className="px-4 pb-4">
@@ -2132,7 +2137,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     >
                       <Settings className="w-5 h-5 text-[#3d3d3a]" />
                     </button>
-                    {isAdmin && (
+                    {canManageGroup && (
                       <button
                         onClick={() => setShowDeleteConfirm(true)}
                         className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
@@ -2153,7 +2158,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             >
               {messagesLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading messages...</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
@@ -2991,7 +2996,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           <div className="flex-1 overflow-auto flex flex-col">
             {loading ? (
               <div className="flex items-center justify-center flex-1">
-                <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Loading...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
               </div>
             ) : (
               conversations.map((conv) => (
@@ -3521,7 +3526,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       >
                         <Settings className="w-5 h-5 text-[#3d3d3a]" />
                       </button>
-                      {isAdmin && (
+                      {canManageGroup && (
                         <button
                           onClick={() => setShowDeleteConfirm(true)}
                           className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"

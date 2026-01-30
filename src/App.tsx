@@ -652,11 +652,8 @@ export default function App() {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto"></div>
-          <p className="mt-4 text-neutral-600" style={{ fontFamily: 'Arial, sans-serif' }}>Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF9F5]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
       </div>
     );
   }
@@ -664,11 +661,8 @@ export default function App() {
   // Show landing page if not authenticated
   if (!user) {
     if (showAuth) {
-      // Mobile: Welcome to Quad first. Desktop: AuthPage (login/signup form).
-      if (isMobile) {
-        return <AuthScreensStandalone onBack={() => setShowAuth(false)} />;
-      }
-      return <AuthPage onBack={() => setShowAuth(false)} initialMode={authMode} />;
+      // Use mobile login/onboarding flow for both mobile and desktop for now (AuthPage kept but not used)
+      return <AuthScreensStandalone onBack={() => setShowAuth(false)} />;
     }
     
     return <LandingPage 

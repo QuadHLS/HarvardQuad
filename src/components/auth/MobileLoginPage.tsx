@@ -132,20 +132,20 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
           <div className="w-full flex justify-center" style={{ marginTop: '0' }}>
             <div className="space-y-4 shrink-0" style={{ width: '440px', maxWidth: 'calc(100vw - 48px)' }}>
               <button
+                onClick={() => { setError(''); setSuccessMessage(''); setMode('signin'); }}
+                className="w-full px-6 py-5 rounded-xl border-2 border-gray-300 bg-white text-gray-700 hover:border-[#d47455] hover:bg-[#fef9f5] transition-colors"
+                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              >
+                Sign In
+              </button>
+
+              <button
                 onClick={() => { setError(''); setSuccessMessage(''); setMode('choose-signup'); }}
                 className="w-full flex items-center justify-center gap-2 px-6 py-5 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm"
                 style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
               >
                 Create Account
                 <ChevronRight className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => { setError(''); setSuccessMessage(''); setMode('signin'); }}
-                className="w-full px-6 py-5 rounded-xl border-2 border-gray-300 bg-white text-gray-700 hover:border-[#d47455] hover:bg-[#fef9f5] transition-colors"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-              >
-                Sign In
               </button>
             </div>
           </div>
