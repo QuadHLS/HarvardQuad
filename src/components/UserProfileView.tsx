@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 
 interface ProfileData {
   full_name: string | null;
+  public_name: string | null;
   email: string | null;
   major: string | null;
   graduation_year: string | null;
@@ -11,6 +12,7 @@ interface ProfileData {
   location: string | null;
   gpa: string | null;
   avatar_url: string | null;
+  classes?: unknown[];
 }
 
 interface UserProfileViewProps {
@@ -27,7 +29,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, email, class_year, graduation_year, phone, location, gpa, avatar_url')
+          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, gpa, avatar_url, classes')
           .eq('id', userId)
           .single();
 
@@ -35,6 +37,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
           console.error('Error fetching profile:', error);
           setProfile({
             full_name: null,
+            public_name: null,
             email: null,
             major: null,
             graduation_year: null,
@@ -42,18 +45,20 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
             location: null,
             gpa: null,
             avatar_url: null,
+            classes: [],
           });
         } else {
-          // Map class_year from database to major in interface
           setProfile({
             ...data,
-            major: data.class_year || null,
+            major: data.major ?? null,
+            classes: Array.isArray(data.classes) ? data.classes : [],
           });
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
         setProfile({
           full_name: null,
+          public_name: null,
           email: null,
           major: null,
           graduation_year: null,
@@ -61,6 +66,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
           location: null,
           gpa: null,
           avatar_url: null,
+          classes: [],
         });
       } finally {
         setLoading(false);
@@ -70,10 +76,15 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
     fetchProfile();
   }, [userId]);
 
+  const classesCount = profile?.classes?.length ?? 0;
+  const creditsTotal = (profile?.classes ?? []).reduce(
+    (sum, c) => sum + (Number((c as { credits?: number | null }).credits) || 0),
+    0
+  );
   const stats = [
-    { label: 'Classes', value: '3' },
+    { label: 'Classes', value: String(classesCount) },
     { label: 'Squads', value: '5' },
-    { label: 'Credits', value: '15' }
+    { label: 'Credits', value: String(creditsTotal) }
   ];
 
   // Helper function to get class year display

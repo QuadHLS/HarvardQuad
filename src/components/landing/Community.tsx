@@ -16,9 +16,30 @@ export function Community({ onSignIn }: CommunityProps) {
         </div>
 
         <div className="space-y-12 mb-20">
-          <div className="border-l-4 border-orange-700 pl-8 py-4"></div>
-          <div className="border-l-4 border-orange-700 pl-8 py-4"></div>
-          <div className="border-l-4 border-orange-700 pl-8 py-4"></div>
+          <blockquote className="border-l-4 border-orange-700 pl-8 py-4">
+            <p className="text-lg text-neutral-700 leading-relaxed mb-3">
+              Quad has been invaluable in setting up my schedules at the beginning of each semester! I can't believe I used to write out all my different possible class combinations by hand. I love being able to browse reviews and notes for courses as I'm doing registration, since it helps me quickly filter through classes and pick the ones I'm most interested in!
+            </p>
+            <cite className="text-sm text-neutral-500 not-italic font-medium">— JD-MPP at Harvard</cite>
+          </blockquote>
+          <blockquote className="border-l-4 border-orange-700 pl-8 py-4">
+            <p className="text-lg text-neutral-700 leading-relaxed mb-3">
+              I love reading the anonymous messages people on campus are sending. It's refreshing to get honest takes from people outside of named group chats or normal channels. Quad has been much more useful than Reddit when it comes to getting other students' takes on professors and employers, since I know everything I read is coming from an actual student on campus.
+            </p>
+            <cite className="text-sm text-neutral-500 not-italic font-medium">— 1L at Harvard</cite>
+          </blockquote>
+          <blockquote className="border-l-4 border-orange-700 pl-8 py-4">
+            <p className="text-lg text-neutral-700 leading-relaxed mb-3">
+              I legitimately use Quad every day for chatting with people in my classes. I always hated massive GroupMe and WhatsApp chats that quickly became spam. Quad is way more tailored to each of my specific courses and clubs, which makes it much easier to communicate with people.
+            </p>
+            <cite className="text-sm text-neutral-500 not-italic font-medium">— 1L at Harvard</cite>
+          </blockquote>
+          <blockquote className="border-l-4 border-orange-700 pl-8 py-4">
+            <p className="text-lg text-neutral-700 leading-relaxed mb-3">
+              Quad has been a game changer for setting up my calendar at the beginning of the year. One of my least favorite things about a new semester was having to set up my courses on Google Calendar—Quad automates that and makes it so easy to start the semester strong.
+            </p>
+            <cite className="text-sm text-neutral-500 not-italic font-medium">— 3L at Harvard</cite>
+          </blockquote>
         </div>
 
         <div className="mt-20 pt-20 border-t border-neutral-200">

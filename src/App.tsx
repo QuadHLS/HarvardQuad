@@ -10,7 +10,10 @@ import { CalendarPage } from './components/CalendarPage';
 import { IconButton } from './components/IconButton';
 import { MobileDashboard } from './components/MobileDashboard';
 import { AuthPage } from './components/auth/AuthPage';
+import { AuthScreensStandalone } from './components/auth/MobileLoginPage';
 import { AuthCallback } from './components/auth/AuthCallback';
+import { OnboardingFlowStandalone } from './components/onboarding/OnboardingFlow';
+import { useIsMobile } from './components/ui/use-mobile';
 import { LandingPage } from './components/LandingPage';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
@@ -30,6 +33,7 @@ interface ProfileData {
 
 export default function App() {
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
   
   // Parse URL to get initial state (memoized to only calculate once)
   const initialState = useMemo(() => {
@@ -62,6 +66,7 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
   const [isMessageInputFocused, setIsMessageInputFocused] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   // Update URL and sessionStorage when view changes
   const updateURL = useCallback((view: ViewState, course?: string, squad?: string, previous?: ViewState) => {
@@ -281,6 +286,11 @@ export default function App() {
     };
   }, []);
 
+  // Reset onboarding when user logs out so next login shows it again (must be before any conditional returns)
+  useEffect(() => {
+    if (!user) setOnboardingComplete(false);
+  }, [user]);
+
   const formatTime = (date: Date) => {
     let hours = date.getHours();
     const minutes = date.getMinutes();
@@ -320,6 +330,7 @@ export default function App() {
     return '';
   };
 
+  // Home/header: use full name (not public name)
   const getDisplayName = () => {
     if (profile?.full_name) return profile.full_name;
     if (user?.email) return user.email.split('@')[0];
@@ -653,6 +664,10 @@ export default function App() {
   // Show landing page if not authenticated
   if (!user) {
     if (showAuth) {
+      // Mobile: Welcome to Quad first. Desktop: AuthPage (login/signup form).
+      if (isMobile) {
+        return <AuthScreensStandalone onBack={() => setShowAuth(false)} />;
+      }
       return <AuthPage onBack={() => setShowAuth(false)} initialMode={authMode} />;
     }
     
@@ -662,6 +677,15 @@ export default function App() {
         setShowAuth(true);
       }}
     />;
+  }
+
+  // After login: show onboarding every time until they complete it (for now, not persisted)
+  if (user && !onboardingComplete) {
+    return (
+      <OnboardingFlowStandalone
+        onComplete={() => setOnboardingComplete(true)}
+      />
+    );
   }
 
   return (
@@ -858,12 +882,13 @@ export default function App() {
           )}
           {currentView === 'dashboard' && (
             <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl px-4 md:px-12 py-4 md:py-8 min-h-full">
+              {/* Home page: display full name (first name), not public name */}
               <div className="md:hidden">
                 <h1 
                   className="text-[32px] text-[#3d3d3a]"
                   style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
                 >
-                  {greeting}, {profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
+                  {greeting}, {profileLoading || !profile?.full_name ? '...' : profile.full_name.split(' ')[0]}
                 </h1>
               </div>
 
@@ -872,7 +897,7 @@ export default function App() {
                   className="text-[56px] text-[#3d3d3a]"
                   style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
                 >
-                  {greeting}, {profileLoading ? '...' : (profile?.full_name ? profile.full_name.split(' ')[0] : user?.email?.split('@')[0] || 'User')}
+                  {greeting}, {profileLoading || !profile?.full_name ? '...' : profile.full_name.split(' ')[0]}
                 </h1>
               </div>
             </div>

@@ -9,6 +9,8 @@ interface MobileDashboardProps {
   isPastFivePM: boolean;
   handleCourseClick: (courseId: string) => void;
   userName?: string;
+  /** Number of classes from profile.classes (actual count from onboarding) */
+  classesCount?: number;
 }
 
 export function MobileDashboard({
@@ -18,7 +20,8 @@ export function MobileDashboard({
   ampm,
   isPastFivePM,
   handleCourseClick,
-  userName = 'User'
+  userName = 'User',
+  classesCount = 0
 }: MobileDashboardProps) {
   const [isDueSoonExpanded, setIsDueSoonExpanded] = useState(true);
 
@@ -52,7 +55,7 @@ export function MobileDashboard({
               color: '#d47455'
             }}
           >
-            3 classes
+            {classesCount} {classesCount === 1 ? 'class' : 'classes'}
           </span>
         </div>
         <div className="space-y-2.5">

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 
 interface ProfileData {
   full_name: string | null;
+  public_name: string | null;
   email: string | null;
   major: string | null;
   graduation_year: string | null;
@@ -12,6 +13,7 @@ interface ProfileData {
   location: string | null;
   gpa: string | null;
   avatar_url: string | null;
+  classes?: unknown[];
 }
 
 export function ProfilePage() {
@@ -24,7 +26,7 @@ export function ProfilePage() {
   const [deletingAvatar, setDeletingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editValues, setEditValues] = useState({
-    full_name: '',
+    public_name: '',
     phone: '',
     location: '',
     gpa: '',
@@ -42,7 +44,7 @@ export function ProfilePage() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, email, class_year, graduation_year, phone, location, gpa, avatar_url')
+          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, gpa, avatar_url, classes')
           .eq('id', user.id)
           .single();
 
@@ -51,6 +53,7 @@ export function ProfilePage() {
           // If profile doesn't exist, use user email as fallback
           setProfile({
             full_name: user.user_metadata?.full_name || null,
+            public_name: null,
             email: user.email || null,
             major: null,
             graduation_year: null,
@@ -58,12 +61,13 @@ export function ProfilePage() {
             location: null,
             gpa: null,
             avatar_url: null,
+            classes: [],
           });
         } else {
-          // Map class_year from database to major in interface
           setProfile({
             ...data,
-            major: data.class_year || null,
+            major: data.major ?? null,
+            classes: Array.isArray(data.classes) ? data.classes : [],
           });
         }
       } catch (err) {
@@ -71,6 +75,7 @@ export function ProfilePage() {
         // Fallback to user email
         setProfile({
           full_name: user.user_metadata?.full_name || null,
+          public_name: null,
           email: user.email || null,
           major: null,
           graduation_year: null,
@@ -78,6 +83,7 @@ export function ProfilePage() {
           location: null,
           gpa: null,
           avatar_url: null,
+          classes: [],
         });
       } finally {
         setLoading(false);
@@ -87,11 +93,11 @@ export function ProfilePage() {
     fetchProfile();
   }, [user]);
 
-  // Initialize edit values when profile loads or edit mode is enabled
+  // Initialize edit values when profile loads or edit mode is enabled (profile page edits public name)
   useEffect(() => {
     if (profile && isEditing) {
       setEditValues({
-        full_name: profile.full_name || '',
+        public_name: profile.public_name || '',
         phone: profile.phone || '',
         location: profile.location || '',
         gpa: profile.gpa || '',
@@ -117,8 +123,7 @@ export function ProfilePage() {
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const capitalized = capitalizeWords(e.target.value);
-    setEditValues({ ...editValues, full_name: capitalized });
+    setEditValues({ ...editValues, public_name: e.target.value });
   };
 
   const handleCancel = () => {
@@ -126,7 +131,7 @@ export function ProfilePage() {
     // Reset to original values
     if (profile) {
       setEditValues({
-        full_name: profile.full_name || '',
+        public_name: profile.public_name || '',
         phone: profile.phone || '',
         location: profile.location || '',
         gpa: profile.gpa || '',
@@ -144,11 +149,11 @@ export function ProfilePage() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: editValues.full_name.trim() || null,
+          public_name: editValues.public_name.trim() || null,
           phone: editValues.phone || null,
           location: editValues.location || null,
           gpa: editValues.gpa || null,
-          class_year: editValues.major || null,
+          major: editValues.major.trim() || null,
           graduation_year: editValues.graduation_year || null,
           updated_at: new Date().toISOString(),
         })
@@ -164,7 +169,7 @@ export function ProfilePage() {
       // Update local profile state
       setProfile({
         ...profile,
-        full_name: editValues.full_name.trim() || null,
+        public_name: editValues.public_name.trim() || null,
         phone: editValues.phone || null,
         location: editValues.location || null,
         gpa: editValues.gpa || null,
@@ -222,8 +227,6 @@ export function ProfilePage() {
           if (deleteError) {
             console.error('Error deleting avatar from storage:', deleteError);
             // Continue with profile update even if storage delete fails
-          } else {
-            console.log('Deleted avatar files from storage:', filesToDelete);
           }
         }
       }
@@ -304,8 +307,6 @@ export function ProfilePage() {
           if (deleteError) {
             console.error('Error deleting old avatars:', deleteError);
             // Continue with upload even if delete fails
-          } else {
-            console.log('Deleted old avatar files:', filesToDelete);
           }
         }
       }
@@ -333,8 +334,6 @@ export function ProfilePage() {
         setUploadingAvatar(false);
         return;
       }
-
-      console.log('File uploaded successfully:', uploadData);
 
       // Get public URL for the uploaded file
       const { data: { publicUrl } } = supabase.storage
@@ -379,10 +378,15 @@ export function ProfilePage() {
     }
   };
 
+  const classesCount = profile?.classes?.length ?? 0;
+  const creditsTotal = (profile?.classes ?? []).reduce(
+    (sum, c) => sum + (Number((c as { credits?: number | null }).credits) || 0),
+    0
+  );
   const stats = [
-    { label: 'Classes', value: '3' },
+    { label: 'Classes', value: String(classesCount) },
     { label: 'Squads', value: '5' },
-    { label: 'Credits', value: '15' }
+    { label: 'Credits', value: String(creditsTotal) }
   ];
 
   // Helper function to get class year display
@@ -459,7 +463,7 @@ export function ProfilePage() {
               className="w-28 h-28 rounded-full flex items-center justify-center border-4 border-white/30 mb-3 shadow-lg text-white text-3xl"
               style={{ 
                 backgroundColor: (() => {
-                  const name = profile?.full_name || user?.email || 'User';
+                  const name = profile?.public_name || profile?.full_name || user?.email || 'User';
                   const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
                   return colors[name.charCodeAt(0) % colors.length];
                 })(),
@@ -469,9 +473,10 @@ export function ProfilePage() {
               }}
             >
               {(() => {
-                const name = profile?.full_name || user?.email?.split('@')[0] || 'User';
-                if (profile?.full_name) {
-                  const parts = profile.full_name.split(' ');
+                const name = profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User';
+                const forInitials = profile?.public_name || profile?.full_name;
+                if (forInitials) {
+                  const parts = forInitials.trim().split(/\s+/);
                   if (parts.length >= 2) {
                     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
                   }
@@ -525,18 +530,18 @@ export function ProfilePage() {
             {isEditing ? (
               <input
                 type="text"
-                value={editValues.full_name}
+                value={editValues.public_name}
                 onChange={handleNameChange}
                 className="text-3xl text-[#3d3d3a] mb-1 rounded-xl px-4 py-2 w-full max-w-xs text-center focus:outline-none focus:ring-2 focus:ring-white/70"
                 style={{ fontFamily: 'Lora, serif', fontWeight: 600, backgroundColor: '#F1EFE7' }}
-                placeholder="Enter your name"
+                placeholder="Public name (shown to others)"
               />
             ) : (
               <h1 
                 className="text-3xl text-white mb-1"
                 style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
               >
-                {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
               </h1>
             )}
             <p 
@@ -964,7 +969,7 @@ export function ProfilePage() {
                     className="w-24 h-24 rounded-full flex items-center justify-center mb-2 text-white text-2xl"
                     style={{ 
                       backgroundColor: (() => {
-                        const name = profile?.full_name || user?.email || 'User';
+                        const name = profile?.public_name || profile?.full_name || user?.email || 'User';
                         const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
                         return colors[name.charCodeAt(0) % colors.length];
                       })(),
@@ -974,9 +979,10 @@ export function ProfilePage() {
                     }}
                   >
                     {(() => {
-                      const name = profile?.full_name || user?.email?.split('@')[0] || 'User';
-                      if (profile?.full_name) {
-                        const parts = profile.full_name.split(' ');
+                      const name = profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User';
+                      const forInitials = profile?.public_name || profile?.full_name;
+                      if (forInitials) {
+                        const parts = forInitials.trim().split(/\s+/);
                         if (parts.length >= 2) {
                           return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
                         }
@@ -1032,15 +1038,15 @@ export function ProfilePage() {
                   {isEditing ? (
                     <input
                       type="text"
-                      value={editValues.full_name}
+                      value={editValues.public_name}
                       onChange={handleNameChange}
                       className="text-[24px] mb-1 text-[#1a1a1a] w-full px-3 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
                       style={{ fontFamily: 'Lora, serif', fontWeight: 600, backgroundColor: '#F1EFE7' }}
-                      placeholder="Enter your name"
+                      placeholder="Public name (shown to others)"
                     />
                   ) : (
                     <h3 className="text-[24px] mb-1 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
-                      {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                      {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
                     </h3>
                   )}
                   <p className="text-[14px] text-[#999] mb-3" style={{ fontFamily: 'Arial, sans-serif' }}>
