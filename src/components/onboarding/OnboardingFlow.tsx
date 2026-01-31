@@ -133,7 +133,10 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
   };
 
   return (
-    <div className="h-screen bg-[#FBF9F5] flex flex-col">
+    <div
+      className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+      style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+    >
       {/* Header */}
       <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
         <h1 className="text-2xl" style={{ fontFamily: 'Lora, serif' }}>Welcome</h1>

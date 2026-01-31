@@ -70,18 +70,52 @@ export default function App() {
   const [isFeedInputFocused, setIsFeedInputFocused] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
-  // Safari iOS: set visual viewport height so layout doesn't jump when address bar shows/hides
+  // Ref to keep full height when keyboard is open so layout doesn't shrink and leave a box
+  const lastFullHeightRef = useRef<number>(
+    typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 800
+  );
+
+  // Safari iOS: set visual viewport height so layout doesn't jump when address bar shows/hides.
+  // When an input/textarea is focused (keyboard open), freeze --app-height to last full height
+  // so the page doesn't resize and leave a visible box/gap.
   useEffect(() => {
     const setAppHeight = () => {
       const vh = window.visualViewport?.height ?? window.innerHeight;
-      document.documentElement.style.setProperty('--app-height', `${vh}px`);
+      const active = document.activeElement;
+      const isInputFocused =
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          (active as HTMLElement).isContentEditable);
+      if (isInputFocused) {
+        document.documentElement.style.setProperty('--app-height', `${lastFullHeightRef.current}px`);
+      } else {
+        lastFullHeightRef.current = vh;
+        document.documentElement.style.setProperty('--app-height', `${vh}px`);
+      }
     };
     setAppHeight();
     window.visualViewport?.addEventListener('resize', setAppHeight);
     window.addEventListener('resize', setAppHeight);
+    // Capture full height when an input is focused (before keyboard opens) and restore on blur
+    const onFocusIn = () => {
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      lastFullHeightRef.current = vh;
+      setAppHeight();
+    };
+    const onFocusOut = () => {
+      requestAnimationFrame(() => {
+        lastFullHeightRef.current = window.visualViewport?.height ?? window.innerHeight;
+        setAppHeight();
+      });
+    };
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
     return () => {
       window.visualViewport?.removeEventListener('resize', setAppHeight);
       window.removeEventListener('resize', setAppHeight);
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
     };
   }, []);
 

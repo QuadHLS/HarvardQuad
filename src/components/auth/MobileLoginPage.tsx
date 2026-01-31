@@ -99,7 +99,10 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
   if (mode === 'welcome') {
     return (
-      <div className="min-h-screen h-screen bg-[#FBF9F5] flex flex-col">
+      <div
+        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+      >
         {/* Header with Logo */}
         <div className="bg-[#FBF9F5] px-6 pt-6 pb-4 flex-shrink-0 w-full">
           <div className="w-full flex items-center justify-center" style={{ paddingTop: '2rem' }}>
@@ -179,7 +182,10 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
   if (mode === 'choose-signup') {
     return (
-      <div className="min-h-screen h-screen bg-[#FBF9F5] flex flex-col">
+      <div
+        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+      >
         <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('welcome'); }}
@@ -365,7 +371,10 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
   if (mode === 'signin') {
     return (
-      <div className="min-h-screen h-screen bg-[#FBF9F5] flex flex-col">
+      <div
+        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+      >
         {/* Header */}
         <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
           <button
@@ -633,7 +642,10 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
   // Sign Up mode
   return (
-    <div className="min-h-screen h-screen bg-[#FBF9F5] flex flex-col">
+    <div
+      className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+      style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+    >
       {/* Header */}
       <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
         <button
@@ -775,7 +787,10 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
   // Forgot password mode
   if (mode === 'forgot') {
     return (
-      <div className="min-h-screen h-screen bg-[#FBF9F5] flex flex-col">
+      <div
+        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+      >
         <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('signin'); }}

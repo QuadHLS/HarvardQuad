@@ -68,6 +68,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isReplyInputFocused, setIsReplyInputFocused] = useState(false);
 
   const loadDetail = useCallback(async () => {
     try {
@@ -284,9 +285,11 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                   value={replyInput}
                   onChange={(e) => setReplyInput(e.target.value)}
                   onFocus={() => {
+                    setIsReplyInputFocused(true);
                     window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: true } }));
                   }}
                   onBlur={() => {
+                    setIsReplyInputFocused(false);
                     window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: false } }));
                   }}
                   onKeyDown={(e) => {
@@ -320,7 +323,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
           )}
         </div>
 
-        <div className="px-4 py-4 pb-24 md:pb-12">
+        <div className={`px-4 py-4 ${isReplyInputFocused ? 'pb-4' : 'pb-24 md:pb-12'}`}>
           <div className="space-y-4">
             {replies.map((comment) => (
               <ReplyBlock
@@ -343,6 +346,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                 onSubmitReply={handleSubmitReply}
                 submitting={submitting}
                 userDisplayName={userDisplayName}
+                onReplyInputFocusChange={setIsReplyInputFocused}
               />
             ))}
           </div>
@@ -373,6 +377,8 @@ interface ReplyBlockProps {
   depth?: number;
   /** When set, show "replying to [name]" next to author (for depth >= 3 only) */
   parentReply?: FeedReplyWithAuthor | null;
+  /** Called when inline reply textarea is focused/blurred (for keyboard/padding) */
+  onReplyInputFocusChange?: (focused: boolean) => void;
 }
 
 function InlineReplyForm({
@@ -383,6 +389,7 @@ function InlineReplyForm({
   onSubmitReply,
   submitting,
   userDisplayName,
+  onReplyInputFocusChange,
 }: {
   userId: string | undefined;
   replyInput: string;
@@ -391,6 +398,7 @@ function InlineReplyForm({
   onSubmitReply: () => void;
   submitting: boolean;
   userDisplayName?: string;
+  onReplyInputFocusChange?: (focused: boolean) => void;
 }) {
   return (
     <div className="flex items-center gap-2 mt-2 min-w-0 max-w-full">
@@ -406,9 +414,11 @@ function InlineReplyForm({
         value={replyInput}
         onChange={(e) => setReplyInput(e.target.value)}
         onFocus={() => {
+          onReplyInputFocusChange?.(true);
           window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: true } }));
         }}
         onBlur={() => {
+          onReplyInputFocusChange?.(false);
           window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: false } }));
         }}
         onKeyDown={(e) => {
@@ -460,6 +470,7 @@ function ReplyBlock({
   userDisplayName,
   depth = 0,
   parentReply,
+  onReplyInputFocusChange,
 }: ReplyBlockProps) {
   const name = FeedService.displayName(reply.author);
   const initials = FeedService.initials(reply.author);
@@ -518,6 +529,7 @@ function ReplyBlock({
             onSubmitReply={onSubmitReply}
             submitting={submitting}
             userDisplayName={userDisplayName}
+            onReplyInputFocusChange={onReplyInputFocusChange}
           />
         );
         if (depth === 0) return form;
@@ -549,6 +561,7 @@ function ReplyBlock({
               userDisplayName={userDisplayName}
               depth={depth + 1}
               parentReply={reply}
+              onReplyInputFocusChange={onReplyInputFocusChange}
             />
           ))}
         </div>

@@ -48,7 +48,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center relative px-4" style={{ backgroundColor: 'var(--background-color, #f9f5f0)', minHeight: '100vh' }}>
+    <div
+      className="flex flex-col items-center relative px-4 overflow-hidden"
+      style={{
+        backgroundColor: 'var(--background-color, #f9f5f0)',
+        minHeight: 'var(--app-height, 100vh)',
+        height: 'var(--app-height, 100vh)',
+        maxHeight: 'var(--app-height, 100vh)',
+      }}
+    >
       {/* Back button */}
       {onBack && (
         <button
