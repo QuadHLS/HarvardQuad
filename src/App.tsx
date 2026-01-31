@@ -70,14 +70,18 @@ export default function App() {
   const [isFeedInputFocused, setIsFeedInputFocused] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
-  // Ref to keep full height when keyboard is open so layout doesn't shrink and leave a box
+  // Ref to keep full height when keyboard is open on messaging only
   const lastFullHeightRef = useRef<number>(
     typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 800
   );
+  const currentViewRef = useRef<ViewState>(initialState.view);
 
-  // Safari iOS: set visual viewport height so layout doesn't jump when address bar shows/hides.
-  // When an input/textarea is focused (keyboard open), freeze --app-height to last full height
-  // so the page doesn't resize and leave a visible box/gap.
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
+
+  // Safari iOS: set visual viewport height. Only freeze --app-height when keyboard is open on
+  // messaging page; everywhere else (onboarding, sign-in, feed) let the keyboard behave normally.
   useEffect(() => {
     const setAppHeight = () => {
       const vh = window.visualViewport?.height ?? window.innerHeight;
@@ -87,43 +91,26 @@ export default function App() {
         (active.tagName === 'INPUT' ||
           active.tagName === 'TEXTAREA' ||
           (active as HTMLElement).isContentEditable);
-      if (isInputFocused) {
+      const onMessaging = currentViewRef.current === 'messaging';
+      if (isInputFocused && onMessaging) {
         document.documentElement.style.setProperty('--app-height', `${lastFullHeightRef.current}px`);
       } else {
-        // Only update when viewport is full or larger — never shrink so bottom bar doesn't jump up
-        if (vh >= lastFullHeightRef.current) {
-          lastFullHeightRef.current = vh;
-          document.documentElement.style.setProperty('--app-height', `${vh}px`);
-        }
+        lastFullHeightRef.current = vh;
+        document.documentElement.style.setProperty('--app-height', `${vh}px`);
       }
     };
     setAppHeight();
     window.visualViewport?.addEventListener('resize', setAppHeight);
     window.addEventListener('resize', setAppHeight);
-    // Capture full height when an input is focused (before keyboard opens)
     const onFocusIn = () => {
       const vh = window.visualViewport?.height ?? window.innerHeight;
       lastFullHeightRef.current = vh;
       setAppHeight();
     };
-    // When keyboard closes, update height after it's fully gone. Only apply if larger so we never shrink
-    // (avoids bottom bar jumping up on onboarding/sign-in when blurring the 2nd input).
-    let focusOutTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    const onFocusOut = () => {
-      if (focusOutTimeoutId) clearTimeout(focusOutTimeoutId);
-      focusOutTimeoutId = setTimeout(() => {
-        focusOutTimeoutId = null;
-        const vh = window.visualViewport?.height ?? window.innerHeight;
-        if (vh >= lastFullHeightRef.current) {
-          lastFullHeightRef.current = vh;
-          document.documentElement.style.setProperty('--app-height', `${vh}px`);
-        }
-      }, 500);
-    };
+    const onFocusOut = () => setAppHeight();
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
     return () => {
-      if (focusOutTimeoutId) clearTimeout(focusOutTimeoutId);
       window.visualViewport?.removeEventListener('resize', setAppHeight);
       window.removeEventListener('resize', setAppHeight);
       document.removeEventListener('focusin', onFocusIn);

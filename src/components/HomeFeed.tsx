@@ -650,7 +650,7 @@ export function HomeFeed({
   const sourceColor = '#d47455';
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <header className="flex-shrink-0 border-b border-[#e7ded1] bg-[#FBF9F5] px-5 py-4 flex items-center justify-between gap-4">
         <h1 className="text-2xl md:text-3xl flex-1 min-w-0 font-medium text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif' }}>
           {greeting}, {userName}
