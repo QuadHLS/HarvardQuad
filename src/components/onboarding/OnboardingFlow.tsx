@@ -32,7 +32,6 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
   });
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [isStep1InputFocused, setIsStep1InputFocused] = useState(false);
 
   const getGraduationYearFromClassYear = (classYear: string): number | null => {
     const now = new Date();
@@ -135,8 +134,8 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
 
   return (
     <div
-      className="bg-[#FBF9F5] flex flex-col overflow-hidden"
-      style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+      className="bg-[#FBF9F5] flex flex-col"
+      style={{ minHeight: 'var(--app-height, 100vh)' }}
     >
       {/* Header */}
       <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
@@ -180,7 +179,6 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
           <Step1
             formData={formData}
             setFormData={setFormData}
-            onInputFocusChange={setIsStep1InputFocused}
           />
         )}
         {currentStep === 2 && (
@@ -192,13 +190,8 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
         {/* Step 3 (squads/interests) excluded from flow for now - UI kept in Step3 below */}
       </div>
 
-      {/* Navigation Footer - hide when step 1 input focused so keyboard doesn't push it up / minimize it */}
-      <div
-        className="px-6 py-4 border-t border-gray-200 flex-shrink-0 bg-[#FBF9F5] transition-transform duration-200 ease-out"
-        style={{
-          transform: isStep1InputFocused ? 'translateY(100%)' : 'translateY(0)',
-        }}
-      >
+      {/* Navigation Footer */}
+      <div className="px-6 py-4 border-t border-gray-200 flex-shrink-0 bg-[#FBF9F5]">
         <div className="flex gap-3">
           {currentStep > 1 && (
             <button
@@ -246,14 +239,9 @@ function capitalizeWords(value: string): string {
 }
 
 // Step 1: Personal Information
-function Step1({
-  formData,
-  setFormData,
-  onInputFocusChange,
-}: {
+function Step1({ formData, setFormData }: {
   formData: OnboardingData;
   setFormData: React.Dispatch<React.SetStateAction<OnboardingData>>;
-  onInputFocusChange?: (focused: boolean) => void;
 }) {
   const classYears = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
 
@@ -277,9 +265,7 @@ function Step1({
             type="text"
             value={formData.fullName}
             onChange={(e) => setFormData({ ...formData, fullName: capitalizeWordsAsYouType(e.target.value) })}
-            onFocus={() => onInputFocusChange?.(true)}
             onBlur={(e) => {
-              onInputFocusChange?.(false);
               const capped = capitalizeWords(e.target.value);
               if (capped !== formData.fullName) setFormData({ ...formData, fullName: capped });
             }}
@@ -298,8 +284,6 @@ function Step1({
             type="text"
             value={formData.publicName}
             onChange={(e) => setFormData({ ...formData, publicName: e.target.value })}
-            onFocus={() => onInputFocusChange?.(true)}
-            onBlur={() => onInputFocusChange?.(false)}
             placeholder="Name shown to others"
             className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
             style={{ fontFamily: 'Arial, sans-serif' }}
