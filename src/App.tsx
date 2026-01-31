@@ -97,21 +97,28 @@ export default function App() {
     setAppHeight();
     window.visualViewport?.addEventListener('resize', setAppHeight);
     window.addEventListener('resize', setAppHeight);
-    // Capture full height when an input is focused (before keyboard opens) and restore on blur
+    // Capture full height when an input is focused (before keyboard opens)
     const onFocusIn = () => {
       const vh = window.visualViewport?.height ?? window.innerHeight;
       lastFullHeightRef.current = vh;
       setAppHeight();
     };
+    // When keyboard closes, update height after it's fully gone so we don't capture the small viewport
+    // and leave a box / pushed-up layout (especially on sign-in and onboarding).
+    let focusOutTimeoutId: ReturnType<typeof setTimeout> | null = null;
     const onFocusOut = () => {
-      requestAnimationFrame(() => {
-        lastFullHeightRef.current = window.visualViewport?.height ?? window.innerHeight;
-        setAppHeight();
-      });
+      if (focusOutTimeoutId) clearTimeout(focusOutTimeoutId);
+      focusOutTimeoutId = setTimeout(() => {
+        focusOutTimeoutId = null;
+        const vh = window.visualViewport?.height ?? window.innerHeight;
+        lastFullHeightRef.current = vh;
+        document.documentElement.style.setProperty('--app-height', `${vh}px`);
+      }, 400);
     };
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
     return () => {
+      if (focusOutTimeoutId) clearTimeout(focusOutTimeoutId);
       window.visualViewport?.removeEventListener('resize', setAppHeight);
       window.removeEventListener('resize', setAppHeight);
       document.removeEventListener('focusin', onFocusIn);
