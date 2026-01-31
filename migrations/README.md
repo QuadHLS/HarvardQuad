@@ -11,11 +11,10 @@ Execute these SQL files in order in your Supabase SQL Editor:
 1. **create_messaging_tables.sql** - Creates all tables, indexes, and triggers
 2. **fix_dm_creation.sql** - Creates DM creation function
 3. **fix_group_creation.sql** - Creates group creation function
-4. **fix_participants_insert_policy.sql** - Sets up INSERT policy for participants
+4. **fix_participants_insert_policy_final.sql** - Sets up INSERT policy for participants
 5. **fix_participants_delete_policy.sql** - Sets up DELETE policy for participants
-6. **fix_policy_consistency.sql** - Ensures all policies use helper functions
-7. **fix_admin_transfer_on_leave.sql** - Sets up admin transfer and auto-delete trigger
-8. **add_last_read_at.sql** - Adds last_read_at column
+6. **fix_admin_transfer_on_leave.sql** - Sets up admin transfer and auto-delete trigger
+7. **add_last_read_at.sql** - Adds last_read_at column
 
 ### 2. Create Storage Buckets
 
@@ -24,8 +23,7 @@ Go to Supabase Dashboard > Storage and create two public buckets:
 - **message-images** - For image attachments
 - **message-files** - For file attachments
 
-Then run:
-3. **storage_buckets_setup.sql** - Sets up storage policies
+Then run **storage_buckets_setup.sql** to set up storage policies.
 
 ### 3. Verify Setup
 

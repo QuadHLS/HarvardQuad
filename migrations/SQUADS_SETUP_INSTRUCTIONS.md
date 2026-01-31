@@ -18,22 +18,8 @@ Run `create_squads_tables.sql` in Supabase SQL Editor:
 - Creates triggers for `updated_at` timestamps
 - Links squads to conversations (group chats)
 
-### 2. Create RLS Policies
-Run `squads_rls_policies.sql` in Supabase SQL Editor:
-- Sets up all Row Level Security policies
-- Ensures authenticated access only
-- Enforces proper permissions:
-  - Open squads: visible to all authenticated users
-  - Locked/Private squads: only visible to members
-  - Admins can manage members and documents
-  - Members can add documents
-
-### 3. Create Functions
-Run `squads_functions.sql` in Supabase SQL Editor:
-- `create_squad()` - Creates squad and auto-creates group chat
-- `join_squad()` - Joins squad and auto-joins group chat
-- `leave_squad()` - Leaves squad and auto-leaves group chat
-- `remove_squad_member()` - Removes member and auto-removes from group chat
+### 2. Create Functions and RLS Fixes
+Run `squads_functions.sql` in Supabase SQL Editor (defines `create_squad()`, `join_squad()`, `leave_squad()`, `remove_squad_member()`). Then run squad fix migrations as needed: `fix_squad_members_rls_recursion.sql`, `fix_squad_delete_cascade.sql`, `restrict_squad_type_and_category.sql`. RLS is enabled in `create_squads_tables.sql`; the fix migrations refine policies.
 
 ## Database Schema
 

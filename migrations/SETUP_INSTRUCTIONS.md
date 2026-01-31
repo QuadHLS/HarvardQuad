@@ -21,9 +21,8 @@ Run `create_messaging_tables.sql` in Supabase SQL Editor:
 Run these SQL files in order:
 - **fix_dm_creation.sql** - Creates DM creation function
 - **fix_group_creation.sql** - Creates group creation function
-- **fix_participants_insert_policy.sql** - Sets up INSERT policy (allows all members to add)
+- **fix_participants_insert_policy_final.sql** - Sets up INSERT policy (allows all members to add)
 - **fix_participants_delete_policy.sql** - Sets up DELETE policy (allows all members to remove non-admins)
-- **fix_policy_consistency.sql** - Ensures all policies use helper functions consistently
 - **fix_admin_transfer_on_leave.sql** - Sets up admin transfer and auto-delete when 1 person left
 - **add_last_read_at.sql** - Adds last_read_at column for unread tracking
 

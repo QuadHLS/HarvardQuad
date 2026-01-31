@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Menu, Search, Calendar as CalendarIcon, Bell, MessageCircle, LayoutDashboard, Briefcase, Store, HomeIcon as HouseIcon, BookOpen, Users, Sparkles } from 'lucide-react';
+import { Menu, Search, Calendar as CalendarIcon, Bell, MessageCircle, LayoutDashboard, Briefcase, Store, HomeIcon as HouseIcon, BookOpen, Users } from 'lucide-react';
 import { MessagingPage } from './components/MessagingPage';
 import { CoursePage } from './components/CoursePage';
 import { ProfilePage } from './components/ProfilePage';
@@ -8,7 +8,6 @@ import { SquadsPage } from './components/SquadsPage';
 import { SquadDetailPage } from './components/SquadDetailPage';
 import { CalendarPage } from './components/CalendarPage';
 import { IconButton } from './components/IconButton';
-import { MobileDashboard } from './components/MobileDashboard';
 import { AuthPage } from './components/auth/AuthPage';
 import { AuthScreensStandalone } from './components/auth/MobileLoginPage';
 import { AuthCallback } from './components/auth/AuthCallback';

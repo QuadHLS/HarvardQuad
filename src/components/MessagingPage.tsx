@@ -1211,14 +1211,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     if (!selectedConversation || !user) return;
     if (sendingMessage) return; // Prevent double-sends
     if (isConversationBlocked && selectedConv?.type === 'dm') return; // Don't send if blocked (DMs only)
-    const hasText = messageInput.trim().length > 0;
+    // Trim only spaces/tabs so newlines (Shift+Enter) are preserved
+    const trimmedInput = messageInput.replace(/^[ \t]+|[ \t]+$/g, '');
+    const hasText = trimmedInput.length > 0;
     const hasAttachments = pendingAttachments.length > 0;
     if (!hasText && !hasAttachments) return;
 
     isSendingRef.current = true;
     setSendingMessage(true);
     // Clear input immediately for better UX
-    const textToSend = messageInput.trim();
+    const textToSend = trimmedInput;
     const attachmentsToSend = [...pendingAttachments];
     setMessageInput('');
     setPendingAttachments([]);
@@ -2153,7 +2155,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
             <div 
               ref={messagesContainerRef} 
-              className="flex-1 overflow-y-auto p-4 space-y-1"
+              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
               {messagesLoading ? (
@@ -2448,10 +2450,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             )}
 
             <div 
-              className="bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 flex-shrink-0 relative z-50 transition-transform duration-300 ease-in-out"
+              className={`bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 relative z-50 transition-[transform,position] duration-300 ease-in-out ${!isMessageInputFocused ? 'flex-shrink-0' : ''}`}
               style={{ 
                 touchAction: 'none',
-                transform: isMessageInputFocused ? 'translateY(70px)' : 'translateY(0)'
+                ...(isMessageInputFocused
+                  ? { position: 'absolute' as const, bottom: 0, left: 0, right: 0, transform: 'translateY(70px)' }
+                  : { transform: 'translateY(0)' }
+                )
               }}
               onTouchMove={(e) => e.preventDefault()}
             >
@@ -3858,8 +3863,9 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           // On desktop, Shift+Enter for new line, Enter to send
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            // Only send if there's content or attachments
-                            if (messageInput.trim().length > 0 || pendingAttachments.length > 0) {
+                            // Only send if there's content or attachments (same logic as handleSendMessage)
+                            const trimmed = messageInput.replace(/^[ \t]+|[ \t]+$/g, '');
+                            if (trimmed.length > 0 || pendingAttachments.length > 0) {
                               handleSendMessage();
                             }
                           }
