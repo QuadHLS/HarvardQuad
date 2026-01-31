@@ -103,9 +103,18 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         className="bg-[#FBF9F5] flex flex-col overflow-hidden"
         style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
       >
-        {/* Header with Logo */}
+        {/* Header - back top left, then logo */}
         <div className="bg-[#FBF9F5] px-6 pt-6 pb-4 flex-shrink-0 w-full">
-          <div className="w-full flex items-center justify-center" style={{ paddingTop: '2rem' }}>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg bg-[#F1EFE7] hover:bg-[#e8e4dc] transition-colors -ml-2"
+              style={{ fontFamily: 'Arial, sans-serif' }}
+            >
+              ← Back
+            </button>
+          )}
+          <div className="w-full flex items-center justify-center" style={{ paddingTop: '1.5rem' }}>
             <img 
               src="/QUAD.svg" 
               alt="Quad Logo" 
@@ -154,17 +163,8 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
           </div>
         </div>
 
-        {/* Footer - back button bottom left, terms below */}
-        <div className="px-6 pt-2 pb-6 flex-shrink-0 flex flex-col items-start">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="text-sm text-gray-600 hover:text-gray-900 mb-3 px-4 py-2 rounded-lg bg-[#F1EFE7] hover:bg-[#e8e4dc] transition-colors"
-              style={{ fontFamily: 'Arial, sans-serif' }}
-            >
-              ← Back
-            </button>
-          )}
+        {/* Footer - terms */}
+        <div className="px-6 pt-2 pb-6 flex-shrink-0">
           <p className="text-xs text-gray-500 text-center w-full" style={{ fontFamily: 'Arial, sans-serif' }}>
             By continuing, you agree to our{' '}
             <a href="/QUADTERMSOFSERVICE.html" className="text-[#d47455] hover:underline" target="_blank" rel="noopener noreferrer">
