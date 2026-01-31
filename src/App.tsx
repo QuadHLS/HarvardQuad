@@ -80,8 +80,8 @@ export default function App() {
     currentViewRef.current = currentView;
   }, [currentView]);
 
-  // Safari iOS: set visual viewport height. Only freeze --app-height when keyboard is open on
-  // messaging page; everywhere else (onboarding, sign-in, feed) let the keyboard behave normally.
+  // Safari iOS: set visual viewport height. Freeze --app-height when keyboard open on messaging.
+  // Everywhere: never shrink --app-height so keyboard doesn't mess with onboarding/sign-in/feed.
   useEffect(() => {
     const setAppHeight = () => {
       const vh = window.visualViewport?.height ?? window.innerHeight;
@@ -95,8 +95,11 @@ export default function App() {
       if (isInputFocused && onMessaging) {
         document.documentElement.style.setProperty('--app-height', `${lastFullHeightRef.current}px`);
       } else {
-        lastFullHeightRef.current = vh;
-        document.documentElement.style.setProperty('--app-height', `${vh}px`);
+        // Never shrink so keyboard doesn't squish layout on any page
+        if (vh >= lastFullHeightRef.current) {
+          lastFullHeightRef.current = vh;
+          document.documentElement.style.setProperty('--app-height', `${vh}px`);
+        }
       }
     };
     setAppHeight();
