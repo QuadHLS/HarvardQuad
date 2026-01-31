@@ -134,12 +134,8 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
 
   return (
     <div
-      className="bg-[#FBF9F5] flex flex-col overflow-hidden"
-      style={{
-        minHeight: 'var(--app-height, 100vh)',
-        height: 'var(--app-height, 100vh)',
-        maxHeight: 'var(--app-height, 100vh)',
-      }}
+      className="bg-[#FBF9F5] flex flex-col"
+      style={{ minHeight: 'var(--app-height, 100vh)' }}
     >
       {/* Header */}
       <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
@@ -405,7 +401,7 @@ function Step2({ formData, setFormData }: {
       )}
       {!loading && !error && (
         <div
-          className="flex-1 min-h-0 overflow-y-auto mt-4 space-y-2 rounded-xl border border-gray-200 bg-white p-2"
+          className="mt-4 space-y-2 rounded-xl border border-gray-200 bg-white p-2 max-h-[55vh] overflow-y-auto"
           style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
         >
           {sortedCourses.length === 0 ? (
