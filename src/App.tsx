@@ -67,7 +67,23 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
   const [isMessageInputFocused, setIsMessageInputFocused] = useState(false);
+  const [isFeedInputFocused, setIsFeedInputFocused] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+  // Safari iOS: set visual viewport height so layout doesn't jump when address bar shows/hides
+  useEffect(() => {
+    const setAppHeight = () => {
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${vh}px`);
+    };
+    setAppHeight();
+    window.visualViewport?.addEventListener('resize', setAppHeight);
+    window.addEventListener('resize', setAppHeight);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', setAppHeight);
+      window.removeEventListener('resize', setAppHeight);
+    };
+  }, []);
 
   // Update URL and sessionStorage when view changes
   const updateURL = useCallback((view: ViewState, course?: string, squad?: string, previous?: ViewState) => {
@@ -288,6 +304,31 @@ export default function App() {
       window.removeEventListener('messageInputFocused', handleMessageInputFocus);
     };
   }, []);
+
+  // Listen for feed (post page) input focus so bottom nav doesn't get pushed up by keyboard
+  useEffect(() => {
+    const handleFeedInputFocus = (event: Event) => {
+      const customEvent = event as CustomEvent<{ focused: boolean }>;
+      if (customEvent.detail) {
+        setIsFeedInputFocused(customEvent.detail.focused);
+      }
+    };
+
+    document.addEventListener('feedInputFocused', handleFeedInputFocus);
+    window.addEventListener('feedInputFocused', handleFeedInputFocus);
+
+    return () => {
+      document.removeEventListener('feedInputFocused', handleFeedInputFocus);
+      window.removeEventListener('feedInputFocused', handleFeedInputFocus);
+    };
+  }, []);
+
+  // Reset feed input focus when leaving dashboard so nav never stays hidden
+  useEffect(() => {
+    if (currentView !== 'dashboard') {
+      setIsFeedInputFocused(false);
+    }
+  }, [currentView]);
 
   // Reset onboarding when user logs out so next login shows it again (must be before any conditional returns)
   useEffect(() => {
@@ -688,7 +729,13 @@ export default function App() {
   return (
     <div
       className="h-screen max-h-screen flex flex-col md:flex-row overflow-hidden"
-      style={{ backgroundColor: isMessagingView ? '#fbf8f7' : '#F1EFE7' }}
+      style={{
+        backgroundColor: isMessagingView ? '#fbf8f7' : '#F1EFE7',
+        minHeight: 'var(--app-height, 100vh)',
+        height: 'var(--app-height, 100vh)',
+        overscrollBehavior: 'none',
+        WebkitOverflowScrolling: 'touch',
+      }}
     >
       {/* Desktop Sidebar Overlay */}
       {isSidebarExpanded && (
@@ -830,7 +877,11 @@ export default function App() {
 
         <div
           className={`flex-1 flex flex-col min-h-0 ${currentView === 'messaging' ? 'overflow-hidden' : currentView === 'dashboard' ? 'overflow-hidden' : 'overflow-auto'}`}
-          style={{ backgroundColor: currentView === 'messaging' ? '#fbf8f7' : '#FBF9F5' }}
+          style={{
+            backgroundColor: currentView === 'messaging' ? '#fbf8f7' : '#FBF9F5',
+            overscrollBehavior: 'none',
+            WebkitOverflowScrolling: 'touch',
+          }}
         >
           {currentView === 'course' && (
             <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
@@ -894,7 +945,7 @@ export default function App() {
         className="md:hidden fixed bottom-0 left-0 right-0 bg-[#fbf8f7] border-t border-[#e7ded1] z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] transition-transform duration-300 ease-in-out"
         style={{ 
           backgroundColor: '#fbf8f7',
-          transform: isMessageInputFocused && currentView === 'messaging' ? 'translateY(100%)' : 'translateY(0)',
+          transform: (isMessageInputFocused && currentView === 'messaging') || (isFeedInputFocused && currentView === 'dashboard') ? 'translateY(100%)' : 'translateY(0)',
           willChange: 'transform'
         }}
       >

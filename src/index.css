@@ -1,2 +1,44 @@
 @import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap");
 @import "tailwindcss";
+
+/* Safari iOS: fix sizing and touch/drag issues app-wide */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  min-height: -webkit-fill-available;
+  overscroll-behavior: none;
+  /* Fill safe-area strips so background isn't cut at top/bottom on notched devices */
+  background: #F1EFE7;
+}
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* Safe area for notched devices (Safari iOS with viewport-fit=cover) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* Match app shell so top/bottom strips aren't white when background "cuts" */
+  background: #F1EFE7;
+}
+/* Allow text selection in inputs and editable content */
+input,
+textarea,
+[contenteditable="true"],
+.selectable-text {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* Prevent accidental drag on buttons and interactive UI */
+button,
+[role="button"],
+a {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

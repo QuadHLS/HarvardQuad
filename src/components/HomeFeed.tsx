@@ -202,7 +202,15 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                 </button>
               )}
               {detailPost.current_user_pinned && (
-                <span className="text-xs font-semibold text-[#d97757]" style={{ fontFamily: 'Arial, sans-serif' }}>Pinned</span>
+                <button
+                  type="button"
+                  onClick={handlePinPost}
+                  className="text-xs font-semibold text-[#d97757] hover:underline active:scale-95 transition-transform cursor-pointer"
+                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  title="Unpin"
+                >
+                  Pinned
+                </button>
               )}
             </div>
           </div>
@@ -210,7 +218,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
           <h2 className="text-xl mb-3 font-semibold text-[#3d3d3a] leading-tight" style={{ fontFamily: 'Lora, serif' }}>{detailPost.title}</h2>
 
           {detailPost.content && (
-            <p className="text-base mb-3 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{detailPost.content}</p>
+            <p className="selectable-text text-base mb-3 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{detailPost.content}</p>
           )}
           {detailPost.image_path && (
             <div className="block isolate rounded-xl overflow-hidden max-h-80 mb-3 bg-muted/30 [&>img]:rounded-xl">
@@ -275,6 +283,12 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                 <textarea
                   value={replyInput}
                   onChange={(e) => setReplyInput(e.target.value)}
+                  onFocus={() => {
+                    window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: true } }));
+                  }}
+                  onBlur={() => {
+                    window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: false } }));
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -391,6 +405,12 @@ function InlineReplyForm({
       <textarea
         value={replyInput}
         onChange={(e) => setReplyInput(e.target.value)}
+        onFocus={() => {
+          window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: true } }));
+        }}
+        onBlur={() => {
+          window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: false } }));
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -477,7 +497,7 @@ function ReplyBlock({
               )}
               <span className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>{timeStr}</span>
             </div>
-            <p className="text-sm mb-2 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{reply.content}</p>
+            <p className="selectable-text text-sm mb-2 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{reply.content}</p>
             <div className="flex items-center gap-3">
               <button type="button" onClick={onHeart} className="flex items-center gap-1 active:scale-95 transition-transform">
                 <Heart size={isTopLevel ? 16 : 14} className={reply.current_user_hearted ? 'text-[#d47455]' : 'text-[#7b7b74]'} fill={reply.current_user_hearted ? '#d47455' : 'none'} />
@@ -635,7 +655,10 @@ export function HomeFeed({
         )}
       </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FBF9F5] px-4 py-4 pb-24 md:pb-4">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FBF9F5] px-4 py-4 pb-24 md:pb-4"
+        style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
         {loading ? (
           <div className="flex items-center justify-center py-12 text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>Loading...</div>
         ) : posts.length === 0 ? (
@@ -694,7 +717,15 @@ export function HomeFeed({
                           </button>
                         )}
                         {post.current_user_pinned && (
-                          <span className="text-xs font-semibold text-[#d97757]" style={{ fontFamily: 'Arial, sans-serif' }}>Pinned</span>
+                          <button
+                            type="button"
+                            onClick={(e) => handlePinPost(e, post)}
+                            className="text-xs font-semibold text-[#d97757] hover:underline active:scale-95 transition-transform cursor-pointer"
+                            style={{ fontFamily: 'Arial, sans-serif' }}
+                            title="Unpin"
+                          >
+                            Pinned
+                          </button>
                         )}
                       </div>
                     </div>
@@ -708,7 +739,7 @@ export function HomeFeed({
                     ) : (
                       <>
                         {post.content && (
-                          <p className="text-sm mb-2 line-clamp-2 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{post.content}</p>
+                          <p className="selectable-text text-sm mb-2 line-clamp-2 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{post.content}</p>
                         )}
                         {post.image_path && (
                           <div className="block isolate rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30 [&>img]:rounded-xl">
