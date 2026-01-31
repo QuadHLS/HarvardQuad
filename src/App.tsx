@@ -14,6 +14,7 @@ import { AuthCallback } from './components/auth/AuthCallback';
 import { OnboardingFlowStandalone } from './components/onboarding/OnboardingFlow';
 import { useIsMobile } from './components/ui/use-mobile';
 import { LandingPage } from './components/LandingPage';
+import { HomeFeed } from './components/HomeFeed';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 
@@ -21,6 +22,7 @@ type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 
 
 interface ProfileData {
   full_name: string | null;
+  public_name: string | null;
   email: string | null;
   class_year: string | null;
   graduation_year: string | null;
@@ -217,7 +219,7 @@ export default function App() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, email, class_year, graduation_year, phone, location, gpa, avatar_url')
+          .select('full_name, public_name, email, class_year, graduation_year, phone, location, gpa, avatar_url')
           .eq('id', user.id)
           .single();
 
@@ -225,6 +227,7 @@ export default function App() {
           console.error('Error fetching profile:', error);
           setProfile({
             full_name: user.user_metadata?.full_name || null,
+            public_name: null,
             email: user.email || null,
             class_year: null,
             graduation_year: null,
@@ -240,6 +243,7 @@ export default function App() {
         console.error('Error fetching profile:', err);
         setProfile({
           full_name: user.user_metadata?.full_name || null,
+          public_name: null,
           email: user.email || null,
           class_year: null,
           graduation_year: null,
@@ -683,7 +687,7 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen flex flex-col md:flex-row"
+      className="h-screen max-h-screen flex flex-col md:flex-row overflow-hidden"
       style={{ backgroundColor: isMessagingView ? '#fbf8f7' : '#F1EFE7' }}
     >
       {/* Desktop Sidebar Overlay */}
@@ -753,7 +757,7 @@ export default function App() {
       </div>
 
       <div 
-        className="flex-1 flex flex-col ml-0 md:min-w-0 transition-all duration-300"
+        className="flex-1 flex flex-col min-h-0 ml-0 md:min-w-0 transition-all duration-300"
         style={{ 
           marginLeft: window.innerWidth >= 768 ? (isSidebarExpanded ? '200px' : '70px') : '0'
         }}
@@ -825,7 +829,7 @@ export default function App() {
         </div>
 
         <div
-          className={`flex-1 ${currentView === 'messaging' ? 'overflow-hidden' : 'overflow-auto'}`}
+          className={`flex-1 flex flex-col min-h-0 ${currentView === 'messaging' ? 'overflow-hidden' : currentView === 'dashboard' ? 'overflow-hidden' : 'overflow-auto'}`}
           style={{ backgroundColor: currentView === 'messaging' ? '#fbf8f7' : '#FBF9F5' }}
         >
           {currentView === 'course' && (
@@ -874,25 +878,13 @@ export default function App() {
             </div>
           )}
           {currentView === 'dashboard' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl px-4 md:px-12 py-4 md:py-8 min-h-full">
-              {/* Home page: display full name (first name), not public name */}
-              <div className="md:hidden">
-                <h1 
-                  className="text-[32px] text-[#3d3d3a]"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
-                >
-                  {greeting}, {profileLoading || !profile?.full_name ? '...' : profile.full_name.split(' ')[0]}
-                </h1>
-              </div>
-
-              <div className="hidden md:block">
-                <h1 
-                  className="text-[56px] text-[#3d3d3a]"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 400, lineHeight: 1.2 }}
-                >
-                  {greeting}, {profileLoading || !profile?.full_name ? '...' : profile.full_name.split(' ')[0]}
-                </h1>
-              </div>
+            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl flex-1 flex flex-col min-h-0 overflow-hidden">
+              <HomeFeed
+                greeting={greeting}
+                userName={profileLoading || !profile?.full_name ? '...' : profile.full_name.split(' ')[0]}
+                userId={user?.id}
+                publicName={profile?.public_name?.trim() || profile?.full_name?.trim() || user?.email?.split('@')[0] || 'You'}
+              />
             </div>
           )}
         </div>
