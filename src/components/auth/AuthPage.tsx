@@ -55,6 +55,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
         minHeight: 'var(--app-height, 100vh)',
         height: 'var(--app-height, 100vh)',
         maxHeight: 'var(--app-height, 100vh)',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
       }}
     >
       {/* Back button */}

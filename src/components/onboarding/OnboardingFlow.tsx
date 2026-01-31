@@ -154,7 +154,13 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
   return (
     <div
       className="bg-[#FBF9F5] flex flex-col"
-      style={{ minHeight: 'var(--app-height, 100vh)' }}
+      style={{
+        minHeight: 'var(--app-height, 100vh)',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
     >
       {saveError && (
         <p className="px-6 text-sm text-red-600" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -400,7 +406,7 @@ function Step2({ formData, setFormData, progressBar }: {
       )}
       {!loading && !error && (
         <div
-          className="mt-4 space-y-2 rounded-xl border border-gray-200 bg-white p-2 max-h-[55vh] overflow-y-auto"
+          className="mt-4 space-y-2 rounded-xl border border-gray-200 bg-white p-2 max-h-[38vh] overflow-y-auto"
           style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
         >
           {sortedCourses.length === 0 ? (

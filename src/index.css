@@ -18,12 +18,8 @@ body {
   -webkit-touch-callout: none;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  /* Safe area for notched devices (Safari iOS with viewport-fit=cover) */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  /* Match app shell so top/bottom strips aren't white when background "cuts" */
+  /* No padding here so full-screen wrappers can extend background to edges; they use safe-area padding instead */
+  /* Match app shell so any visible area shows app color */
   background: #F1EFE7;
 }
 /* Allow text selection in inputs and editable content */

@@ -101,7 +101,15 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
     return (
       <div
         className="bg-[#FBF9F5] flex flex-col overflow-hidden"
-        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+        style={{
+          minHeight: 'var(--app-height, 100vh)',
+          height: 'var(--app-height, 100vh)',
+          maxHeight: 'var(--app-height, 100vh)',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }}
       >
         {/* Header - back top left, then logo */}
         <div className="bg-[#FBF9F5] px-6 pt-6 pb-4 flex-shrink-0 w-full">
@@ -184,7 +192,15 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
     return (
       <div
         className="bg-[#FBF9F5] flex flex-col overflow-hidden"
-        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+        style={{
+          minHeight: 'var(--app-height, 100vh)',
+          height: 'var(--app-height, 100vh)',
+          maxHeight: 'var(--app-height, 100vh)',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }}
       >
         <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
           <button
@@ -373,7 +389,15 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
     return (
       <div
         className="bg-[#FBF9F5] flex flex-col overflow-hidden"
-        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+        style={{
+          minHeight: 'var(--app-height, 100vh)',
+          height: 'var(--app-height, 100vh)',
+          maxHeight: 'var(--app-height, 100vh)',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }}
       >
         {/* Header */}
         <div className="bg-[#F1EFE7] px-6 py-2 flex-shrink-0">
@@ -644,7 +668,15 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
   return (
     <div
       className="bg-[#FBF9F5] flex flex-col overflow-hidden"
-      style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+      style={{
+          minHeight: 'var(--app-height, 100vh)',
+          height: 'var(--app-height, 100vh)',
+          maxHeight: 'var(--app-height, 100vh)',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }}
     >
       {/* Header */}
       <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
@@ -789,7 +821,15 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
     return (
       <div
         className="bg-[#FBF9F5] flex flex-col overflow-hidden"
-        style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
+        style={{
+          minHeight: 'var(--app-height, 100vh)',
+          height: 'var(--app-height, 100vh)',
+          maxHeight: 'var(--app-height, 100vh)',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }}
       >
         <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
           <button

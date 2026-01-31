@@ -767,6 +767,10 @@ export default function App() {
         height: 'var(--app-height, 100vh)',
         overscrollBehavior: 'none',
         WebkitOverflowScrolling: 'touch',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
       }}
     >
       {/* Desktop Sidebar Overlay */}
