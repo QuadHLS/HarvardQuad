@@ -70,19 +70,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
       )}
       
       {/* Logo at the top - responsive sizing */}
-      <div className="flex-shrink-0" style={{ marginTop: 'clamp(20px, 4vh, 60px)', paddingBottom: 'clamp(10px, 2vh, 20px)' }}>
+      <div className="flex-shrink-0" style={{ marginTop: 'clamp(8px, 2vh, 32px)', paddingBottom: 'clamp(6px, 1vh, 12px)' }}>
         <div className="flex justify-center">
           <img 
             src="/QUAD.svg" 
             alt="Quad Logo" 
             className="w-auto object-contain"
-            style={{ height: 'clamp(120px, 18vh, 200px)' }}
+            style={{ height: 'clamp(100px, 14vh, 160px)' }}
           />
         </div>
       </div>
       
       {/* Auth form - prioritized for space */}
-      <div className="w-full max-w-md flex-1 flex flex-col justify-start" style={{ marginTop: '1.5rem', minHeight: 'clamp(400px, 50vh, 600px)' }}>
+      <div className="w-full max-w-md flex-1 flex flex-col justify-start" style={{ marginTop: '0.5rem', minHeight: 'clamp(400px, 50vh, 600px)' }}>
         {authMode === 'login' && (
           <LoginPage
             onSwitchToSignup={handleSwitchToSignup}

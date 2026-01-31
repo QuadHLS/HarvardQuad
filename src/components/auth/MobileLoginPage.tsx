@@ -376,7 +376,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)', maxHeight: 'var(--app-height, 100vh)' }}
       >
         {/* Header */}
-        <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
+        <div className="bg-[#F1EFE7] px-6 py-2 flex-shrink-0">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('welcome'); }}
             className="text-sm text-gray-600 hover:text-gray-900"
@@ -388,9 +388,9 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
         {/* Content - scrollable, centered container */}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-          <div className="flex-1 px-6 py-10 max-w-sm mx-auto w-full">
+          <div className="flex-1 px-6 py-4 max-w-sm mx-auto w-full">
             <h1 
-              className="text-3xl text-[#3d3d3a] mb-3 mt-4" 
+              className="text-3xl text-[#3d3d3a] mb-3 mt-0" 
               style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
             >
               Welcome back

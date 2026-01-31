@@ -70,18 +70,14 @@ export default function App() {
   const [isFeedInputFocused, setIsFeedInputFocused] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
-  // Ref to keep full height when keyboard is open on messaging only
+  // Ref to keep full height when keyboard is open (any input focused)
   const lastFullHeightRef = useRef<number>(
     typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 800
   );
-  const currentViewRef = useRef<ViewState>(initialState.view);
 
-  useEffect(() => {
-    currentViewRef.current = currentView;
-  }, [currentView]);
-
-  // Safari iOS: set visual viewport height. Freeze --app-height when keyboard open on messaging.
-  // Everywhere: never shrink --app-height so keyboard doesn't mess with onboarding/sign-in/feed.
+  // Safari iOS: set visual viewport height. Freeze --app-height when any input is focused so the
+  // page doesn't move when the keyboard opens (onboarding, sign-in, feed, messaging). Only messaging
+  // needs special nav behavior; layout freeze applies everywhere.
   useEffect(() => {
     const setAppHeight = () => {
       const vh = window.visualViewport?.height ?? window.innerHeight;
@@ -91,15 +87,15 @@ export default function App() {
         (active.tagName === 'INPUT' ||
           active.tagName === 'TEXTAREA' ||
           (active as HTMLElement).isContentEditable);
-      const onMessaging = currentViewRef.current === 'messaging';
-      if (isInputFocused && onMessaging) {
+      if (isInputFocused) {
         document.documentElement.style.setProperty('--app-height', `${lastFullHeightRef.current}px`);
       } else {
-        // Never shrink so keyboard doesn't squish layout on any page
+        // When not focused: always update --app-height so layout resizes when viewport shrinks
+        // (e.g. Responsive Design Mode). Only grow lastFullHeightRef so we have a good freeze value.
         if (vh >= lastFullHeightRef.current) {
           lastFullHeightRef.current = vh;
-          document.documentElement.style.setProperty('--app-height', `${vh}px`);
         }
+        document.documentElement.style.setProperty('--app-height', `${vh}px`);
       }
     };
     setAppHeight();

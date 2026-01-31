@@ -132,37 +132,30 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
     return false;
   };
 
+  const progressBar = (
+    <div className="px-0 py-3 flex-shrink-0">
+      <div className="flex items-center gap-2">
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
+          <div key={step} className="flex items-center flex-1">
+            <div
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                step <= currentStep ? 'bg-[#d47455]' : 'bg-gray-200'
+              }`}
+            />
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-gray-500 mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+        Step {currentStep} of {TOTAL_STEPS}
+      </p>
+    </div>
+  );
+
   return (
     <div
       className="bg-[#FBF9F5] flex flex-col"
       style={{ minHeight: 'var(--app-height, 100vh)' }}
     >
-      {/* Header */}
-      <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
-        <h1 className="text-2xl" style={{ fontFamily: 'Lora, serif' }}>Welcome</h1>
-        <p className="text-sm text-gray-600 mt-1" style={{ fontFamily: 'Arial, sans-serif' }}>
-          Let's get you set up
-        </p>
-      </div>
-
-      {/* Progress Indicator */}
-      <div className="px-6 py-4 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
-            <div key={step} className="flex items-center flex-1">
-              <div 
-                className={`h-1 flex-1 rounded-full transition-colors ${
-                  step <= currentStep ? 'bg-[#d47455]' : 'bg-gray-200'
-                }`}
-              />
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500 mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
-          Step {currentStep} of {TOTAL_STEPS}
-        </p>
-      </div>
-
       {saveError && (
         <p className="px-6 text-sm text-red-600" style={{ fontFamily: 'Arial, sans-serif' }}>
           {saveError}
@@ -179,12 +172,14 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
           <Step1
             formData={formData}
             setFormData={setFormData}
+            progressBar={progressBar}
           />
         )}
         {currentStep === 2 && (
           <Step2
             formData={formData}
             setFormData={setFormData}
+            progressBar={progressBar}
           />
         )}
         {/* Step 3 (squads/interests) excluded from flow for now - UI kept in Step3 below */}
@@ -239,9 +234,10 @@ function capitalizeWords(value: string): string {
 }
 
 // Step 1: Personal Information
-function Step1({ formData, setFormData }: {
+function Step1({ formData, setFormData, progressBar }: {
   formData: OnboardingData;
   setFormData: React.Dispatch<React.SetStateAction<OnboardingData>>;
+  progressBar: React.ReactNode;
 }) {
   const classYears = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
 
@@ -255,6 +251,7 @@ function Step1({ formData, setFormData }: {
           We'll use this to personalize your experience
         </p>
       </div>
+      {progressBar}
 
       <div className="space-y-4">
         <div>
@@ -317,9 +314,10 @@ function Step1({ formData, setFormData }: {
 }
 
 // Step 2: Course Selection (courses from Supabase courses table)
-function Step2({ formData, setFormData }: { 
+function Step2({ formData, setFormData, progressBar }: { 
   formData: OnboardingData; 
   setFormData: React.Dispatch<React.SetStateAction<OnboardingData>>;
+  progressBar: React.ReactNode;
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState<{ id: string; course_title: string | null; instructor: string | null; meeting_days: string | null; meeting_time: string | null; term: string | null }[]>([]);
@@ -378,6 +376,7 @@ function Step2({ formData, setFormData }: {
           Tap to select each course
         </p>
       </div>
+      {progressBar}
 
       <div className="relative flex-shrink-0 mt-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
