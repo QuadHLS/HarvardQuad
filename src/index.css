@@ -41,4 +41,21 @@ a {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  /* Remove tap delay on Safari iOS */
+  touch-action: manipulation;
+}
+
+/* Safari iOS: prevent zoom on input focus (inputs < 16px trigger zoom on mobile) */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Safari iOS: smooth momentum scrolling in scroll containers */
+.overflow-y-auto,
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
 }

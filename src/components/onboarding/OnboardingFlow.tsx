@@ -134,8 +134,12 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
 
   return (
     <div
-      className="bg-[#FBF9F5] flex flex-col"
-      style={{ minHeight: 'var(--app-height, 100vh)' }}
+      className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+      style={{
+        minHeight: 'var(--app-height, 100vh)',
+        height: 'var(--app-height, 100vh)',
+        maxHeight: 'var(--app-height, 100vh)',
+      }}
     >
       {/* Header */}
       <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
@@ -400,7 +404,10 @@ function Step2({ formData, setFormData }: {
         <p className="text-sm text-red-600 flex-shrink-0 mt-4" style={{ fontFamily: 'Arial, sans-serif' }}>{error}</p>
       )}
       {!loading && !error && (
-        <div className="flex-1 min-h-0 overflow-y-auto mt-4 space-y-2">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto mt-4 space-y-2 rounded-xl border border-gray-200 bg-white p-2"
+          style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        >
           {sortedCourses.length === 0 ? (
             <p className="text-sm text-gray-500" style={{ fontFamily: 'Arial, sans-serif' }}>
               {searchQuery.trim() ? 'No courses match your search.' : 'No courses available.'}
