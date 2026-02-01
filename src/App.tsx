@@ -444,7 +444,7 @@ export default function App() {
 
   const getAvatarColor = (name: string | null, email: string | null) => {
     const text = name || email || 'User';
-    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
     return colors[text.charCodeAt(0) % colors.length];
   };
 
@@ -614,9 +614,9 @@ export default function App() {
           className="p-2 hover:bg-[#e8e5dc] rounded-xl transition-colors relative"
           onClick={handleNotificationClick}
         >
-          <Bell className="w-5 h-5 md:w-5 md:h-5 text-[#3d3d3a]" />
+          <Bell className="w-5 h-5 md:w-5 md:h-5 text-[#27251f]" />
           {hasUnreadNotifications && unreadCount > 0 && (
-            <span className="absolute top-1 right-1 min-w-[16px] h-[16px] bg-[#d47455] text-white rounded-full flex items-center justify-center text-[9px] px-1" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+            <span className="absolute top-1 right-1 min-w-[16px] h-[16px] bg-[#d47455] text-white rounded-full flex items-center justify-center text-[9px] px-1" style={{ fontWeight: 600 }}>
               {unreadCount}
             </span>
           )}
@@ -627,18 +627,18 @@ export default function App() {
             <div className="px-4 md:px-6 py-4 border-b border-[#e8e4db] bg-gradient-to-r from-[#faf9f7] to-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[18px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+                  <h3 className="text-[18px] text-[#27251f] m-0" style={{ fontWeight: 600 }}>
                     Notifications
                   </h3>
                   {unreadCount > 0 && (
-                    <p className="text-[12px] text-[#999] mt-0.5 m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                    <p className="text-[12px] text-[#787771] mt-0.5 m-0" >
                       {unreadCount} unread
                     </p>
                   )}
                 </div>
                 <button 
                   className="text-[12px] text-[#d47455] hover:text-[#c06545] px-3 py-1.5 rounded-lg hover:bg-[#fef9f5]" 
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  style={{ fontWeight: 600 }}
                 >
                   Mark all read
                 </button>
@@ -661,22 +661,22 @@ export default function App() {
                           notification.unread ? 'bg-[#d47455]' : 'bg-[#f5f3eb]'
                         }`}
                       >
-                        <Icon className={`w-5 h-5 ${notification.unread ? 'text-white' : 'text-[#999]'}`} />
+                        <Icon className={`w-5 h-5 ${notification.unread ? 'text-white' : 'text-[#787771]'}`} />
                       </div>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h4 className="text-[14px] text-[#1a1a1a] m-0 leading-snug" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+                          <h4 className="text-[14px] text-[#27251f] m-0 leading-snug" style={{ fontWeight: 600 }}>
                             {notification.title}
                           </h4>
                           {notification.unread && (
                             <div className="w-2 h-2 rounded-full bg-[#d47455] flex-shrink-0 mt-1.5"></div>
                           )}
                         </div>
-                        <p className="text-[13px] text-[#666] mb-2 m-0 leading-relaxed" style={{ fontFamily: 'Arial, sans-serif' }}>
+                        <p className="text-[13px] text-[#787771] mb-2 m-0 leading-relaxed" >
                           {notification.message}
                         </p>
-                        <span className="text-[11px] text-[#999]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>
+                        <span className="text-[11px] text-[#787771]" style={{ fontWeight: 500 }}>
                           {notification.time}
                         </span>
                       </div>
@@ -689,7 +689,7 @@ export default function App() {
             <div className="hidden md:block px-6 py-4 border-t border-[#e8e4db] text-center bg-[#faf9f7]">
               <button 
                 className="text-[13px] text-[#d47455] hover:text-[#c06545] px-4 py-2 rounded-lg hover:bg-white transition-colors" 
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ fontWeight: 600 }}
               >
                 View all notifications
               </button>
@@ -699,7 +699,7 @@ export default function App() {
               <button 
                 onClick={() => setShowNotifications(false)}
                 className="w-full py-3 bg-[#d47455] text-white rounded-xl text-[15px]" 
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ fontWeight: 600 }}
               >
                 Close
               </button>
@@ -803,19 +803,19 @@ export default function App() {
         <div className="w-full mt-6 px-0">
           {isSidebarExpanded ? (
             <>
-              <button onClick={handleHomeClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <button onClick={handleHomeClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f]" >
                 <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Home</span>
               </button>
-              <button onClick={handleSquadsClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#3d3d3a] mt-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <button onClick={handleSquadsClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
                 <Users className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Squads</span>
               </button>
-              <button onClick={handleClassesClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#3d3d3a] mt-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <button onClick={handleClassesClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
                 <BookOpen className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Classes</span>
               </button>
-              <button onClick={handleCalendarClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#3d3d3a] mt-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <button onClick={handleCalendarClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
                 <CalendarIcon className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Calendar</span>
               </button>
@@ -854,17 +854,16 @@ export default function App() {
             style={{ paddingLeft: window.innerWidth >= 768 ? '24px' : '0' }}
           >
             <div className="md:hidden">
-              <h1 className="text-[20px] text-[#3d3d3a] m-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+              <h1 className="text-[20px] text-[#27251f] m-0" style={{ fontWeight: 600 }}>
                 Law School
               </h1>
             </div>
             <div className="hidden md:block relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787771]" />
               <input
                 type="text"
                 placeholder="Search courses, assignments, peers…"
-                className="w-full pl-10 pr-4 py-2 bg-white/70 rounded-lg border-0 text-sm text-[#87888b] placeholder:text-[#87888b]/50"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="w-full pl-10 pr-4 py-2 bg-white/70 rounded-lg border-0 text-sm text-[#787771] placeholder:text-[#787771]/50"
               />
             </div>
           </div>
@@ -878,8 +877,8 @@ export default function App() {
             <div className="hidden md:block h-8 w-px bg-[#e4e0e0]"></div>
             <div className="flex items-center gap-2 md:gap-3">
               <div className="text-right hidden md:block">
-                <div className="text-sm text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>{profileLoading ? 'Loading...' : getDisplayNameShort()}</div>
-                <div className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}>{profileLoading ? '...' : getClassYearDisplay()}</div>
+                <div className="text-sm text-[#27251f]" style={{ fontWeight: 400 }}>{profileLoading ? 'Loading...' : getDisplayNameShort()}</div>
+                <div className="text-xs text-[#787771]" style={{ fontWeight: 400 }}>{profileLoading ? '...' : getClassYearDisplay()}</div>
               </div>
               {getAvatarUrl() ? (
                 <img 
@@ -900,7 +899,6 @@ export default function App() {
                 style={{ 
                   backgroundColor: getAvatarColor(profile?.full_name || null, user?.email || null),
                   display: getAvatarUrl() ? 'none' : 'flex',
-                  fontFamily: 'Arial, sans-serif',
                   fontWeight: 600
                 }}
                 onClick={handleProfileClick}
@@ -989,47 +987,47 @@ export default function App() {
           <button
             onClick={handleCalendarClick}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-              currentView === 'calendar' || currentView === 'classes' ? 'text-[#d47455]' : 'text-[#7b7b74]'
+              currentView === 'calendar' || currentView === 'classes' ? 'text-[#d47455]' : 'text-[#787771]'
             }`}
           >
             <CalendarIcon className="w-6 h-6" />
-            <span className="text-[10px]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>Schedule</span>
+            <span className="text-[10px]" style={{ fontWeight: 500 }}>Schedule</span>
           </button>
 
           <button
             onClick={handleSquadsClick}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-              currentView === 'squads' || currentView === 'squad-detail' ? 'text-[#d47455]' : 'text-[#7b7b74]'
+              currentView === 'squads' || currentView === 'squad-detail' ? 'text-[#d47455]' : 'text-[#787771]'
             }`}
           >
             <Users className="w-6 h-6" />
-            <span className="text-[10px]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>Squads</span>
+            <span className="text-[10px]" style={{ fontWeight: 500 }}>Squads</span>
           </button>
 
           <button
             onClick={handleHomeClick}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-              currentView === 'dashboard' ? 'text-[#d47455]' : 'text-[#7b7b74]'
+              currentView === 'dashboard' ? 'text-[#d47455]' : 'text-[#787771]'
             }`}
           >
             <LayoutDashboard className="w-6 h-6" />
-            <span className="text-[10px]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>Home</span>
+            <span className="text-[10px]" style={{ fontWeight: 500 }}>Home</span>
           </button>
 
           <button
             onClick={handleMessagingClick}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-              currentView === 'messaging' ? 'text-[#d47455]' : 'text-[#7b7b74]'
+              currentView === 'messaging' ? 'text-[#d47455]' : 'text-[#787771]'
             }`}
           >
             <MessageCircle className="w-6 h-6" />
-            <span className="text-[10px]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>Messages</span>
+            <span className="text-[10px]" style={{ fontWeight: 500 }}>Messages</span>
           </button>
 
           <button
             onClick={handleProfileClick}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-              currentView === 'profile' ? 'text-[#d47455]' : 'text-[#7b7b74]'
+              currentView === 'profile' ? 'text-[#d47455]' : 'text-[#787771]'
             }`}
           >
             {getAvatarUrl() ? (
@@ -1050,13 +1048,12 @@ export default function App() {
               style={{ 
                 backgroundColor: getAvatarColor(profile?.full_name || null, user?.email || null),
                 display: getAvatarUrl() ? 'none' : 'flex',
-                fontFamily: 'Arial, sans-serif',
                 fontWeight: 600
               }}
             >
               {getInitials(profile?.full_name || null, user?.email || null)}
             </div>
-            <span className="text-[10px]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>Profile</span>
+            <span className="text-[10px]" style={{ fontWeight: 500 }}>Profile</span>
           </button>
         </div>
       </div>

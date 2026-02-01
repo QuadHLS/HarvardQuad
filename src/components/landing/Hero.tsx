@@ -1,29 +1,53 @@
+import { useState, useEffect } from 'react';
+
 interface HeroProps {
   onSignIn: () => void;
 }
 
+const HERO_TEXT = 'One platform.\nEvery tool you need.';
+const TYPING_MS = 55;
+
 export function Hero({ onSignIn }: HeroProps) {
+  const [visibleLength, setVisibleLength] = useState(0);
+  const [showCursor, setShowCursor] = useState(true);
+
+  useEffect(() => {
+    if (visibleLength >= HERO_TEXT.length) return;
+    const t = setTimeout(() => setVisibleLength((n) => n + 1), TYPING_MS);
+    return () => clearTimeout(t);
+  }, [visibleLength]);
+
+  const visibleText = HERO_TEXT.slice(0, visibleLength);
+
   return (
-    <section id="home" className="min-h-screen flex items-center justify-center pt-20" style={{ background: 'linear-gradient(to bottom, rgba(254, 243, 199, 0.4), #f7f7f5)' }}>
-      <div className="max-w-4xl mx-auto px-6 py-32 text-center">
-        <div className="space-y-8">
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif text-neutral-900 leading-[1.1] tracking-tight">
-            One platform.<br />Every tool you need.
+    <section id="home" className="min-h-screen flex items-center justify-center pt-20">
+      <div className="max-w-4xl mx-auto px-6 py-36 text-center">
+        <div className="space-y-10">
+          <h1 className="text-6xl md:text-7xl font-sans font-medium text-[#27251f] leading-[1.1] tracking-[-0.01em]">
+            {visibleText.split('\n').map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
+            {showCursor && (
+              <span className="inline-block animate-cursor-expand text-[#27251f]" aria-hidden>|</span>
+            )}
           </h1>
 
-          <p className="text-xl text-neutral-600 max-w-2xl mx-auto leading-relaxed">
-            Quad replaces Canvas, Reddit, Slack, WhatsApp, and your calendar with a unified student 
+          <p className="text-xl text-[#787771] max-w-2xl mx-auto leading-7 font-medium tracking-[-0.01em]">
+            Quad replaces Canvas, Reddit, Slack, WhatsApp, and your calendar with a unified student
             operating system. Everything you need for academic and social success in one place.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-            <button 
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+            <button
               onClick={onSignIn}
-              className="bg-neutral-900 text-neutral-50 px-8 py-4 hover:bg-neutral-800 transition-colors"
+              className="font-normal bg-[#27251f] text-[#f7f8f3] px-8 py-4 hover:bg-[#27251f]/90 transition-colors rounded-lg"
             >
-              Get Started Free
+              Get started for free
             </button>
-            <button 
+            <button
               onClick={() => {
                 const element = document.getElementById('process');
                 if (element) {
@@ -36,19 +60,19 @@ export function Hero({ onSignIn }: HeroProps) {
                   });
                 }
               }}
-              className="border border-neutral-300 text-neutral-900 px-8 py-4 hover:border-neutral-900 transition-colors"
+              className="font-normal border border-neutral-300 text-[#27251f] px-8 py-4 hover:border-neutral-700 hover:bg-neutral-50 transition-colors rounded-lg"
             >
               See How It Works
             </button>
           </div>
 
-          <div className="pt-12 flex flex-wrap justify-center gap-4 text-sm text-neutral-400">
+          <div className="pt-14 flex flex-wrap justify-center gap-4 text-sm text-[#787771] font-medium tracking-[-0.01em]">
             <span className="line-through">Canvas</span>
             <span className="line-through">Reddit</span>
             <span className="line-through">Slack</span>
             <span className="line-through">WhatsApp</span>
             <span className="line-through">Google Calendar</span>
-            <span className="text-neutral-900 font-medium">→ Quad</span>
+            <span className="text-[#27251f] font-normal">→ Quad</span>
           </div>
         </div>
       </div>

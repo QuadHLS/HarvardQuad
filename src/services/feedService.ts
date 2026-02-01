@@ -63,7 +63,7 @@ export interface FeedReplyWithAuthor extends FeedReplyRow {
   replies?: FeedReplyWithAuthor[];
 }
 
-const AVATAR_COLORS = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74', '#9b87f5', '#85e89d', '#ffa8a8', '#ffd43b'];
+const AVATAR_COLORS = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771', '#9b87f5', '#85e89d', '#ffa8a8', '#ffd43b'];
 
 function avatarColor(id: string): string {
   const i = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);

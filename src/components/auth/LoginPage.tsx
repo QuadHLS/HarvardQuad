@@ -204,7 +204,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 border-radius: 4px;
                 -webkit-box-sizing: border-box;
                 box-sizing: border-box;
-                color: #1f1f1f;
+                color: #27251f;
                 cursor: pointer;
                 font-family: 'Roboto', arial, sans-serif;
                 font-size: 14px;
@@ -318,24 +318,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
 
             {/* Footer Links */}
-            <div className="mt-4 pt-6 pb-4 border-t border-gray-200 relative">
+            <div className="mt-4 pt-6 pb-4 relative">
               <div className="flex items-center justify-center">
                 <a
                   href="/QUADPRIVACYPOLICY.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm hover:underline absolute"
-                  style={{ color: '#000000', right: '50%', transform: 'translateX(-24px)' }}
+                  style={{ color: '#27251f', right: '50%', transform: 'translateX(-24px)' }}
                 >
                   Privacy Policy
                 </a>
-                <span className="text-gray-300 absolute left-1/2 transform -translate-x-1/2">|</span>
+                <span className="text-[#787771] absolute left-1/2 transform -translate-x-1/2">|</span>
                 <a
                   href="/QUADTERMSOFSERVICE.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm hover:underline absolute"
-                  style={{ color: '#000000', left: '50%', transform: 'translateX(24px)' }}
+                  style={{ color: '#27251f', left: '50%', transform: 'translateX(24px)' }}
                 >
                   Terms of Service
                 </a>

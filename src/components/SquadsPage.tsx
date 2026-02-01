@@ -76,7 +76,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
 
   const getCategoryColor = (category: string): string => {
     const cat = categories.find(c => c.id === category);
-    return cat?.color || '#7b7b74';
+    return cat?.color || '#787771';
   };
 
   const mySquads = squads.filter(s => s.is_joined);
@@ -104,7 +104,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
           <div className="flex items-center justify-between mb-6">
             <h1 
               className="text-3xl"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               Squads
             </h1>
@@ -118,14 +118,14 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
 
           {/* Search */}
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
             <input
               type="text"
               placeholder="Search squads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border-0 text-sm shadow-sm"
-              style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+              style={{ color: '#27251f' }}
             />
           </div>
 
@@ -136,7 +136,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                 <button
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                   className="w-full py-2.5 px-4 rounded-xl text-sm bg-[#d47455] text-white shadow-sm flex items-center justify-center gap-2"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  style={{ fontWeight: 600 }}
                 >
                   <span className="flex-1 text-center">
                     {selectedCategory 
@@ -161,9 +161,9 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                         className={`w-full py-2.5 px-4 text-sm text-left transition-colors ${
                           selectedCategory === null
                             ? 'bg-[#f5f3eb] text-[#d47455]'
-                            : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                            : 'text-[#27251f] hover:bg-[#f5f3eb]'
                         }`}
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                        style={{ fontWeight: 600 }}
                       >
                         All
                       </button>
@@ -177,9 +177,9 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                           className={`w-full py-2.5 px-4 text-sm text-left transition-colors flex items-center gap-2 ${
                             selectedCategory === cat.id
                               ? 'bg-[#f5f3eb] text-[#d47455]'
-                              : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                              : 'text-[#27251f] hover:bg-[#f5f3eb]'
                           }`}
-                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                          style={{ fontWeight: 600 }}
                         >
                           <cat.icon className="w-4 h-4" style={{ color: cat.color }} />
                           {cat.label}
@@ -195,8 +195,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                   setActiveTab('all');
                   setSelectedCategory(null);
                 }}
-                className="flex-1 py-2.5 px-4 rounded-xl text-sm transition-all bg-white text-[#7b7b74]"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm transition-all bg-white text-[#787771]"
+                style={{ fontWeight: 600 }}
               >
                 All Squads
               </button>
@@ -210,9 +210,9 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
               className={`flex-1 py-2.5 px-4 rounded-xl text-sm transition-all ${
                 activeTab === 'my-squads'
                   ? 'bg-[#d47455] text-white shadow-sm'
-                  : 'bg-white text-[#7b7b74]'
+                  : 'bg-white text-[#787771]'
               }`}
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              style={{ fontWeight: 600 }}
             >
               My Squads
             </button>
@@ -229,7 +229,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
               </div>
             ) : filteredSquads.length === 0 ? (
               <div className="flex items-center justify-center py-8">
-                <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                <p style={{ color: '#787771' }}>
                   {activeTab === 'my-squads' ? 'No squads joined yet' : 'No squads found'}
                 </p>
               </div>
@@ -255,7 +255,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <h3 
                             className="text-lg"
-                            style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                            style={{ fontWeight: 600, color: '#27251f' }}
                           >
                             {squad.name}
                           </h3>
@@ -263,16 +263,16 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                         </div>
                         <p 
                           className="text-sm mb-3 line-clamp-2"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74', lineHeight: 1.4 }}
+                          style={{ color: '#787771', lineHeight: 1.4 }}
                         >
                           {squad.info || 'No description'}
                         </p>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1.5">
-                            <Icon className="w-4 h-4 text-[#7b7b74]" />
+                            <Icon className="w-4 h-4 text-[#787771]" />
                             <span 
                               className="text-xs"
-                              style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                              style={{ color: '#787771' }}
                             >
                               {squad.member_count || 0} members
                             </span>
@@ -281,7 +281,6 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                             <span 
                               className="px-2.5 py-1 rounded-full text-xs"
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: '#e8f5e9',
                                 color: '#4caf50'
@@ -305,15 +304,15 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
       <div className="hidden md:block p-12">
         <div className="flex items-center justify-between mb-8">
           <h1 
-            className="text-[56px] text-[#3d3d3a]"
-            style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
+            className="text-[56px] text-[#27251f]"
+            style={{ fontWeight: 400 }}
           >
             Squads
           </h1>
           <button 
             onClick={() => setShowCreateModal(true)}
             className="px-6 py-3 bg-[#d47455] text-white rounded-xl hover:bg-[#c06545] transition-colors flex items-center gap-2"
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+            style={{ fontWeight: 600 }}
           >
             <Plus className="w-5 h-5" />
             Create Squad
@@ -322,14 +321,14 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
 
         <div className="mb-6">
           <div className="relative max-w-xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
             <input
               type="text"
               placeholder="Search squads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-[#e7ded1]"
-              style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+              style={{ color: '#27251f' }}
             />
           </div>
         </div>
@@ -340,7 +339,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
               <button
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                 className="px-6 py-2 rounded-xl bg-[#d47455] text-white flex items-center justify-center gap-2 min-w-[140px]"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                style={{ fontWeight: 500 }}
               >
                 <span className="flex-1 text-center">
                   {selectedCategory 
@@ -365,9 +364,9 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                       className={`w-full py-2.5 px-4 text-sm text-left transition-colors ${
                         selectedCategory === null
                           ? 'bg-[#f5f3eb] text-[#d47455]'
-                          : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                          : 'text-[#27251f] hover:bg-[#f5f3eb]'
                       }`}
-                      style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                      style={{ fontWeight: 500 }}
                     >
                       All
                     </button>
@@ -381,9 +380,9 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                         className={`w-full py-2.5 px-4 text-sm text-left transition-colors flex items-center gap-2 ${
                           selectedCategory === cat.id
                             ? 'bg-[#f5f3eb] text-[#d47455]'
-                            : 'text-[#3d3d3a] hover:bg-[#f5f3eb]'
+                            : 'text-[#27251f] hover:bg-[#f5f3eb]'
                         }`}
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                        style={{ fontWeight: 500 }}
                       >
                         <cat.icon className="w-4 h-4" style={{ color: cat.color }} />
                         {cat.label}
@@ -399,8 +398,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                 setActiveTab('all');
                 setSelectedCategory(null);
               }}
-              className="px-6 py-2 rounded-xl transition-colors bg-white text-[#7b7b74] hover:bg-[#f5f3eb]"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+              className="px-6 py-2 rounded-xl transition-colors bg-white text-[#787771] hover:bg-[#f5f3eb]"
+              style={{ fontWeight: 500 }}
             >
               All Squads
             </button>
@@ -414,9 +413,9 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
             className={`px-6 py-2 rounded-xl transition-colors ${
               activeTab === 'my-squads'
                 ? 'bg-[#d47455] text-white'
-                : 'bg-white text-[#7b7b74] hover:bg-[#f5f3eb]'
+                : 'bg-white text-[#787771] hover:bg-[#f5f3eb]'
             }`}
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+            style={{ fontWeight: 500 }}
           >
             My Squads ({mySquads.length})
           </button>
@@ -429,7 +428,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
             </div>
           ) : filteredSquads.length === 0 ? (
             <div className="col-span-2 flex items-center justify-center py-12">
-              <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+              <p style={{ color: '#787771' }}>
                 {activeTab === 'my-squads' ? 'No squads joined yet' : 'No squads found'}
               </p>
             </div>
@@ -454,15 +453,15 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                     <div className="flex-1">
                       <h3 
                         className="text-xl mb-1"
-                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontWeight: 600, color: '#27251f' }}
                       >
                         {squad.name}
                       </h3>
                       <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-[#7b7b74]" />
+                        <Icon className="w-4 h-4 text-[#787771]" />
                         <span 
                           className="text-sm"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                          style={{ color: '#787771' }}
                         >
                           {squad.member_count || 0} members
                         </span>
@@ -471,7 +470,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                   </div>
                   <p 
                     className="text-sm mb-4"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                    style={{ color: '#787771' }}
                   >
                     {squad.info || 'No description'}
                   </p>
@@ -479,7 +478,6 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                     <span 
                       className="inline-block px-3 py-1 rounded-full text-sm"
                       style={{ 
-                        fontFamily: 'Arial, sans-serif',
                         fontWeight: 600,
                         backgroundColor: '#e8f5e9',
                         color: '#4caf50'

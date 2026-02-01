@@ -28,7 +28,11 @@ function EmbedBlock({ url, className = '', compact = false }: { url: string; cla
   const maxH = compact ? 240 : 360;
   const maxW = maxH * embed.aspectRatio;
   return (
-    <div className={`w-full ${className}`}>
+    <div
+      className={`w-full ${className}`}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <div
         className="rounded-lg overflow-hidden bg-muted/30"
         style={{
@@ -41,6 +45,7 @@ function EmbedBlock({ url, className = '', compact = false }: { url: string; cla
           src={embed.embedUrl}
           title="Embedded video"
           className="rounded-lg w-full h-full border-0"
+          style={{ pointerEvents: 'auto' }}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
         />
@@ -139,11 +144,11 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
       <div className="h-full flex flex-col bg-[#FBF9F5]">
         <div className="bg-[#F1EFE7] px-4 py-4 flex-shrink-0 flex items-center gap-3">
           <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
-            <ChevronLeft className="w-6 h-6 text-[#3d3d3a]" />
+            <ChevronLeft className="w-6 h-6 text-[#27251f]" />
           </button>
-          <h1 className="text-lg flex-1 font-semibold text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif' }}>Home</h1>
+          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >Home</h1>
         </div>
-        <div className="flex-1 flex items-center justify-center text-[#7b7b74]">Loading...</div>
+        <div className="flex-1 flex items-center justify-center text-[#787771]">Loading...</div>
       </div>
     );
   }
@@ -160,9 +165,9 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
       <div className="bg-[#F1EFE7] px-4 py-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
-            <ChevronLeft className="w-6 h-6 text-[#3d3d3a]" />
+            <ChevronLeft className="w-6 h-6 text-[#27251f]" />
           </button>
-          <h1 className="text-lg flex-1 font-semibold text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif' }}>Home</h1>
+          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >Home</h1>
         </div>
       </div>
 
@@ -173,18 +178,18 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
             <div className="flex items-center gap-2">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
-                style={{ backgroundColor: authorColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ backgroundColor: authorColor, fontWeight: 600 }}
               >
                 {authorInitials}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>{authorName}</span>
-                  <span className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>• {timeStr}</span>
+                  <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
+                  <span className="text-xs text-[#787771]">• {timeStr}</span>
                 </div>
                 <div
                   className="text-xs px-2 py-0.5 rounded-full inline-block mt-1"
-                  style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}
                 >
                   {sourceLabel}
                 </div>
@@ -195,7 +200,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                 <button
                   type="button"
                   onClick={handlePinPost}
-                  className="p-2 rounded-lg text-[#7b7b74] hover:bg-[#F1EFE7] active:scale-95 transition-transform"
+                  className="p-2 rounded-lg text-[#787771] hover:bg-[#F1EFE7] active:scale-95 transition-transform"
                   aria-label={detailPost.current_user_pinned ? 'Unpin' : 'Pin'}
                   title={detailPost.current_user_pinned ? 'Unpin' : 'Pin'}
                 >
@@ -207,7 +212,6 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                   type="button"
                   onClick={handlePinPost}
                   className="text-xs font-semibold text-[#d97757] hover:underline active:scale-95 transition-transform cursor-pointer"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
                   title="Unpin"
                 >
                   Pinned
@@ -216,18 +220,22 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
             </div>
           </div>
 
-          <h2 className="text-xl mb-3 font-semibold text-[#3d3d3a] leading-tight" style={{ fontFamily: 'Lora, serif' }}>{detailPost.title}</h2>
+          <h2 className="text-xl mb-3 font-semibold text-[#27251f] leading-tight" >{detailPost.title}</h2>
 
           {detailPost.content && (
-            <p className="selectable-text text-base mb-3 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{detailPost.content}</p>
+            <p className="selectable-text text-base mb-3 text-[#27251f] leading-relaxed whitespace-pre-wrap">{detailPost.content}</p>
           )}
           {detailPost.image_path && (
-            <div className="block isolate rounded-xl overflow-hidden max-h-80 mb-3 bg-muted/30 [&>img]:rounded-xl">
-              <img src={detailPost.image_path} alt="" className="block w-full max-h-80 object-contain rounded-xl" />
+            <div className="block isolate rounded-xl overflow-hidden max-h-80 mb-3 bg-muted/30">
+              <img src={detailPost.image_path} alt="" className="block w-full max-h-80 object-contain" />
             </div>
           )}
           {detailPost.url && (
-            <a href={detailPost.url} target="_blank" rel="noopener noreferrer" className="text-[#d47455] text-sm font-medium hover:underline block mb-3">{detailPost.url}</a>
+            getEmbedInfo(detailPost.url) ? (
+              <EmbedBlock url={detailPost.url} className="mb-3" />
+            ) : (
+              <a href={detailPost.url} target="_blank" rel="noopener noreferrer" className="text-[#d47455] text-sm font-medium hover:underline block mb-3">{detailPost.url}</a>
+            )
           )}
 
           {detailPost.post_type === 'poll' && detailPost.poll_options && detailPost.poll_options.length > 0 && (
@@ -245,8 +253,8 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                     className={`w-full text-left rounded-lg border-2 px-3 py-2 transition-colors ${isSelected ? 'border-[#d47455] bg-[#fff3e0]' : 'border-[#e7ded1] hover:border-[#d47455]/50'}`}
                   >
                     <div className="flex justify-between items-center gap-2">
-                      <span className="text-sm font-medium text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>{opt.option_text}</span>
-                      <span className="text-xs text-[#7b7b74]">{opt.vote_count ?? 0} votes ({pct}%)</span>
+                      <span className="text-sm font-medium text-[#27251f]">{opt.option_text}</span>
+                      <span className="text-xs text-[#787771]">{opt.vote_count ?? 0} votes ({pct}%)</span>
                     </div>
                     <div className="mt-1 h-1.5 rounded-full bg-[#F1EFE7] overflow-hidden">
                       <div className="h-full rounded-full bg-[#d47455]" style={{ width: `${pct}%` }} />
@@ -259,12 +267,12 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
 
           <div className="flex items-center gap-4 pt-2 border-t border-[#f5f3eb]">
             <button onClick={handleHeartPost} className="flex items-center gap-1.5 py-2 active:scale-95 transition-transform">
-              <Heart size={20} className={detailPost.current_user_hearted ? 'text-[#d47455]' : 'text-[#7b7b74]'} fill={detailPost.current_user_hearted ? '#d47455' : 'none'} />
-              <span className="text-base font-semibold" style={{ fontFamily: 'Arial, sans-serif', color: detailPost.current_user_hearted ? '#d47455' : '#3d3d3a' }}>{detailPost.heart_count ?? 0}</span>
+              <Heart size={20} className={detailPost.current_user_hearted ? 'text-[#d47455]' : 'text-[#787771]'} fill={detailPost.current_user_hearted ? '#d47455' : 'none'} />
+              <span className="text-base font-semibold" style={{ color: detailPost.current_user_hearted ? '#d47455' : '#27251f' }}>{detailPost.heart_count ?? 0}</span>
             </button>
-            <span className="flex items-center gap-1.5 py-2 text-[#7b7b74]">
+            <span className="flex items-center gap-1.5 py-2 text-[#787771]">
               <MessageSquare size={20} />
-              <span className="text-base" style={{ fontFamily: 'Arial, sans-serif' }}>{detailPost.reply_count ?? 0}</span>
+              <span className="text-base">{detailPost.reply_count ?? 0}</span>
             </span>
           </div>
 
@@ -273,7 +281,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                  style={{ backgroundColor: userId ? FeedService.avatarColor(userId) : '#7b7b74', fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  style={{ backgroundColor: userId ? FeedService.avatarColor(userId) : '#787771', fontWeight: 600 }}
                 >
                   {userId && userDisplayName
                     ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as Parameters<typeof FeedService.initials>[0])
@@ -305,7 +313,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                   }}
                   placeholder="Join the conversation..."
                   className="flex-1 min-h-[44px] resize-none overflow-y-auto bg-[#FBF9F5] rounded-xl px-4 py-2.5 text-sm border border-[#e7ded1] focus:outline-none focus:border-[#d47455]"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', maxHeight: '120px', lineHeight: '24px' }}
+                  style={{ color: '#27251f', maxHeight: '120px', lineHeight: '24px' }}
                   disabled={!userId || submitting}
                   rows={1}
                 />
@@ -314,7 +322,6 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                   onClick={handleSubmitReply}
                   disabled={!userId || submitting || !replyInput.trim()}
                   className="px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold disabled:opacity-50"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
                 >
                   Post
                 </button>
@@ -375,7 +382,7 @@ interface ReplyBlockProps {
   userDisplayName?: string;
   /** 0 = top-level, 1 = first reply, 2 = second, 3+ = flat with "replying to name" */
   depth?: number;
-  /** When set, show "replying to [name]" next to author (for depth >= 3 only) */
+  /** When set, show "replying to [name]" next to author (for depth > 4 only) */
   parentReply?: FeedReplyWithAuthor | null;
   /** Called when inline reply textarea is focused/blurred (for keyboard/padding) */
   onReplyInputFocusChange?: (focused: boolean) => void;
@@ -404,7 +411,7 @@ function InlineReplyForm({
     <div className="flex items-center gap-2 mt-2 min-w-0 max-w-full">
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-        style={{ backgroundColor: userId ? FeedService.avatarColor(userId) : '#7b7b74', fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+        style={{ backgroundColor: userId ? FeedService.avatarColor(userId) : '#787771', fontWeight: 600 }}
       >
         {userId && userDisplayName
           ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as Parameters<typeof FeedService.initials>[0])
@@ -434,18 +441,17 @@ function InlineReplyForm({
         }}
         placeholder=""
         className="flex-1 min-w-0 min-h-[40px] resize-none overflow-y-auto bg-[#FBF9F5] rounded-xl px-3 py-2 text-sm border border-[#e7ded1] focus:outline-none focus:border-[#d47455]"
-        style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', maxHeight: '120px', lineHeight: '24px' }}
+        style={{ color: '#27251f', maxHeight: '120px', lineHeight: '24px' }}
         disabled={!userId || submitting}
         autoFocus
         rows={1}
       />
-      <button type="button" onClick={() => setReplyingTo(null)} className="text-xs font-medium text-[#7b7b74] hover:text-[#3d3d3a] flex-shrink-0 whitespace-nowrap" style={{ fontFamily: 'Arial, sans-serif' }}>Cancel</button>
+      <button type="button" onClick={() => setReplyingTo(null)} className="text-xs font-medium text-[#787771] hover:text-[#27251f] flex-shrink-0 whitespace-nowrap">Cancel</button>
       <button
         type="button"
         onClick={onSubmitReply}
         disabled={!userId || submitting || !replyInput.trim()}
         className="px-2.5 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold disabled:opacity-50 flex-shrink-0"
-        style={{ fontFamily: 'Arial, sans-serif' }}
       >
         Post
       </button>
@@ -495,26 +501,26 @@ function ReplyBlock({
     <div className={indentClass}>
       <div className={isTopLevel ? 'bg-white rounded-2xl p-4 shadow-sm' : 'bg-[#fefefc] rounded-2xl p-4'}>
         <div className="flex items-start gap-3">
-          <div className={`${size} rounded-full flex items-center justify-center text-white flex-shrink-0`} style={{ backgroundColor: color, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+          <div className={`${size} rounded-full flex items-center justify-center text-white flex-shrink-0`} style={{ backgroundColor: color, fontWeight: 600 }}>
             {initials}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
-              <span className="text-sm font-semibold text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>{name}</span>
-              {isFlat && parentName && (
-                <span className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <span className="text-sm font-semibold text-[#27251f]">{name}</span>
+              {depth > 4 && parentName && (
+                <span className="text-xs text-[#787771]">
                   replying to {parentName}
                 </span>
               )}
-              <span className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>{timeStr}</span>
+              <span className="text-xs text-[#787771]">{timeStr}</span>
             </div>
-            <p className="selectable-text text-sm mb-2 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{reply.content}</p>
+            <p className="selectable-text text-sm mb-2 text-[#27251f] leading-relaxed whitespace-pre-wrap">{reply.content}</p>
             <div className="flex items-center gap-3">
               <button type="button" onClick={onHeart} className="flex items-center gap-1 active:scale-95 transition-transform">
-                <Heart size={isTopLevel ? 16 : 14} className={reply.current_user_hearted ? 'text-[#d47455]' : 'text-[#7b7b74]'} fill={reply.current_user_hearted ? '#d47455' : 'none'} />
-                <span className="text-xs font-semibold" style={{ fontFamily: 'Arial, sans-serif', color: reply.current_user_hearted ? '#d47455' : '#3d3d3a' }}>{reply.heart_count ?? 0}</span>
+                <Heart size={isTopLevel ? 16 : 14} className={reply.current_user_hearted ? 'text-[#d47455]' : 'text-[#787771]'} fill={reply.current_user_hearted ? '#d47455' : 'none'} />
+                <span className="text-xs font-semibold" style={{ color: reply.current_user_hearted ? '#d47455' : '#27251f' }}>{reply.heart_count ?? 0}</span>
               </button>
-              <button type="button" onClick={onReply} className="text-xs font-semibold text-[#7b7b74] hover:text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>Reply</button>
+              <button type="button" onClick={onReply} className="text-xs font-semibold text-[#787771] hover:text-[#27251f]">Reply</button>
             </div>
           </div>
         </div>
@@ -652,14 +658,14 @@ export function HomeFeed({
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <header className="flex-shrink-0 border-b border-[#e7ded1] bg-[#FBF9F5] px-5 py-4 flex items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl flex-1 min-w-0 font-medium text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif' }}>
+        <h1 className="text-2xl md:text-3xl flex-1 min-w-0 font-medium text-[#27251f]" >
           {greeting}, {userName}
         </h1>
         {userId && (
           <button
             type="button"
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+            style={{ fontWeight: 600 }}
             onClick={() => setNewPostModalOpen(true)}
           >
             <Plus size={18} />
@@ -673,16 +679,15 @@ export function HomeFeed({
         style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>Loading...</div>
+          <div className="flex items-center justify-center py-12 text-[#787771]">Loading...</div>
         ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[#7b7b74] text-center" style={{ fontFamily: 'Arial, sans-serif' }}>
+          <div className="flex flex-col items-center justify-center py-12 text-[#787771] text-center">
             <p className="mb-2">No posts yet.</p>
             {userId && (
               <button
                 type="button"
                 onClick={() => setNewPostModalOpen(true)}
                 className="px-4 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold"
-                style={{ fontFamily: 'Arial, sans-serif' }}
               >
                 New post
               </button>
@@ -704,15 +709,15 @@ export function HomeFeed({
                   <div className="p-4 pb-3">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ backgroundColor: authorColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ backgroundColor: authorColor, fontWeight: 600 }}>
                           {authorInitials}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>{authorName}</span>
-                            <span className="text-xs text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>• {timeStr}</span>
+                            <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
+                            <span className="text-xs text-[#787771]">• {timeStr}</span>
                           </div>
-                          <div className="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+                          <div className="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}>
                             {sourceLabel(post)}
                           </div>
                         </div>
@@ -722,7 +727,7 @@ export function HomeFeed({
                           <button
                             type="button"
                             onClick={(e) => handlePinPost(e, post)}
-                            className="p-1.5 rounded-lg text-[#7b7b74] hover:bg-[#F1EFE7] active:scale-95 transition-transform"
+                            className="p-1.5 rounded-lg text-[#787771] hover:bg-[#F1EFE7] active:scale-95 transition-transform"
                             aria-label={post.current_user_pinned ? 'Unpin' : 'Pin'}
                             title={post.current_user_pinned ? 'Unpin' : 'Pin'}
                           >
@@ -734,7 +739,6 @@ export function HomeFeed({
                             type="button"
                             onClick={(e) => handlePinPost(e, post)}
                             className="text-xs font-semibold text-[#d97757] hover:underline active:scale-95 transition-transform cursor-pointer"
-                            style={{ fontFamily: 'Arial, sans-serif' }}
                             title="Unpin"
                           >
                             Pinned
@@ -743,20 +747,20 @@ export function HomeFeed({
                       </div>
                     </div>
 
-                    <h3 className="text-base mb-2 font-semibold text-[#3d3d3a] leading-tight" style={{ fontFamily: 'Lora, serif' }}>{post.title}</h3>
+                    <h3 className="text-base mb-2 font-semibold text-[#27251f] leading-tight" >{post.title}</h3>
 
                     {post.post_type === 'poll' && post.poll_options && post.poll_options.length > 0 ? (
-                      <div className="text-sm text-[#7b7b74] mb-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      <div className="text-sm text-[#787771] mb-2">
                         Poll · {post.poll_options.reduce((s, o) => s + (o.vote_count ?? 0), 0)} votes
                       </div>
                     ) : (
                       <>
                         {post.content && (
-                          <p className="selectable-text text-sm mb-2 line-clamp-2 text-[#3d3d3a] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>{post.content}</p>
+                          <p className="selectable-text text-sm mb-2 line-clamp-2 text-[#27251f] leading-relaxed whitespace-pre-wrap">{post.content}</p>
                         )}
                         {post.image_path && (
-                          <div className="block isolate rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30 [&>img]:rounded-xl">
-                            <img src={post.image_path} alt="" className="block w-full max-h-48 object-contain rounded-xl" />
+                          <div className="block isolate rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30">
+                            <img src={post.image_path} alt="" className="block w-full max-h-48 object-contain" />
                           </div>
                         )}
                         {post.url && (
@@ -771,12 +775,12 @@ export function HomeFeed({
                   <div className="border-t border-[#f5f3eb] px-4 py-2 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <button type="button" className="flex items-center gap-1.5 py-1 active:scale-95 transition-transform" onClick={(e) => handleHeartPost(e, post)}>
-                        <Heart size={18} className={post.current_user_hearted ? 'text-[#d47455]' : 'text-[#7b7b74]'} fill={post.current_user_hearted ? '#d47455' : 'none'} />
-                        <span className="text-sm font-semibold" style={{ fontFamily: 'Arial, sans-serif', color: post.current_user_hearted ? '#d47455' : '#3d3d3a' }}>{post.heart_count ?? 0}</span>
+                        <Heart size={18} className={post.current_user_hearted ? 'text-[#d47455]' : 'text-[#787771]'} fill={post.current_user_hearted ? '#d47455' : 'none'} />
+                        <span className="text-sm font-semibold" style={{ color: post.current_user_hearted ? '#d47455' : '#27251f' }}>{post.heart_count ?? 0}</span>
                       </button>
-                      <span className="flex items-center gap-1.5 py-1 text-[#7b7b74]">
+                      <span className="flex items-center gap-1.5 py-1 text-[#787771]">
                         <MessageSquare size={18} />
-                        <span className="text-sm" style={{ fontFamily: 'Arial, sans-serif' }}>{post.reply_count ?? 0}</span>
+                        <span className="text-sm">{post.reply_count ?? 0}</span>
                       </span>
                     </div>
                   </div>

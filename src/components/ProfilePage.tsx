@@ -405,17 +405,28 @@ export function ProfilePage() {
     return '';
   };
 
+  const profilePageBackground = {
+    background: `
+      radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.9), transparent 65%),
+      radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.88), transparent 60%),
+      radial-gradient(ellipse 95% 75% at 50% 90%, rgba(253, 208, 178, 0.85), transparent 55%),
+      radial-gradient(ellipse 75% 95% at 72% 12%, rgba(254, 218, 192, 0.88), transparent 58%),
+      #fbf2eb
+    `,
+    minHeight: 'var(--app-height, 100vh)',
+  };
+
   if (loading) {
     return (
       <>
         {/* Mobile View - Centered on screen */}
-        <div className="md:hidden h-screen w-full bg-[#FBF9F5] flex items-center justify-center fixed inset-0">
+        <div className="md:hidden h-screen w-full flex items-center justify-center fixed inset-0" style={profilePageBackground}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto"></div>
           </div>
         </div>
         {/* Desktop View */}
-        <div className="hidden md:flex h-full w-full bg-[#FBF9F5] items-center justify-center">
+        <div className="hidden md:flex h-full w-full items-center justify-center" style={profilePageBackground}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto"></div>
           </div>
@@ -425,7 +436,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="h-full bg-[#FBF9F5]">
+    <div className="h-full min-h-full w-full" style={profilePageBackground}>
       {/* Hidden file input for avatar upload */}
       <input
         ref={fileInputRef}
@@ -434,21 +445,58 @@ export function ProfilePage() {
         onChange={handleAvatarChange}
         className="hidden"
       />
-      {/* Mobile View */}
-      <div className="md:hidden min-h-full overflow-y-auto" style={{ paddingBottom: '70px' }}>
-        {/* Header with Profile */}
-        <div 
-          className="px-5 pt-10 pb-8"
-          style={{
-            background: 'linear-gradient(135deg, #d47455 0%, #c06545 100%)'
-          }}
+      {/* Mobile View - gradient on scroll container so it extends to bottom */}
+      <div
+        className="md:hidden min-h-full overflow-y-auto relative"
+        style={{ paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))', ...profilePageBackground }}
+      >
+        {/* Edit / Save & Cancel - top right only */}
+        <div
+          className="absolute top-0 right-0 z-10 flex items-center gap-2 pr-5 pt-3"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
         >
+          {!isEditing ? (
+            <button
+              onClick={handleEditClick}
+              className="w-10 h-10 rounded-full bg-[#27251f] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm hover:bg-[#1a1916]"
+              aria-label="Edit profile"
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleCancel}
+                disabled={saving}
+                className="w-10 h-10 rounded-full border-2 border-[#e8e4db] bg-white/90 text-[#27251f] flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-sm"
+                aria-label="Cancel"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-10 h-10 rounded-full bg-[#27251f] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm hover:bg-[#1a1916] disabled:opacity-50"
+                aria-label={saving ? 'Saving' : 'Save'}
+              >
+                {saving ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-5 h-5" />
+                )}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Profile content */}
+        <div className="px-5 pb-8 pt-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3rem)' }}>
           <div className="flex flex-col items-center">
             {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
               <img 
                 src={profile.avatar_url} 
                 alt="Profile" 
-                className="w-28 h-28 rounded-full object-cover border-4 border-white/30 mb-3 shadow-lg"
+                className="w-32 h-32 rounded-full object-cover mb-3 shadow-md"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';
@@ -458,15 +506,14 @@ export function ProfilePage() {
               />
             ) : null}
             <div
-              className="w-28 h-28 rounded-full flex items-center justify-center border-4 border-white/30 mb-3 shadow-lg text-white text-3xl"
+              className="w-32 h-32 rounded-full flex items-center justify-center mb-3 shadow-md text-white text-3xl"
               style={{ 
                 backgroundColor: (() => {
                   const name = profile?.public_name || profile?.full_name || user?.email || 'User';
-                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                   return colors[name.charCodeAt(0) % colors.length];
                 })(),
                 display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
-                fontFamily: 'Arial, sans-serif',
                 fontWeight: 600
               }}
             >
@@ -488,8 +535,8 @@ export function ProfilePage() {
                 <button 
                   onClick={handleAvatarClick}
                   disabled={uploadingAvatar || deletingAvatar}
-                  className="px-4 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                  className="px-4 py-1.5 bg-[#27251f] text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-[#1a1916] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{  fontWeight: 500 }}
                 >
                   {uploadingAvatar ? (
                     <>
@@ -508,7 +555,7 @@ export function ProfilePage() {
                     onClick={handleDeleteAvatar}
                     disabled={uploadingAvatar || deletingAvatar}
                     className="px-4 py-1.5 bg-red-500/20 backdrop-blur-sm text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                    style={{  fontWeight: 500 }}
                   >
                     {deletingAvatar ? (
                       <>
@@ -530,72 +577,43 @@ export function ProfilePage() {
                 type="text"
                 value={editValues.public_name}
                 onChange={handleNameChange}
-                className="text-3xl text-[#3d3d3a] mb-1 rounded-xl px-4 py-2 w-full max-w-xs text-center focus:outline-none focus:ring-2 focus:ring-white/70"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, backgroundColor: '#F1EFE7' }}
+                className="text-3xl text-[#27251f] mb-1 rounded-xl px-4 py-2.5 w-full max-w-xs text-center focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[48px] bg-white border border-[#e8e4db]"
+                style={{ fontWeight: 600 }}
                 placeholder="Public name (shown to others)"
               />
             ) : (
               <h1 
-                className="text-3xl text-white mb-1"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+                className="text-3xl mb-1"
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
               </h1>
             )}
-            <p 
-              className="text-sm text-white/90 mb-5"
-              style={{ fontFamily: 'Arial, sans-serif' }}
-            >
-              {getClassYearDisplay()}
-            </p>
-            {!isEditing ? (
-              <button 
-                onClick={handleEditClick}
-                className="px-8 py-2.5 bg-white/25 backdrop-blur-sm text-white rounded-2xl text-sm flex items-center gap-2 active:scale-95 transition-transform shadow-sm"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+            {!isEditing && (
+              <p 
+                className="text-sm mb-2"
+                style={{ color: '#787771' }}
               >
-                <Edit2 className="w-4 h-4" />
-                Edit Profile
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="px-6 py-2.5 bg-white/25 backdrop-blur-sm text-white rounded-2xl text-sm flex items-center gap-2 active:scale-95 transition-transform shadow-sm disabled:opacity-50"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-                >
-                  <Save className="w-4 h-4" />
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-                <button 
-                  onClick={handleCancel}
-                  disabled={saving}
-                  className="px-6 py-2.5 bg-white/25 backdrop-blur-sm text-white rounded-2xl text-sm flex items-center gap-2 active:scale-95 transition-transform shadow-sm disabled:opacity-50"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-              </div>
+                {getClassYearDisplay()}
+              </p>
             )}
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="px-5 -mt-6 mb-6">
+        <div className="px-5 mt-2 mb-6">
           <div className="grid grid-cols-3 gap-3">
             {stats.map((stat, index) => (
               <div key={index} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-[#f5f3eb]">
                 <p 
                   className="text-2xl mb-1"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#d47455' }}
+                  style={{ fontWeight: 600, color: '#d47455' }}
                 >
                   {stat.value}
                 </p>
                 <p 
                   className="text-xs"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  style={{  color: '#787771' }}
                 >
                   {stat.label}
                 </p>
@@ -608,7 +626,7 @@ export function ProfilePage() {
         <div className="px-5 mb-6">
           <h2 
             className="text-xl mb-4"
-            style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+            style={{ fontWeight: 600, color: '#27251f' }}
           >
             Contact
           </h2>
@@ -620,13 +638,13 @@ export function ProfilePage() {
               <div className="flex-1 min-w-0">
                 <p 
                   className="text-xs mb-1"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  style={{  color: '#787771' }}
                 >
                   Email
                 </p>
                 <p 
                   className="text-sm"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                  style={{  color: '#27251f' }}
                 >
                   {profile?.email || user?.email || 'Not provided'}
                 </p>
@@ -639,7 +657,7 @@ export function ProfilePage() {
               <div className="flex-1 min-w-0">
                 <p 
                   className="text-xs mb-1"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  style={{  color: '#787771' }}
                 >
                   Phone
                 </p>
@@ -648,14 +666,14 @@ export function ProfilePage() {
                     type="tel"
                     value={editValues.phone}
                     onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
-                    className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                    placeholder="Enter phone number"
+                    className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[44px] bg-white"
+                    style={{  color: '#27251f' }}
+                    placeholder="Add phone number"
                   />
                 ) : (
                   <p 
                     className="text-sm"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                    style={{  color: '#27251f' }}
                   >
                     {profile?.phone || 'Not provided'}
                   </p>
@@ -669,7 +687,7 @@ export function ProfilePage() {
               <div className="flex-1 min-w-0">
                 <p 
                   className="text-xs mb-1"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  style={{  color: '#787771' }}
                 >
                   Location
                 </p>
@@ -678,14 +696,14 @@ export function ProfilePage() {
                     type="text"
                     value={editValues.location}
                     onChange={(e) => setEditValues({ ...editValues, location: e.target.value })}
-                    className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                    placeholder="Enter location"
+                    className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[44px] bg-white"
+                    style={{  color: '#27251f' }}
+                    placeholder="Add city or location"
                   />
                 ) : (
                   <p 
                     className="text-sm"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                    style={{  color: '#27251f' }}
                   >
                     {profile?.location || 'Not provided'}
                   </p>
@@ -700,7 +718,7 @@ export function ProfilePage() {
           <div className="px-5 mb-6">
             <h2 
               className="text-xl mb-4"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               Academic Info
             </h2>
@@ -712,7 +730,7 @@ export function ProfilePage() {
                 <div className="flex-1 min-w-0">
                   <p 
                     className="text-xs mb-1"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                    style={{  color: '#787771' }}
                   >
                     Major
                   </p>
@@ -720,8 +738,8 @@ export function ProfilePage() {
                     <select
                       value={editValues.major}
                       onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
-                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white min-h-[44px]"
+                      style={{  color: '#27251f' }}
                     >
                       <option value="">Select Major</option>
                       <option value="African and African American Studies (B.A.)">African and African American Studies (B.A.)</option>
@@ -778,7 +796,7 @@ export function ProfilePage() {
                   ) : (
                     <p 
                       className="text-sm"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      style={{  color: '#27251f' }}
                     >
                       {profile?.major || 'Not provided'}
                     </p>
@@ -792,7 +810,7 @@ export function ProfilePage() {
                 <div className="flex-1 min-w-0">
                   <p 
                     className="text-xs mb-1"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                    style={{  color: '#787771' }}
                   >
                     Graduation Year
                   </p>
@@ -800,10 +818,10 @@ export function ProfilePage() {
                     <select
                       value={editValues.graduation_year || ''}
                       onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
-                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white min-h-[44px]"
+                      style={{  color: '#27251f' }}
                     >
-                      <option value="">Select Graduation Year</option>
+                      <option value="">Select graduation year</option>
                       <option value="2026">2026</option>
                       <option value="2027">2027</option>
                       <option value="2028">2028</option>
@@ -812,7 +830,7 @@ export function ProfilePage() {
                   ) : (
                     <p 
                       className="text-sm"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      style={{  color: '#27251f' }}
                     >
                       {profile?.graduation_year || 'Not provided'}
                     </p>
@@ -826,7 +844,7 @@ export function ProfilePage() {
                 <div className="flex-1 min-w-0">
                   <p 
                     className="text-xs mb-1"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                    style={{  color: '#787771' }}
                   >
                     GPA
                   </p>
@@ -835,14 +853,14 @@ export function ProfilePage() {
                       type="text"
                       value={editValues.gpa}
                       onChange={(e) => setEditValues({ ...editValues, gpa: e.target.value })}
-                      className="w-full text-sm px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
-                      placeholder="Enter GPA"
+                      className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[44px] bg-white"
+                      style={{  color: '#27251f' }}
+                      placeholder="e.g. 3.7"
                     />
                   ) : (
                     <p 
                       className="text-sm"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      style={{  color: '#27251f' }}
                     >
                       {profile?.gpa || 'Not provided'}
                     </p>
@@ -853,14 +871,8 @@ export function ProfilePage() {
           </div>
         )}
 
-        {/* Settings */}
-        <div className="px-5 pb-6">
-          <h2 
-            className="text-xl mb-4"
-            style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
-          >
-            Settings
-          </h2>
+        {/* Sign out */}
+        <div className="px-5 pt-2 pb-6">
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
             <button 
               onClick={async () => {
@@ -870,7 +882,7 @@ export function ProfilePage() {
                   alert('Failed to sign out. Please try again.');
                 }
               }}
-              className="w-full flex items-center justify-between px-4 py-4 active:bg-[#fef3ef] transition-colors"
+              className="w-full flex items-center justify-between px-4 py-4 min-h-[52px] active:bg-[#fef3ef] transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center">
@@ -878,7 +890,7 @@ export function ProfilePage() {
                 </div>
                 <span 
                   className="text-sm"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#d47455', fontWeight: 600 }}
+                  style={{  color: '#d47455', fontWeight: 600 }}
                 >
                   Sign Out
                 </span>
@@ -889,17 +901,17 @@ export function ProfilePage() {
       </div>
 
       {/* Desktop View - Keep existing */}
-      <div className="hidden md:flex h-full bg-white">
+      <div className="hidden md:flex h-full">
         {/* Left Sidebar */}
         <div className="w-[297px] bg-[#faf9f7] border-r border-[#e8e4db] flex flex-col">
           <div className="h-[72px] px-5 py-4 border-b border-[#e8e4db] flex flex-col justify-center">
-            <h1 className="text-[20px] m-0 mb-1 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif' }}>Profile</h1>
-            <p className="text-[12px] text-[#999] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>Student Information</p>
+            <h1 className="text-[20px] m-0 mb-1 text-[#27251f]" >Profile</h1>
+            <p className="text-[12px] text-[#787771] m-0" >Student Information</p>
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-6">
             <div className="space-y-1">
-              <button className="w-full text-left px-3 py-2.5 rounded bg-[#ebe8df] text-[#1a1a1a] text-[14px] hover:bg-[#ebe8df] transition-colors" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <button className="w-full text-left px-3 py-2.5 rounded bg-[#ebe8df] text-[#27251f] text-[14px] hover:bg-[#ebe8df] transition-colors" >
                 Overview
               </button>
             </div>
@@ -910,14 +922,13 @@ export function ProfilePage() {
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="h-[72px] border-b border-[#e8e4db] px-6 flex items-center justify-between">
             <div>
-              <h2 className="text-[18px] m-0 mb-0.5 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif' }}>Student Profile</h2>
-              <p className="text-[12px] text-[#999] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>View and manage your information</p>
+              <h2 className="text-[18px] m-0 mb-0.5 text-[#27251f]" >Student Profile</h2>
+              <p className="text-[12px] text-[#787771] m-0" >View and manage your information</p>
             </div>
             {!isEditing ? (
               <button 
                 onClick={handleEditClick}
-                className="flex items-center gap-2 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors" 
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#27251f] text-white rounded-lg text-[14px] hover:bg-[#1a1916] transition-colors" 
               >
                 <Edit2 size={16} />
                 Edit Profile
@@ -927,8 +938,7 @@ export function ProfilePage() {
                 <button 
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors disabled:opacity-50" 
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#27251f] text-white rounded-lg text-[14px] hover:bg-[#1a1916] transition-colors disabled:opacity-50" 
                 >
                   <Save size={16} />
                   {saving ? 'Saving...' : 'Save'}
@@ -936,8 +946,7 @@ export function ProfilePage() {
                 <button 
                   onClick={handleCancel}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#999] text-white rounded-lg text-[14px] hover:bg-[#888] transition-colors disabled:opacity-50" 
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#27251f] text-white rounded-lg text-[14px] hover:bg-[#1a1916] transition-colors disabled:opacity-50" 
                 >
                   <X size={16} />
                   Cancel
@@ -968,11 +977,10 @@ export function ProfilePage() {
                     style={{ 
                       backgroundColor: (() => {
                         const name = profile?.public_name || profile?.full_name || user?.email || 'User';
-                        const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                        const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                         return colors[name.charCodeAt(0) % colors.length];
                       })(),
                       display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600
                     }}
                   >
@@ -994,12 +1002,12 @@ export function ProfilePage() {
                       <button 
                         onClick={handleAvatarClick}
                         disabled={uploadingAvatar || deletingAvatar}
-                        className="mb-2 px-3 py-1.5 bg-[#f5f3eb] text-[#3d3d3a] rounded-lg text-xs flex items-center gap-1.5 hover:bg-[#ebe8df] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                        className="mb-2 px-3 py-1.5 bg-[#f5f3eb] text-[#27251f] rounded-lg text-xs flex items-center gap-1.5 hover:bg-[#ebe8df] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{  fontWeight: 500 }}
                       >
                         {uploadingAvatar ? (
                           <>
-                            <div className="w-3 h-3 border-2 border-[#3d3d3a] border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border-2 border-[#27251f] border-t-transparent rounded-full animate-spin" />
                             Uploading...
                           </>
                         ) : (
@@ -1014,7 +1022,7 @@ export function ProfilePage() {
                           onClick={handleDeleteAvatar}
                           disabled={uploadingAvatar || deletingAvatar}
                           className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, backgroundColor: 'rgba(232, 59, 59, 1)', color: 'rgba(255, 255, 255, 1)' }}
+                          style={{  fontWeight: 500, backgroundColor: 'rgba(232, 59, 59, 1)', color: 'rgba(255, 255, 255, 1)' }}
                         >
                           {deletingAvatar ? (
                             <>
@@ -1038,23 +1046,25 @@ export function ProfilePage() {
                       type="text"
                       value={editValues.public_name}
                       onChange={handleNameChange}
-                      className="text-[24px] mb-1 text-[#1a1a1a] w-full px-3 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                      style={{ fontFamily: 'Lora, serif', fontWeight: 600, backgroundColor: '#F1EFE7' }}
+                      className="text-[24px] mb-1 text-[#27251f] w-full px-3 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                      style={{ fontWeight: 600, backgroundColor: '#fff' }}
                       placeholder="Public name (shown to others)"
                     />
                   ) : (
-                    <h3 className="text-[24px] mb-1 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+                    <h3 className="text-[24px] mb-1 text-[#27251f]" style={{ fontWeight: 600 }}>
                       {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
                     </h3>
                   )}
-                  <p className="text-[14px] text-[#999] mb-3" style={{ fontFamily: 'Arial, sans-serif' }}>
-                    {getClassYearDisplay()}
-                  </p>
+                  {!isEditing && (
+                    <p className="text-[14px] text-[#787771] mb-3" >
+                      {getClassYearDisplay()}
+                    </p>
+                  )}
                   <div className="flex gap-4">
                     {stats.map((stat, index) => (
                       <div key={index}>
-                        <p className="text-[20px] text-[#d47455] m-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>{stat.value}</p>
-                        <p className="text-[12px] text-[#999] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>{stat.label}</p>
+                        <p className="text-[20px] text-[#d47455] m-0" style={{ fontWeight: 600 }}>{stat.value}</p>
+                        <p className="text-[12px] text-[#787771] m-0" >{stat.label}</p>
                       </div>
                     ))}
                   </div>
@@ -1063,52 +1073,52 @@ export function ProfilePage() {
 
               <div className="grid grid-cols-2 gap-6 mb-8">
                 <div className="bg-[#faf9f7] rounded-xl p-5">
-                  <h4 className="text-[16px] mb-4 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>Contact Information</h4>
+                  <h4 className="text-[16px] mb-4 text-[#27251f]" style={{ fontWeight: 600 }}>Contact Information</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <Mail className="w-5 h-5 text-[#7b7b74]" />
+                      <Mail className="w-5 h-5 text-[#787771]" />
                       <div>
-                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Email</p>
-                        <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                        <p className="text-[12px] text-[#787771] m-0 mb-1" >Email</p>
+                        <p className="text-[14px] text-[#27251f] m-0" >
                           {profile?.email || user?.email || 'Not provided'}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Phone className="w-5 h-5 text-[#7b7b74]" />
+                      <Phone className="w-5 h-5 text-[#787771]" />
                       <div className="flex-1">
-                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Phone</p>
+                        <p className="text-[12px] text-[#787771] m-0 mb-1" >Phone</p>
                         {isEditing ? (
                           <input
                             type="tel"
                             value={editValues.phone}
                             onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
+                            style={{  color: '#27251f' }}
                             placeholder="Enter phone number"
                           />
                         ) : (
-                          <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                          <p className="text-[14px] text-[#27251f] m-0" >
                             {profile?.phone || 'Not provided'}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <MapPin className="w-5 h-5 text-[#7b7b74]" />
+                      <MapPin className="w-5 h-5 text-[#787771]" />
                       <div className="flex-1">
-                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Location</p>
+                        <p className="text-[12px] text-[#787771] m-0 mb-1" >Location</p>
                         {isEditing ? (
                           <input
                             type="text"
                             value={editValues.location}
                             onChange={(e) => setEditValues({ ...editValues, location: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
+                            style={{  color: '#27251f' }}
                             placeholder="Enter location"
                           />
                         ) : (
-                          <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                          <p className="text-[14px] text-[#27251f] m-0" >
                             {profile?.location || 'Not provided'}
                           </p>
                         )}
@@ -1118,18 +1128,18 @@ export function ProfilePage() {
                 </div>
 
                 <div className="bg-[#faf9f7] rounded-xl p-5">
-                  <h4 className="text-[16px] mb-4 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>Academic Info</h4>
+                  <h4 className="text-[16px] mb-4 text-[#27251f]" style={{ fontWeight: 600 }}>Academic Info</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <Book className="w-5 h-5 text-[#7b7b74]" />
+                      <Book className="w-5 h-5 text-[#787771]" />
                       <div className="flex-1">
-                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Major</p>
+                        <p className="text-[12px] text-[#787771] m-0 mb-1" >Major</p>
                         {isEditing ? (
                           <select
                             value={editValues.major}
                             onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
+                            style={{  color: '#27251f' }}
                           >
                             <option value="">Select Major</option>
                             <option value="African and African American Studies (B.A.)">African and African American Studies (B.A.)</option>
@@ -1184,22 +1194,22 @@ export function ProfilePage() {
                             <option value="Other">Other</option>
                           </select>
                         ) : (
-                          <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                          <p className="text-[14px] text-[#27251f] m-0" >
                             {profile?.major || 'Not provided'}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-[#7b7b74]" />
+                      <Calendar className="w-5 h-5 text-[#787771]" />
                       <div className="flex-1">
-                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Graduation Year</p>
+                        <p className="text-[12px] text-[#787771] m-0 mb-1" >Graduation Year</p>
                         {isEditing ? (
                           <select
                             value={editValues.graduation_year || ''}
                             onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
+                            style={{  color: '#27251f' }}
                           >
                             <option value="">Select Graduation Year</option>
                             <option value="2026">2026</option>
@@ -1208,27 +1218,27 @@ export function ProfilePage() {
                             <option value="2029">2029</option>
                           </select>
                         ) : (
-                          <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                          <p className="text-[14px] text-[#27251f] m-0" >
                             {profile?.graduation_year || 'Not provided'}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Award className="w-5 h-5 text-[#7b7b74]" />
+                      <Award className="w-5 h-5 text-[#787771]" />
                       <div className="flex-1">
-                        <p className="text-[12px] text-[#999] m-0 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>GPA</p>
+                        <p className="text-[12px] text-[#787771] m-0 mb-1" >GPA</p>
                         {isEditing ? (
                           <input
                             type="text"
                             value={editValues.gpa}
                             onChange={(e) => setEditValues({ ...editValues, gpa: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                            style={{ fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}
+                            style={{  color: '#27251f' }}
                             placeholder="Enter GPA"
                           />
                         ) : (
-                          <p className="text-[14px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                          <p className="text-[14px] text-[#27251f] m-0" >
                             {profile?.gpa || 'Not provided'}
                           </p>
                         )}
@@ -1257,7 +1267,7 @@ export function ProfilePage() {
                 </div>
                 <span 
                   className="text-sm"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#d47455', fontWeight: 600 }}
+                  style={{  color: '#d47455', fontWeight: 600 }}
                 >
                   Sign Out
                 </span>

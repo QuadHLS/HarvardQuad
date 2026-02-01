@@ -1,14 +1,18 @@
 /**
  * Detects YouTube, YouTube Shorts, TikTok, and Instagram Reels URLs
  * and returns embed URL + aspect ratio for iframe display.
+ * Social iframes use Open Graph ratio 1.91:1 (1200×630) for consistent post previews.
  */
 
 export type EmbedKind = 'youtube' | 'youtube_shorts' | 'tiktok' | 'instagram_reel';
 
+/** Open Graph standard ratio (width/height), e.g. 1200×630 */
+const OG_ASPECT_RATIO = 1200 / 630; // 1.904...
+
 export interface EmbedInfo {
   kind: EmbedKind;
   embedUrl: string;
-  /** Radix AspectRatio uses width/height, e.g. 16/9 or 9/16 */
+  /** width/height; use OG ratio for social iframes */
   aspectRatio: number;
   originalUrl: string;
 }
@@ -54,7 +58,7 @@ function parseYouTube(url: string): EmbedInfo | null {
   return {
     kind: isShort ? 'youtube_shorts' : 'youtube',
     embedUrl,
-    aspectRatio: isShort ? 9 / 16 : 16 / 9,
+    aspectRatio: OG_ASPECT_RATIO,
     originalUrl: url,
   };
 }
@@ -74,7 +78,7 @@ function parseTikTok(url: string): EmbedInfo | null {
   return {
     kind: 'tiktok',
     embedUrl,
-    aspectRatio: 9 / 16,
+    aspectRatio: OG_ASPECT_RATIO,
     originalUrl: url,
   };
 }
@@ -92,7 +96,7 @@ function parseInstagramReel(url: string): EmbedInfo | null {
   return {
     kind: 'instagram_reel',
     embedUrl,
-    aspectRatio: 9 / 16,
+    aspectRatio: OG_ASPECT_RATIO,
     originalUrl: url,
   };
 }

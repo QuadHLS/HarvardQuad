@@ -100,7 +100,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
   if (mode === 'welcome') {
     return (
       <div
-        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        className="landing-bg flex flex-col overflow-hidden"
         style={{
           minHeight: 'var(--app-height, 100vh)',
           height: 'var(--app-height, 100vh)',
@@ -112,12 +112,11 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         }}
       >
         {/* Header - back top left, then logo */}
-        <div className="bg-[#FBF9F5] px-6 pt-6 pb-4 flex-shrink-0 w-full">
+        <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
           {onBack && (
             <button
               onClick={onBack}
-              className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg bg-[#F1EFE7] hover:bg-[#e8e4dc] transition-colors -ml-2"
-              style={{ fontFamily: 'Arial, sans-serif' }}
+              className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
             >
               ← Back
             </button>
@@ -133,18 +132,17 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
         {/* Content - less top padding to balance logo moving down so heading/buttons stay in place */}
         <div
-          className="flex-1 flex flex-col items-center justify-start px-6 pb-10 min-h-0"
+          className="flex-1 flex flex-col items-center justify-start px-6 pb-10 min-h-0 bg-transparent"
           style={{ paddingTop: '5rem' }}
         >
           <h1 
-            className="text-4xl text-center text-[#3d3d3a] mb-4" 
-            style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+            className="text-4xl text-center text-[#27251f] mb-4" 
+            style={{ fontWeight: 600 }}
           >
             Welcome to<br />Quad
           </h1>
           <p 
-            className="text-base text-center text-gray-600 mb-10 max-w-sm leading-relaxed" 
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-base text-center text-[#787771] mb-10 max-w-sm leading-relaxed" 
           >
             Your all-in-one platform for classes, collaboration, and community
           </p>
@@ -153,8 +151,8 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             <div className="space-y-4 shrink-0" style={{ width: '440px', maxWidth: 'calc(100vw - 48px)' }}>
               <button
                 onClick={() => { setError(''); setSuccessMessage(''); setMode('signin'); }}
-                className="w-full px-6 py-5 rounded-xl border-2 border-gray-300 bg-white text-gray-700 hover:border-[#d47455] hover:bg-[#fef9f5] transition-colors"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                className="w-full px-6 py-5 rounded-xl border-2 border-[#d47455] bg-transparent text-[#27251f] hover:bg-[#d47455]/10 transition-colors"
+                style={{ fontWeight: 600 }}
               >
                 Sign In
               </button>
@@ -162,7 +160,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
               <button
                 onClick={() => { setError(''); setSuccessMessage(''); setMode('choose-signup'); }}
                 className="w-full flex items-center justify-center gap-2 px-6 py-5 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ fontWeight: 600 }}
               >
                 Create Account
                 <ChevronRight className="w-5 h-5" />
@@ -172,8 +170,8 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         </div>
 
         {/* Footer - terms */}
-        <div className="px-6 pt-2 pb-6 flex-shrink-0">
-          <p className="text-xs text-gray-500 text-center w-full" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <div className="px-6 pt-2 pb-6 flex-shrink-0 bg-transparent">
+          <p className="text-xs text-[#787771] text-center w-full" >
             By continuing, you agree to our{' '}
             <a href="/QUADTERMSOFSERVICE.html" className="text-[#d47455] hover:underline" target="_blank" rel="noopener noreferrer">
               Terms of Service
@@ -191,7 +189,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
   if (mode === 'choose-signup') {
     return (
       <div
-        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        className="landing-bg flex flex-col overflow-hidden"
         style={{
           minHeight: 'var(--app-height, 100vh)',
           height: 'var(--app-height, 100vh)',
@@ -202,33 +200,31 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
           paddingRight: 'env(safe-area-inset-right)',
         }}
       >
-        <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
+        <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('welcome'); }}
-            className="text-sm text-gray-600 hover:text-gray-900"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
           >
             ← Back
           </button>
         </div>
         <div
-          className="flex-1 flex flex-col items-center justify-start px-6 pb-10 min-h-0"
+          className="flex-1 flex flex-col items-center justify-start px-6 pb-10 min-h-0 bg-transparent"
           style={{ paddingTop: '6.5rem' }}
         >
           <h1
-            className="text-3xl text-center text-[#3d3d3a] mb-2"
-            style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+            className="text-3xl text-center text-[#27251f] mb-2"
+            style={{ fontWeight: 600 }}
           >
             Create your account
           </h1>
           <p
-            className="text-sm text-center text-gray-600 mb-8 max-w-sm mt-6"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-sm text-center text-[#787771] mb-8 max-w-sm mt-6"
           >
             Continue with Google or sign up with your email
           </p>
           {error && (
-            <p className="text-sm text-red-600 mb-4 w-full max-w-sm text-center" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-sm text-red-600 mb-4 w-full max-w-sm text-center" >
               {error}
             </p>
           )}
@@ -265,11 +261,11 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
               </button>
             </div>
             <div className="flex items-center gap-3 my-3">
-              <div className="flex-1 h-px bg-gray-300" />
-              <p className="text-sm text-gray-500 shrink-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <div className="flex-1 h-px bg-black/10" />
+              <p className="text-sm text-[#787771] shrink-0" >
                 or
               </p>
-              <div className="flex-1 h-px bg-gray-300" />
+              <div className="flex-1 h-px bg-black/10" />
             </div>
             <button
               type="button"
@@ -299,7 +295,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             border-radius: 10px;
             -webkit-box-sizing: border-box;
             box-sizing: border-box;
-            color: #1f1f1f;
+            color: #27251f;
             cursor: pointer;
             font-family: 'Roboto', arial, sans-serif;
             font-size: 14px;
@@ -388,7 +384,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
   if (mode === 'signin') {
     return (
       <div
-        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        className="landing-bg flex flex-col overflow-hidden"
         style={{
           minHeight: 'var(--app-height, 100vh)',
           height: 'var(--app-height, 100vh)',
@@ -400,39 +396,37 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         }}
       >
         {/* Header */}
-        <div className="bg-[#F1EFE7] px-6 py-2 flex-shrink-0">
+        <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('welcome'); }}
-            className="text-sm text-gray-600 hover:text-gray-900"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
           >
             ← Back
           </button>
         </div>
 
         {/* Content - scrollable, centered container */}
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-          <div className="flex-1 px-6 py-4 max-w-sm mx-auto w-full">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col bg-transparent">
+          <div className="flex-1 px-6 py-4 max-w-sm mx-auto w-full bg-transparent">
             <h1 
-              className="text-3xl text-[#3d3d3a] mb-3 mt-0" 
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+              className="text-3xl text-[#27251f] mb-3 mt-0" 
+              style={{ fontWeight: 600 }}
             >
               Welcome back
             </h1>
             <p 
-              className="text-sm text-gray-600 mb-8" 
-              style={{ fontFamily: 'Arial, sans-serif' }}
+              className="text-sm text-[#787771] mb-8" 
             >
               Sign in to continue to your dashboard
             </p>
 
             {error && (
-              <p className="text-sm text-red-600 mb-5" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <p className="text-sm text-red-600 mb-5" >
                 {error}
               </p>
             )}
             {successMessage && (
-              <p className="text-sm text-green-600 mb-5" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <p className="text-sm text-green-600 mb-5" >
                 {successMessage}
               </p>
             )}
@@ -482,7 +476,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
                 border-radius: 10px;
                 -webkit-box-sizing: border-box;
                 box-sizing: border-box;
-                color: #1f1f1f;
+                color: #27251f;
                 cursor: pointer;
                 font-family: 'Roboto', arial, sans-serif;
                 font-size: 14px;
@@ -566,51 +560,49 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             `}</style>
 
             <div className="flex items-center gap-3 mt-0 mb-1">
-              <div className="flex-1 h-px bg-gray-300" />
-              <p className="text-sm text-gray-500 shrink-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <div className="flex-1 h-px bg-black/10" />
+              <p className="text-sm text-[#787771] shrink-0" >
                 or sign in with Quad
               </p>
-              <div className="flex-1 h-px bg-gray-300" />
+              <div className="flex-1 h-px bg-black/10" />
             </div>
 
             <div>
               <label 
-                className="block text-sm mb-2.5 text-gray-700" 
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                className="block text-sm mb-2.5 text-[#27251f]" 
+                style={{ fontWeight: 500 }}
               >
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@law.school.edu"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
               <label 
-                className="block text-sm mb-2.5 text-gray-700" 
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                className="block text-sm mb-2.5 text-[#27251f]" 
+                style={{ fontWeight: 500 }}
               >
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
                 />
               </div>
             </div>
@@ -619,16 +611,16 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
               <label className="flex items-center gap-2">
                 <input 
                   type="checkbox" 
-                  className="w-4 h-4 rounded border-gray-300 text-[#d47455] focus:ring-[#d47455]"
+                  className="w-4 h-4 rounded border-[#e8e4db] text-[#d47455] focus:ring-[#d47455]"
                 />
-                <span className="text-sm text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <span className="text-sm text-[#787771]" >
                   Remember me
                 </span>
               </label>
             <button
               type="button"
-                className="text-sm text-gray-400 cursor-not-allowed"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                className="text-sm text-[#787771] cursor-not-allowed"
+                style={{ fontWeight: 500 }}
                 disabled
                 aria-label="Forgot password (coming soon)"
               >
@@ -638,16 +630,16 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
             <button
               type="submit"
-              className="w-full px-6 py-4 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed mt-2"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
-              disabled={!email || !password || loading}
+              className="w-full px-6 py-4 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm disabled:bg-[#d47455]/70 disabled:cursor-not-allowed mt-2"
+              style={{ fontWeight: 600 }}
+              disabled={loading}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
-          <div className="mt-6 pt-4 text-center">
-            <p className="text-sm text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+          <div className="mt-3 pt-2 text-center">
+            <p className="text-sm text-[#787771]" >
               Don&apos;t have an account?{' '}
               <button
                 type="button"
@@ -667,7 +659,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
   // Sign Up mode
   return (
     <div
-      className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+      className="landing-bg flex flex-col overflow-hidden"
       style={{
           minHeight: 'var(--app-height, 100vh)',
           height: 'var(--app-height, 100vh)',
@@ -679,34 +671,32 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         }}
     >
       {/* Header */}
-      <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
+      <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
         <button
           onClick={() => { setError(''); setSuccessMessage(''); setMode('welcome'); }}
-          className="text-sm text-gray-600 hover:text-gray-900"
-          style={{ fontFamily: 'Arial, sans-serif' }}
+          className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
         >
           ← Back
         </button>
       </div>
 
       {/* Content - scrollable, centered container */}
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-        <div className="flex-1 px-6 py-10 max-w-sm mx-auto w-full pb-12">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col bg-transparent">
+        <div className="flex-1 px-6 py-10 max-w-sm mx-auto w-full pb-12 bg-transparent">
           <h1 
-            className="text-3xl text-[#3d3d3a] mb-3 mt-4" 
-            style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+            className="text-3xl text-[#27251f] mb-3 mt-4" 
+            style={{ fontWeight: 600 }}
           >
             Create your account
           </h1>
           <p 
-            className="text-sm text-gray-600 mb-8" 
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-sm text-[#787771] mb-8" 
           >
             Join the community and get started
           </p>
 
           {error && (
-            <p className="text-sm text-red-600 mb-5" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-sm text-red-600 mb-5" >
               {error}
             </p>
           )}
@@ -714,66 +704,63 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
           <form onSubmit={handleSignUp} className="space-y-6">
           <div>
             <label 
-              className="block text-sm mb-2.5 text-gray-700" 
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+              className="block text-sm mb-2.5 text-[#27251f]" 
+              style={{ fontWeight: 500 }}
             >
               Full Name
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
                 required
-                className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="w-full pl-11 pr-4 py-3 rounded-lg border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
               />
             </div>
           </div>
 
           <div>
             <label 
-              className="block text-sm mb-2.5 text-gray-700" 
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+              className="block text-sm mb-2.5 text-[#27251f]" 
+              style={{ fontWeight: 500 }}
             >
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@law.school.edu"
                 required
-                className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="w-full pl-11 pr-4 py-3 rounded-lg border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
               />
             </div>
           </div>
 
           <div>
             <label 
-              className="block text-sm mb-2.5 text-gray-700" 
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+              className="block text-sm mb-2.5 text-[#27251f]" 
+              style={{ fontWeight: 500 }}
             >
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Create a password"
                 required
-                className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="w-full pl-11 pr-4 py-3 rounded-lg border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-xs text-[#787771] mt-2" >
               Must be at least 8 characters
             </p>
           </div>
@@ -782,17 +769,17 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             <input 
               type="checkbox" 
               required
-              className="w-4 h-4 mt-0.5 rounded border-gray-300 text-[#d47455] focus:ring-[#d47455]"
+              className="w-4 h-4 mt-0.5 rounded border-[#e8e4db] text-[#d47455] focus:ring-[#d47455]"
             />
-            <label className="text-xs text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <label className="text-xs text-[#787771]" >
               I agree to the Terms of Service and Privacy Policy
             </label>
           </div>
 
           <button
             type="submit"
-            className="w-full px-6 py-4 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed mt-2"
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+            className="w-full px-6 py-4 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm disabled:bg-[#e8e4db] disabled:cursor-not-allowed mt-2"
+            style={{ fontWeight: 600 }}
             disabled={!email || !password || !fullName || loading}
           >
             {loading ? 'Creating account...' : 'Create Account'}
@@ -800,7 +787,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         </form>
 
         <div className="mt-10 pt-6 text-center">
-          <p className="text-sm text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+          <p className="text-sm text-[#787771]" >
             Already have an account?{' '}
             <button
               type="button"
@@ -820,7 +807,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
   if (mode === 'forgot') {
     return (
       <div
-        className="bg-[#FBF9F5] flex flex-col overflow-hidden"
+        className="landing-bg flex flex-col overflow-hidden"
         style={{
           minHeight: 'var(--app-height, 100vh)',
           height: 'var(--app-height, 100vh)',
@@ -831,48 +818,46 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
           paddingRight: 'env(safe-area-inset-right)',
         }}
       >
-        <div className="bg-[#F1EFE7] px-6 py-4 flex-shrink-0">
+        <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('signin'); }}
-            className="text-sm text-gray-600 hover:text-gray-900"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
           >
             ← Back
           </button>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-          <div className="flex-1 px-6 py-10 max-w-sm mx-auto w-full pb-12">
-          <h1 className="text-3xl text-[#3d3d3a] mb-3 mt-4" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col bg-transparent">
+          <div className="flex-1 px-6 py-10 max-w-sm mx-auto w-full pb-12 bg-transparent">
+          <h1 className="text-3xl text-[#27251f] mb-3 mt-4" style={{ fontWeight: 600 }}>
             Forgot password
           </h1>
-          <p className="text-sm text-gray-600 mb-8" style={{ fontFamily: 'Arial, sans-serif' }}>
+          <p className="text-sm text-[#787771] mb-8" >
             Enter your email and we&apos;ll send you a reset link
           </p>
           {error && (
-            <p className="text-sm text-red-600 mb-5" style={{ fontFamily: 'Arial, sans-serif' }}>{error}</p>
+            <p className="text-sm text-red-600 mb-5" >{error}</p>
           )}
           <form onSubmit={handleForgotPassword} className="space-y-6">
             <div>
-              <label className="block text-sm mb-2.5 text-gray-700" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}>
+              <label className="block text-sm mb-2.5 text-[#27251f]" style={{ fontWeight: 500 }}>
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@law.school.edu"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
                 />
               </div>
             </div>
             <button
               type="submit"
-              className="w-full px-6 py-4 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed mt-2"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              className="w-full px-6 py-4 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm disabled:bg-[#e8e4db] disabled:cursor-not-allowed mt-2"
+              style={{ fontWeight: 600 }}
               disabled={!email || loading}
             >
               {loading ? 'Sending...' : 'Send reset link'}

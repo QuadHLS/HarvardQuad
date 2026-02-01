@@ -93,8 +93,7 @@ const LinkPreview: React.FC<{ url: string; isOwnMessage: boolean }> = ({ url, is
         <div 
           className="text-sm truncate"
           style={{ 
-            color: '#3d3d3a',
-            fontFamily: 'Arial, sans-serif'
+            color: '#27251f',
           }}
         >
           {domain}
@@ -264,7 +263,6 @@ const ConversationItem = memo(function ConversationItem({
           <div 
             className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0"
             style={{ 
-              fontFamily: 'Arial, sans-serif',
               fontWeight: 600,
               backgroundColor: conv.avatarColor || '#d47455'
             }}
@@ -284,7 +282,6 @@ const ConversationItem = memo(function ConversationItem({
                 <div 
                   className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm"
                   style={{ 
-                    fontFamily: 'Arial, sans-serif',
                     fontWeight: 600,
                     backgroundColor: conv.memberAvatars[0].color
                   }}
@@ -304,7 +301,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[0].color
                     }}
@@ -322,7 +318,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[1].color
                     }}
@@ -343,7 +338,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[0].color
                     }}
@@ -361,7 +355,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[1].color
                     }}
@@ -379,7 +372,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[2].color
                     }}
@@ -400,7 +392,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[0].color
                     }}
@@ -418,7 +409,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[1].color
                     }}
@@ -436,7 +426,6 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
                       backgroundColor: conv.memberAvatars[2].color
                     }}
@@ -455,7 +444,6 @@ const ConversationItem = memo(function ConversationItem({
                     <div 
                       className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                       style={{ 
-                        fontFamily: 'Arial, sans-serif',
                         fontWeight: 600,
                         backgroundColor: conv.memberAvatars[3].color
                       }}
@@ -467,9 +455,8 @@ const ConversationItem = memo(function ConversationItem({
                   <div 
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                     style={{ 
-                      fontFamily: 'Arial, sans-serif',
                       fontWeight: 600,
-                      backgroundColor: '#7b7b74'
+                      backgroundColor: '#787771'
                     }}
                   >
                     +{conv.totalMembers - 3}
@@ -495,9 +482,8 @@ const ConversationItem = memo(function ConversationItem({
           <div 
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white text-base"
             style={{ 
-              fontFamily: 'Arial, sans-serif',
               fontWeight: 600,
-              backgroundColor: conv.avatarColor || '#7b7b74',
+              backgroundColor: conv.avatarColor || '#787771',
               display: conv.avatarUrl ? 'none' : 'flex'
             }}
           >
@@ -508,13 +494,13 @@ const ConversationItem = memo(function ConversationItem({
           <div className="flex items-start justify-between gap-2 mb-1">
             <h3 
               className="text-base truncate"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               {conv.name}
             </h3>
             <span 
               className="text-xs flex-shrink-0"
-              style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+              style={{ color: '#787771' }}
             >
               {conv.lastMessageTime}
             </span>
@@ -523,8 +509,7 @@ const ConversationItem = memo(function ConversationItem({
             <p 
               className="text-sm truncate"
               style={{ 
-                fontFamily: 'Arial, sans-serif', 
-                color: (conv.unread ?? 0) > 0 ? '#3d3d3a' : '#7b7b74',
+                color: (conv.unread ?? 0) > 0 ? '#27251f' : '#787771',
                 fontWeight: (conv.unread ?? 0) > 0 ? 500 : 400
               }}
             >
@@ -537,7 +522,7 @@ const ConversationItem = memo(function ConversationItem({
               >
                 <span 
                   className="text-xs text-white"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  style={{ fontWeight: 600 }}
                 >
                   {conv.unread}
                 </span>
@@ -551,7 +536,7 @@ const ConversationItem = memo(function ConversationItem({
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors flex-shrink-0 self-center"
             aria-label="More options"
           >
-            <MoreVertical className="w-5 h-5 text-[#7b7b74]" />
+            <MoreVertical className="w-5 h-5 text-[#787771]" />
           </button>
         )}
       </div>
@@ -574,17 +559,16 @@ const ConversationItem = memo(function ConversationItem({
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[#f5f3eb] transition-colors text-left"
             >
               {blockLoading ? (
-                <div className="w-4 h-4 border-2 border-[#7b7b74]/30 border-t-[#7b7b74] rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-[#787771]/30 border-t-[#787771] rounded-full animate-spin" />
               ) : isBlocked ? (
-                <UserCheck className="w-4 h-4 text-[#3d3d3a]" />
+                <UserCheck className="w-4 h-4 text-[#27251f]" />
               ) : (
                 <Ban className="w-4 h-4 text-[#d47455]" />
               )}
               <span 
                 className="text-sm"
                 style={{ 
-                  fontFamily: 'Arial, sans-serif', 
-                  color: isBlocked ? '#3d3d3a' : '#d47455' 
+                  color: isBlocked ? '#27251f' : '#d47455' 
                 }}
               >
                 {isBlocked ? 'Unblock' : 'Block'}
@@ -789,7 +773,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
         // For DMs, get the other participant's info
         let displayName = conv.name || 'Unnamed';
         let avatar = '?';
-        let avatarColor = '#7b7b74';
+        let avatarColor = '#787771';
 
         // Format last message
         let lastMessage = 'No messages yet';
@@ -819,7 +803,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               .toUpperCase()
               .slice(0, 2);
             // Generate color from name (fallback)
-            const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+            const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
             avatarColor = colors[displayName.charCodeAt(0) % colors.length];
             // Use actual avatar URL if available
             avatarUrl = otherParticipant.profile.avatar_url && otherParticipant.profile.avatar_url.trim() !== '' 
@@ -839,7 +823,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               .join('')
               .toUpperCase()
               .slice(0, 2);
-            const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+            const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
             const color = colors[memberName.charCodeAt(0) % colors.length];
             return {
               avatarUrl: p.profile?.avatar_url && p.profile.avatar_url.trim() !== '' 
@@ -1553,9 +1537,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
                     mobileTab === 'friends'
                       ? 'bg-[#d47455] text-white'
-                      : 'text-[#7b7b74] hover:text-[#3d3d3a]'
+                      : 'text-[#787771] hover:text-[#27251f]'
                   }`}
-                  style={{ fontFamily: 'Arial, sans-serif' }}
                 >
                   Friends
                 </button>
@@ -1565,9 +1548,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
                     mobileTab === 'groups'
                       ? 'bg-[#d47455] text-white'
-                      : 'text-[#7b7b74] hover:text-[#3d3d3a]'
+                      : 'text-[#787771] hover:text-[#27251f]'
                   }`}
-                  style={{ fontFamily: 'Arial, sans-serif' }}
                 >
                   Groups
                 </button>
@@ -1577,16 +1559,15 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
                     mobileTab === 'squads'
                       ? 'bg-[#d47455] text-white'
-                      : 'text-[#7b7b74] hover:text-[#3d3d3a]'
+                      : 'text-[#787771] hover:text-[#27251f]'
                   }`}
-                  style={{ fontFamily: 'Arial, sans-serif' }}
                 >
                   Squads
                 </button>
               </div>
 
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
                 <input
                   type="text"
                   placeholder={mobileTab === 'friends' ? "Search for people..." : mobileTab === 'groups' ? "Search your groups..." : "Search your squads..."}
@@ -1595,7 +1576,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
                   onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
                   className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border-0 text-sm"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                  style={{ color: '#27251f' }}
                 />
                 {showUserDropdown && userSearchResults.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-[#e7ded1] z-50 max-h-60 overflow-auto">
@@ -1606,7 +1587,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         .join('')
                         .toUpperCase()
                         .slice(0, 2);
-                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                       const avatarColor = colors[(userResult.full_name || userResult.email || '?').charCodeAt(0) % colors.length];
                       
                       return (
@@ -1618,7 +1599,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           <div 
                             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm"
                             style={{ 
-                              fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
                               backgroundColor: avatarColor
                             }}
@@ -1628,14 +1608,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           <div className="flex-1 min-w-0">
                             <p 
                               className="text-sm truncate"
-                              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#3d3d3a' }}
+                              style={{ fontWeight: 500, color: '#27251f' }}
                             >
                               {userResult.full_name || userResult.email?.split('@')[0] || 'Unknown'}
                             </p>
                             {userResult.full_name && (
                               <p 
                                 className="text-xs truncate"
-                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                                style={{ color: '#787771' }}
                               >
                                 {userResult.email}
                               </p>
@@ -1661,7 +1641,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     {mobileTab === 'friends' && (
                       <div className="space-y-2">
                         {dms.length === 0 ? (
-                          <p className="text-sm text-center py-8" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                          <p className="text-sm text-center py-8" style={{ color: '#787771' }}>
                             No direct messages yet
                           </p>
                         ) : (
@@ -1694,7 +1674,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             type="button"
                             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d47455] text-white text-sm"
                             onClick={() => setShowNewGroup(true)}
-                            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+                            style={{ fontWeight: 500 }}
                           >
                             <Plus className="w-4 h-4" />
                             New Group
@@ -1702,7 +1682,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         </div>
                         <div className="space-y-2">
                           {groups.length === 0 ? (
-                            <p className="text-sm text-center py-8" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                            <p className="text-sm text-center py-8" style={{ color: '#787771' }}>
                               No group chats yet
                             </p>
                           ) : (
@@ -1722,7 +1702,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     {mobileTab === 'squads' && (
                       <div className="space-y-2">
                         {clubs.length === 0 ? (
-                          <p className="text-sm text-center py-8" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                          <p className="text-sm text-center py-8" style={{ color: '#787771' }}>
                             No squad chats yet
                           </p>
                         ) : (
@@ -1754,7 +1734,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   onClick={() => setSelectedConversation(null)}
                   className="w-8 h-8 flex items-center justify-center -ml-2"
                 >
-                  <ChevronLeft className="w-6 h-6 text-[#3d3d3a]" />
+                  <ChevronLeft className="w-6 h-6 text-[#27251f]" />
                 </button>
                 {selectedConv?.type === 'dm' ? (
                   <>
@@ -1786,9 +1766,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         }
                       }}
                       style={{ 
-                        fontFamily: 'Arial, sans-serif',
                         fontWeight: 600,
-                        backgroundColor: selectedConv?.avatarColor || '#7b7b74',
+                        backgroundColor: selectedConv?.avatarColor || '#787771',
                         display: selectedConv?.avatarUrl ? 'none' : 'flex'
                       }}
                     >
@@ -1805,14 +1784,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     >
                       <h2 
                         className="text-base truncate hover:text-[#d47455] transition-colors"
-                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontWeight: 600, color: '#27251f' }}
                       >
                         {selectedConv?.name}
                       </h2>
                       {selectedConv?.subtitle && (
                         <p 
                           className="text-xs truncate"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                          style={{ color: '#787771' }}
                         >
                           {selectedConv.subtitle}
                         </p>
@@ -1825,7 +1804,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
                         aria-label="More options"
                       >
-                        <MoreVertical className="w-5 h-5 text-[#3d3d3a]" />
+                        <MoreVertical className="w-5 h-5 text-[#27251f]" />
                       </button>
                       {showDmMenu && (
                         <>
@@ -1840,17 +1819,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[#f5f3eb] transition-colors text-left"
                             >
                               {blockLoading ? (
-                                <div className="w-4 h-4 border-2 border-[#7b7b74]/30 border-t-[#7b7b74] rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-[#787771]/30 border-t-[#787771] rounded-full animate-spin" />
                               ) : isConversationBlocked ? (
-                                <UserCheck className="w-4 h-4 text-[#3d3d3a]" />
+                                <UserCheck className="w-4 h-4 text-[#27251f]" />
                               ) : (
                                 <Ban className="w-4 h-4 text-[#d47455]" />
                               )}
                               <span 
                                 className="text-sm"
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif', 
-                                  color: isConversationBlocked ? '#3d3d3a' : '#d47455' 
+                                  color: isConversationBlocked ? '#27251f' : '#d47455' 
                                 }}
                               >
                                 {isConversationBlocked ? 'Unblock' : 'Block'}
@@ -1868,7 +1846,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       <div 
                         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-base flex-shrink-0"
                         style={{ 
-                          fontFamily: 'Arial, sans-serif',
                           fontWeight: 600,
                           backgroundColor: selectedConv?.avatarColor || '#d47455'
                         }}
@@ -1888,7 +1865,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs"
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: selectedConv.memberAvatars[0].color
                               }}
@@ -1908,7 +1884,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[0].color
                                 }}
@@ -1926,7 +1901,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[1].color
                                 }}
@@ -1947,7 +1921,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[0].color
                                 }}
@@ -1965,7 +1938,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[1].color
                                 }}
@@ -1983,7 +1955,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[2].color
                                 }}
@@ -2004,7 +1975,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[0].color
                                 }}
@@ -2022,7 +1992,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[1].color
                                 }}
@@ -2040,7 +2009,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[2].color
                                 }}
@@ -2059,7 +2027,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 <div 
                                   className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                   style={{ 
-                                    fontFamily: 'Arial, sans-serif',
                                     fontWeight: 600,
                                     backgroundColor: selectedConv.memberAvatars[3].color
                                   }}
@@ -2071,9 +2038,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
-                                  backgroundColor: '#7b7b74'
+                                  backgroundColor: '#787771'
                                 }}
                               >
                                 +{selectedConv.totalMembers - 3}
@@ -2099,9 +2065,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       <div 
                         className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                         style={{ 
-                          fontFamily: 'Arial, sans-serif',
                           fontWeight: 600,
-                          backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#7b7b74',
+                          backgroundColor: selectedConv?.type === 'course' ? '#d47455' : selectedConv?.avatarColor || '#787771',
                           display: selectedConv?.avatarUrl ? 'none' : 'flex'
                         }}
                       >
@@ -2115,14 +2080,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     <div className="flex-1 min-w-0">
                       <h2 
                         className="text-base truncate"
-                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontWeight: 600, color: '#27251f' }}
                       >
                         {selectedConv?.name}
                       </h2>
                       {selectedConv?.subtitle && (
                         <p 
                           className="text-xs truncate"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                          style={{ color: '#787771' }}
                         >
                           {selectedConv.subtitle}
                         </p>
@@ -2137,7 +2102,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
                       aria-label="Edit members"
                     >
-                      <Settings className="w-5 h-5 text-[#3d3d3a]" />
+                      <Settings className="w-5 h-5 text-[#27251f]" />
                     </button>
                     {canManageGroup && (
                       <button
@@ -2164,7 +2129,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
-                  <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No messages yet</p>
+                  <p style={{ color: '#787771' }}>No messages yet</p>
                 </div>
               ) : (
                 messages.map((msg, index) => {
@@ -2176,7 +2141,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     .join('')
                     .toUpperCase()
                     .slice(0, 2);
-                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                   const avatarColor = colors[senderName.charCodeAt(0) % colors.length];
                   const senderAvatarUrl = msg.sender?.avatar_url && msg.sender.avatar_url.trim() !== '' 
                     ? msg.sender.avatar_url 
@@ -2233,7 +2198,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
                             onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                             style={{ 
-                              fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
                               backgroundColor: avatarColor,
                               display: senderAvatarUrl ? 'none' : 'flex',
@@ -2266,7 +2230,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs cursor-pointer hover:ring-2 hover:ring-[#d47455] transition-all"
                             onClick={() => !isOwnMessage && setViewingUserId(msg.sender_id)}
                             style={{ 
-                              fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
                               backgroundColor: avatarColor,
                               display: senderAvatarUrl ? 'none' : 'flex',
@@ -2288,7 +2251,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <span 
                                 className="text-xs cursor-pointer hover:text-[#d47455] transition-colors"
                                 onClick={() => setViewingUserId(msg.sender_id)}
-                                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#7b7b74' }}
+                                style={{ fontWeight: 500, color: '#787771' }}
                               >
                                 {senderName}
                               </span>
@@ -2296,7 +2259,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             {showTimestamp && isOwnMessage && (
                               <span 
                                 className="text-xs ml-auto"
-                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                                style={{ color: '#787771' }}
                               >
                                 {formatTime(msg.created_at)}
                               </span>
@@ -2304,7 +2267,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             {showTimestamp && !isOwnMessage && (
                               <span 
                                 className="text-xs"
-                                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                                style={{ color: '#787771' }}
                               >
                                 {formatTime(msg.created_at)}
                               </span>
@@ -2312,11 +2275,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           </div>
                         )}
                         {msg.message_type === 'image' && msg.attachments && msg.attachments.length > 0 ? (
-                          <div className="flex flex-col">
+                          <div className="flex flex-col rounded-xl overflow-hidden max-w-full self-start">
                             <img 
                               src={msg.attachments[0].url} 
                               alt="Shared image"
-                              className="max-w-full rounded-xl"
+                              className="max-w-full block"
                               style={{ maxHeight: '400px', objectFit: 'contain' }}
                               onLoad={scrollMessagesToBottom}
                             />
@@ -2324,8 +2287,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               type="button"
                               aria-label="Download"
                               onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
-                              className="mt-2 flex items-center text-xs text-[#7b7b74] hover:text-[#3d3d3a] transition-colors"
-                              style={{ fontFamily: 'Arial, sans-serif' }}
+                              className="mt-2 flex items-center text-xs text-[#787771] hover:text-[#27251f] transition-colors"
                             >
                               <Download className="w-4 h-4" />
                             </button>
@@ -2337,23 +2299,23 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 ? 'bg-[#d47455] text-white' 
                                 : 'bg-white border border-[#e7ded1]'
                             }`}
-                            style={{ fontFamily: 'Arial, sans-serif', minWidth: '200px' }}
+                            style={{ minWidth: '200px' }}
                           >
                             <div className="flex items-start gap-3">
-                              <div className={`flex-shrink-0 ${isOwnMessage ? 'text-white' : 'text-[#7b7b74]'}`}>
+                              <div className={`flex-shrink-0 ${isOwnMessage ? 'text-white' : 'text-[#787771]'}`}>
                                 <File className="w-7 h-7" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p 
                                   className="text-sm font-medium truncate mb-1"
-                                  style={{ color: isOwnMessage ? '#ffffff' : '#3d3d3a' }}
+                                  style={{ color: isOwnMessage ? '#ffffff' : '#27251f' }}
                                 >
                                   {msg.attachments[0].file_name}
                                 </p>
                                 {msg.attachments[0].file_size && (
                                   <div className="flex items-center justify-between gap-2 text-xs mb-1">
                                     <span
-                                      style={{ color: isOwnMessage ? 'rgba(255,255,255,0.8)' : '#7b7b74' }}
+                                      style={{ color: isOwnMessage ? 'rgba(255,255,255,0.8)' : '#787771' }}
                                     >
                                       {(msg.attachments[0].file_size / 1024).toFixed(1)} KB
                                     </span>
@@ -2364,9 +2326,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                       className={`inline-flex items-center px-2.5 py-1 rounded-lg transition-colors ${
                                         isOwnMessage 
                                           ? 'bg-white/20 hover:bg-white/30 text-white' 
-                                          : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#3d3d3a]'
+                                          : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#27251f]'
                                       }`}
-                                      style={{ fontFamily: 'Arial, sans-serif' }}
                                     >
                                       <Download className="w-3 h-3" />
                                     </button>
@@ -2376,7 +2337,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             </div>
                           </div>
                         ) : isYouTubeOnly(msg.content) || isLinkOnly(msg.content) ? (
-                          <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '100%' }}>
+                          <div style={{ maxWidth: '100%' }}>
                             {renderMessageContent(msg.content, isOwnMessage)}
                           </div>
                         ) : (
@@ -2386,12 +2347,12 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 ? 'bg-[#d47455] text-white' 
                                 : 'bg-white border border-[#e7ded1]'
                             }`}
-                            style={{ fontFamily: 'Arial, sans-serif', width: 'fit-content', maxWidth: '100%' }}
+                            style={{ width: 'fit-content', maxWidth: '100%' }}
                           >
                             <div 
                               className="text-sm"
                               style={{ 
-                                color: isOwnMessage ? '#ffffff' : '#3d3d3a', 
+                                color: isOwnMessage ? '#ffffff' : '#27251f', 
                                 lineHeight: 1.5 
                               }}
                             >
@@ -2428,16 +2389,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         <img
                           src={att.url}
                           alt={att.name}
-                          className="w-full h-24 object-cover rounded-md"
+                          className="w-full h-24 object-cover"
                         />
                       ) : (
                         <div className="flex items-start gap-2">
-                          <File className="w-5 h-5 text-[#7b7b74] flex-shrink-0 mt-0.5" />
+                          <File className="w-5 h-5 text-[#787771] flex-shrink-0 mt-0.5" />
                           <div className="min-w-0">
-                            <p className="text-xs font-medium truncate" style={{ color: '#3d3d3a' }}>
+                            <p className="text-xs font-medium truncate" style={{ color: '#27251f' }}>
                               {att.name}
                             </p>
-                            <p className="text-[11px]" style={{ color: '#7b7b74' }}>
+                            <p className="text-[11px]" style={{ color: '#787771' }}>
                               {(att.size / 1024).toFixed(1)} KB
                             </p>
                           </div>
@@ -2463,7 +2424,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               {isConversationBlocked && selectedConv?.type === 'dm' ? (
                 <div 
                   className="text-center py-3 px-4 bg-[#f5f3eb] rounded-2xl"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  style={{ color: '#787771' }}
                 >
                   You can't message this user
                 </div>
@@ -2481,7 +2442,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       onClick={handleFileSelect}
                       className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
                     >
-                      <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
+                      <Paperclip className="w-5 h-5 text-[#27251f]" />
                     </button>
                     <textarea
                       ref={mobileTextareaRef}
@@ -2532,8 +2493,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       rows={1}
                       className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-2xl border-0 text-sm resize-none"
                       style={{ 
-                        fontFamily: 'Arial, sans-serif', 
-                        color: '#3d3d3a',
+                        color: '#27251f',
                         maxHeight: '120px',
                         minHeight: '44px'
                       }}
@@ -2590,14 +2550,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             <div className="flex items-center justify-between mb-4">
               <h2
                 className="text-lg font-semibold"
-                style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+                style={{ color: '#27251f' }}
               >
                 New Group Chat
               </h2>
               <button
                 type="button"
                 onClick={closeGroupModal}
-                className="w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#3d3d3a] hover:bg-[#e8e5dc]"
+                className="w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#27251f] hover:bg-[#e8e5dc]"
                 aria-label="Close"
               >
                 ×
@@ -2624,7 +2584,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       .join('')
                       .toUpperCase()
                       .slice(0, 2);
-                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                     const avatarColor = colors[(u.full_name || u.email || '?').charCodeAt(0) % colors.length];
                       return (
                         <button
@@ -2640,8 +2600,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             {avatar}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-[#3d3d3a] truncate">{u.full_name || u.email?.split('@')[0] || 'Unknown'}</p>
-                            <p className="text-xs text-[#7b7b74] truncate">{u.email}</p>
+                            <p className="text-sm font-medium text-[#27251f] truncate">{u.full_name || u.email?.split('@')[0] || 'Unknown'}</p>
+                            <p className="text-xs text-[#787771] truncate">{u.email}</p>
                           </div>
                         </button>
                       );
@@ -2658,7 +2618,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       .join('')
                       .toUpperCase()
                       .slice(0, 2);
-                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                     const avatarColor = colors[(m.full_name || m.email || '?').charCodeAt(0) % colors.length];
                     return (
                       <div key={m.id} className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5f3eb] border border-[#e7ded1]">
@@ -2668,7 +2628,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         >
                           {avatar}
                         </div>
-                        <span className="text-sm text-[#3d3d3a]">{m.full_name || m.email?.split('@')[0] || 'Unknown'}</span>
+                        <span className="text-sm text-[#27251f]">{m.full_name || m.email?.split('@')[0] || 'Unknown'}</span>
                         <button
                           type="button"
                           className="text-[#d47455] text-xs"
@@ -2728,7 +2688,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             <button
               type="button"
               onClick={handleCloseEditMembers}
-              className="absolute top-2 right-1 w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#3d3d3a] hover:bg-[#e8e5dc]"
+              className="absolute top-2 right-1 w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#27251f] hover:bg-[#e8e5dc]"
               aria-label="Close"
             >
               ×
@@ -2736,7 +2696,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             <div className="space-y-4">
               {/* Group Name */}
               <div>
-                <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}>
+                <h3 className="text-sm font-semibold mb-2" style={{ color: '#27251f' }}>
                   Group Name
                 </h3>
                 {isEditingGroupName ? (
@@ -2767,7 +2727,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between px-3 py-2 bg-[#f5f3eb] rounded-lg">
-                    <span className="text-sm" style={{ color: '#3d3d3a' }}>
+                    <span className="text-sm" style={{ color: '#27251f' }}>
                       {selectedConv?.name || 'Unnamed Group'}
                     </span>
                     <button
@@ -2783,7 +2743,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
               {/* Current Members */}
               <div>
-                <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}>
+                <h3 className="text-sm font-semibold mb-2" style={{ color: '#27251f' }}>
                   Current Members ({currentParticipants.length})
                 </h3>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -2796,7 +2756,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       .join('')
                       .toUpperCase()
                       .slice(0, 2);
-                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                     const avatarColor = colors[(name || '?').charCodeAt(0) % colors.length];
                     const isCurrentUser = p.user_id === user?.id;
                     // Regular members cannot remove admins; admins can remove anyone
@@ -2834,14 +2794,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             {avatar}
                           </div>
                           <div>
-                            <p className="text-sm font-medium" style={{ color: '#3d3d3a' }}>
+                            <p className="text-sm font-medium" style={{ color: '#27251f' }}>
                               {name}
                               {p.role === 'admin' && (
                                 <span className="ml-2 text-xs text-[#d47455]">(Admin)</span>
                               )}
                             </p>
                             {profile?.email && (
-                              <p className="text-xs" style={{ color: '#7b7b74' }}>
+                              <p className="text-xs" style={{ color: '#787771' }}>
                                 {profile.email}
                               </p>
                             )}
@@ -2876,7 +2836,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
               {/* Add Members */}
               <div>
-                <h3 className="text-sm font-semibold mb-2" style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}>
+                <h3 className="text-sm font-semibold mb-2" style={{ color: '#27251f' }}>
                   Add Members
                 </h3>
                 <Input
@@ -2893,7 +2853,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         .join('')
                         .toUpperCase()
                         .slice(0, 2);
-                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                       const avatarColor = colors[(u.full_name || u.email || '?').charCodeAt(0) % colors.length];
                       return (
                         <button
@@ -2909,10 +2869,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             {avatar}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-[#3d3d3a] truncate">
+                            <p className="text-sm font-medium text-[#27251f] truncate">
                               {u.full_name || u.email?.split('@')[0] || 'Unknown'}
                             </p>
-                            <p className="text-xs text-[#7b7b74] truncate">{u.email}</p>
+                            <p className="text-xs text-[#787771] truncate">{u.email}</p>
                           </div>
                         </button>
                       );
@@ -2940,11 +2900,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
           <div className="relative w-full max-w-md bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75]">
             <h2
               className="text-lg font-semibold mb-4"
-              style={{ fontFamily: 'Lora, serif', color: '#3d3d3a' }}
+              style={{ color: '#27251f' }}
             >
               Delete Group
             </h2>
-            <p className="text-sm mb-6" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+            <p className="text-sm mb-6" style={{ color: '#787771' }}>
               Are you sure you want to delete this group? This action cannot be undone. All messages and members will be permanently removed.
             </p>
             <div className="flex gap-2 justify-end">
@@ -2975,7 +2935,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             <div className="flex items-center justify-between mb-4">
               <h2 
                 className="text-2xl"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Messages
               </h2>
@@ -2988,12 +2948,12 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               </button>
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
               <input
                 type="text"
                 placeholder="Search..."
                 className="w-full pl-10 pr-4 py-2 bg-[#f5f3eb] rounded-lg border-0 text-sm"
-                style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                style={{ color: '#27251f' }}
               />
             </div>
           </div>
@@ -3026,7 +2986,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           <div 
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs"
                             style={{ 
-                              fontFamily: 'Arial, sans-serif',
                               fontWeight: 600,
                               backgroundColor: conv.memberAvatars[0].color
                             }}
@@ -3046,7 +3005,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[0].color
                               }}
@@ -3064,7 +3022,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[1].color
                               }}
@@ -3085,7 +3042,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[0].color
                               }}
@@ -3103,7 +3059,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[1].color
                               }}
@@ -3121,7 +3076,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[2].color
                               }}
@@ -3142,7 +3096,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 left-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[0].color
                               }}
@@ -3160,7 +3113,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute top-0 right-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[1].color
                               }}
@@ -3178,7 +3130,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 left-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: conv.memberAvatars[2].color
                               }}
@@ -3197,7 +3148,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: conv.memberAvatars[3].color
                                 }}
@@ -3209,9 +3159,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[7px] absolute bottom-0 right-0 "
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
-                                backgroundColor: '#7b7b74'
+                                backgroundColor: '#787771'
                               }}
                             >
                               +{conv.totalMembers - 3}
@@ -3237,9 +3186,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     <div 
                       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                       style={{ 
-                        fontFamily: 'Arial, sans-serif',
                         fontWeight: 600,
-                        backgroundColor: conv.type === 'course' ? '#d47455' : conv.avatarColor || '#7b7b74',
+                        backgroundColor: conv.type === 'course' ? '#d47455' : conv.avatarColor || '#787771',
                         display: conv.avatarUrl ? 'none' : 'flex'
                       }}
                     >
@@ -3249,13 +3197,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   <div className="flex-1 min-w-0">
                     <h3 
                       className="text-sm mb-1 truncate"
-                      style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                      style={{ fontWeight: 600, color: '#27251f' }}
                     >
                       {conv.name}
                     </h3>
                     <p 
                       className="text-xs truncate"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                      style={{ color: '#787771' }}
                     >
                       {conv.lastMessage}
                     </p>
@@ -3278,7 +3226,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       <div 
                         className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0"
                         style={{ 
-                          fontFamily: 'Arial, sans-serif',
                           fontWeight: 600,
                           backgroundColor: selectedConv.avatarColor || '#d47455'
                         }}
@@ -3298,7 +3245,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm"
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: selectedConv.memberAvatars[0].color
                               }}
@@ -3318,7 +3264,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute top-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[0].color
                                 }}
@@ -3336,7 +3281,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] absolute bottom-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[1].color
                                 }}
@@ -3357,7 +3301,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[0].color
                                 }}
@@ -3375,7 +3318,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[1].color
                                 }}
@@ -3393,7 +3335,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-1/2 -translate-x-1/2 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[2].color
                                 }}
@@ -3414,7 +3355,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[0].color
                                 }}
@@ -3432,7 +3372,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute top-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[1].color
                                 }}
@@ -3450,7 +3389,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 left-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
                                   backgroundColor: selectedConv.memberAvatars[2].color
                                 }}
@@ -3469,7 +3407,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                 <div 
                                   className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] absolute bottom-0 right-0 "
                                   style={{ 
-                                    fontFamily: 'Arial, sans-serif',
                                     fontWeight: 600,
                                     backgroundColor: selectedConv.memberAvatars[3].color
                                   }}
@@ -3481,9 +3418,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               <div 
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] absolute bottom-0 right-0 "
                                 style={{ 
-                                  fontFamily: 'Arial, sans-serif',
                                   fontWeight: 600,
-                                  backgroundColor: '#7b7b74'
+                                  backgroundColor: '#787771'
                                 }}
                               >
                                 +{selectedConv.totalMembers - 3}
@@ -3508,14 +3444,14 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     <div>
                       <h2 
                         className="text-xl"
-                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontWeight: 600, color: '#27251f' }}
                       >
                         {selectedConv.name}
                       </h2>
                       {selectedConv.subtitle && (
                         <p 
                           className="text-sm"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                          style={{ color: '#787771' }}
                         >
                           {selectedConv.subtitle}
                         </p>
@@ -3529,7 +3465,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
                         aria-label="Edit members"
                       >
-                        <Settings className="w-5 h-5 text-[#3d3d3a]" />
+                        <Settings className="w-5 h-5 text-[#27251f]" />
                       </button>
                       {canManageGroup && (
                         <button
@@ -3548,7 +3484,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
               <div className="flex-1 min-h-0 overflow-auto p-6 space-y-1">
                 {messages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No messages yet</p>
+                    <p style={{ color: '#787771' }}>No messages yet</p>
                   </div>
                 ) : (
                   messages.map((msg, index) => {
@@ -3560,7 +3496,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       .join('')
                       .toUpperCase()
                       .slice(0, 2);
-                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#7b7b74'];
+                    const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                     const avatarColor = colors[senderName.charCodeAt(0) % colors.length];
                     const senderAvatarUrl = msg.sender?.avatar_url && msg.sender.avatar_url.trim() !== '' 
                       ? msg.sender.avatar_url 
@@ -3615,7 +3551,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: avatarColor,
                                 display: senderAvatarUrl ? 'none' : 'flex',
@@ -3646,7 +3581,6 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             <div 
                               className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white"
                               style={{ 
-                                fontFamily: 'Arial, sans-serif',
                                 fontWeight: 600,
                                 backgroundColor: avatarColor,
                                 display: senderAvatarUrl ? 'none' : 'flex',
@@ -3667,7 +3601,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               {showName && (
                                 <span 
                                   className="text-xs"
-                                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500, color: '#7b7b74' }}
+                                  style={{ fontWeight: 500, color: '#787771' }}
                                 >
                                   {senderName}
                                 </span>
@@ -3675,7 +3609,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               {showTimestamp && isOwnMessage && (
                                 <span 
                                   className="text-xs ml-auto"
-                                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                                  style={{ color: '#787771' }}
                                 >
                                   {formatTime(msg.created_at)}
                                 </span>
@@ -3683,7 +3617,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               {showTimestamp && !isOwnMessage && (
                                 <span 
                                   className="text-xs"
-                                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                                  style={{ color: '#787771' }}
                                 >
                                   {formatTime(msg.created_at)}
                                 </span>
@@ -3691,19 +3625,18 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                             </div>
                           )}
                           {msg.message_type === 'image' && msg.attachments && msg.attachments.length > 0 ? (
-                            <div className="flex flex-col">
+                            <div className="flex flex-col rounded-xl overflow-hidden max-w-full self-start">
                               <img 
                                 src={msg.attachments[0].url} 
                                 alt="Shared image"
-                                className="max-w-full rounded-xl"
+                                className="max-w-full block"
                                 style={{ maxHeight: '400px', objectFit: 'contain' }}
                               />
                               <button
                                 type="button"
                                 aria-label="Download"
                                 onClick={() => handleDownload(msg.attachments[0].url, msg.attachments[0].file_name)}
-                                className="mt-2 flex items-center text-xs text-[#7b7b74] hover:text-[#3d3d3a] transition-colors"
-                                style={{ fontFamily: 'Arial, sans-serif' }}
+                                className="mt-2 flex items-center text-xs text-[#787771] hover:text-[#27251f] transition-colors"
                               >
                                 <Download className="w-4 h-4" />
                               </button>
@@ -3715,23 +3648,23 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                   ? 'bg-[#d47455] text-white' 
                                   : 'bg-white border border-[#e7ded1]'
                               }`}
-                              style={{ fontFamily: 'Arial, sans-serif', minWidth: '200px' }}
+                              style={{ minWidth: '200px' }}
                             >
                               <div className="flex items-start gap-3">
-                                <div className={`flex-shrink-0 ${isOwnMessage ? 'text-white' : 'text-[#7b7b74]'}`}>
+                                <div className={`flex-shrink-0 ${isOwnMessage ? 'text-white' : 'text-[#787771]'}`}>
                                   <File className="w-7 h-7" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p 
                                     className="text-sm font-medium truncate mb-1"
-                                    style={{ color: isOwnMessage ? '#ffffff' : '#3d3d3a' }}
+                                    style={{ color: isOwnMessage ? '#ffffff' : '#27251f' }}
                                   >
                                     {msg.attachments[0].file_name}
                                   </p>
                                   {msg.attachments[0].file_size && (
                                     <div className="flex items-center justify-between gap-2 text-xs mb-1">
                                       <span
-                                        style={{ color: isOwnMessage ? 'rgba(255,255,255,0.8)' : '#7b7b74' }}
+                                        style={{ color: isOwnMessage ? 'rgba(255,255,255,0.8)' : '#787771' }}
                                       >
                                         {(msg.attachments[0].file_size / 1024).toFixed(1)} KB
                                       </span>
@@ -3742,9 +3675,8 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                         className={`inline-flex items-center px-2.5 py-1 rounded-lg transition-colors ${
                                           isOwnMessage 
                                             ? 'bg-white/20 hover:bg-white/30 text-white' 
-                                            : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#3d3d3a]'
+                                            : 'bg-[#f5f3eb] hover:bg-[#e8e5dc] text-[#27251f]'
                                         }`}
-                                        style={{ fontFamily: 'Arial, sans-serif' }}
                                       >
                                         <Download className="w-3 h-3" />
                                       </button>
@@ -3754,7 +3686,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                               </div>
                             </div>
                           ) : isYouTubeOnly(msg.content) || isLinkOnly(msg.content) ? (
-                            <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '100%' }}>
+                            <div style={{ maxWidth: '100%' }}>
                               {renderMessageContent(msg.content, isOwnMessage)}
                             </div>
                           ) : (
@@ -3764,12 +3696,12 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                   ? 'bg-[#d47455] text-white' 
                                   : 'bg-white border border-[#e7ded1]'
                               }`}
-                              style={{ fontFamily: 'Arial, sans-serif', width: 'fit-content', maxWidth: '100%' }}
+                              style={{ width: 'fit-content', maxWidth: '100%' }}
                             >
                               <div 
                                 className="text-sm"
                                 style={{ 
-                                  color: isOwnMessage ? '#ffffff' : '#3d3d3a', 
+                                  color: isOwnMessage ? '#ffffff' : '#27251f', 
                                   lineHeight: 1.5 
                                 }}
                               >
@@ -3805,16 +3737,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           <img
                             src={att.url}
                             alt={att.name}
-                            className="w-full h-28 object-cover rounded-md"
+                            className="w-full h-28 object-cover"
                           />
                         ) : (
                           <div className="flex items-start gap-2">
-                            <File className="w-5 h-5 text-[#7b7b74] flex-shrink-0 mt-0.5" />
+                            <File className="w-5 h-5 text-[#787771] flex-shrink-0 mt-0.5" />
                             <div className="min-w-0">
-                              <p className="text-xs font-medium truncate" style={{ color: '#3d3d3a' }}>
+                              <p className="text-xs font-medium truncate" style={{ color: '#27251f' }}>
                                 {att.name}
                               </p>
-                              <p className="text-[11px]" style={{ color: '#7b7b74' }}>
+                              <p className="text-[11px]" style={{ color: '#787771' }}>
                                 {(att.size / 1024).toFixed(1)} KB
                               </p>
                             </div>
@@ -3834,7 +3766,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 {isConversationBlocked && selectedConv?.type === 'dm' ? (
                   <div 
                     className="text-center py-3 px-4 bg-[#f5f3eb] rounded-xl"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                    style={{ color: '#787771' }}
                   >
                     You can't message this user
                   </div>
@@ -3852,7 +3784,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         onClick={handleFileSelect}
                         className="w-10 h-10 rounded-full bg-[#f5f3eb] flex items-center justify-center hover:bg-[#e8e5dc] transition-colors"
                       >
-                        <Paperclip className="w-5 h-5 text-[#3d3d3a]" />
+                        <Paperclip className="w-5 h-5 text-[#27251f]" />
                       </button>
                       <textarea
                         ref={desktopTextareaRef}
@@ -3873,8 +3805,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         rows={1}
                         className="flex-1 px-4 py-3 bg-[#f5f3eb] rounded-xl border-0 resize-none"
                         style={{ 
-                          fontFamily: 'Arial, sans-serif', 
-                          color: '#3d3d3a',
+                          color: '#27251f',
                           maxHeight: '120px',
                           minHeight: '44px'
                         }}
@@ -3888,7 +3819,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         onClick={handleSendMessage}
                         disabled={sendingMessage}
                         className="px-6 py-3 text-white rounded-xl transition-colors bg-[#d47455] hover:bg-[#c06545] relative"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                        style={{ fontWeight: 600 }}
                       >
                         Send
                         {sendingMessage && (
@@ -3908,7 +3839,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 <MessageCircle className="w-16 h-16 mx-auto mb-4 text-[#c7bcaa]" />
                 <p 
                   className="text-lg"
-                  style={{ fontFamily: 'Lora, serif', color: '#7b7b74' }}
+                  style={{ color: '#787771' }}
                 >
                   Select a conversation
                 </p>

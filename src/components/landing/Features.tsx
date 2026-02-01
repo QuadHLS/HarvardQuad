@@ -23,32 +23,32 @@ export function Features() {
   ];
 
   return (
-    <section id="features" className="py-32" style={{ background: 'linear-gradient(to bottom, #f7f7f5, rgba(254, 243, 199, 0.4))' }}>
+    <section id="features" className="pt-12 pb-24">
       <div className="max-w-5xl mx-auto px-6">
-        <div className="mb-20">
-          <h2 className="text-5xl font-serif text-neutral-900 mb-6 leading-tight">
+        <div className="mb-24">
+          <h2 className="text-5xl font-sans font-normal text-[#27251f] mb-6 leading-[1.1] tracking-[-0.01em]">
             Everything you need,<br />nothing you don't
           </h2>
-          <p className="text-xl text-neutral-600 max-w-2xl leading-relaxed">
+          <p className="text-xl text-[#787771] max-w-2xl leading-7 font-normal tracking-[-0.01em]">
             Four core modules that replace the fragmented tools you're currently using.
           </p>
         </div>
 
-        <div className="space-y-16">
+        <div className="space-y-10">
           {features.map((feature, index) => (
-            <div key={index} className="p-10">
+            <div key={index} className="py-4">
               <div className="flex items-start gap-6">
-                <div className="flex-shrink-0 w-10 h-10 bg-orange-700 text-white flex items-center justify-center font-serif">
+                <div className="flex-shrink-0 w-10 h-10 bg-[#27251f] text-[#f7f8f3] flex items-center justify-center font-sans font-normal text-sm rounded-lg tracking-[-0.01em]">
                   {String(index + 1).padStart(2, '0')}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-2xl font-serif text-neutral-900 mb-3">
+                  <h3 className="text-2xl font-sans font-normal text-[#27251f] mb-3 leading-[1.1] tracking-[-0.01em]">
                     {feature.title}
                   </h3>
-                  <p className="text-neutral-600 leading-relaxed mb-3">
+                  <p className="text-[#787771] leading-7 font-normal tracking-[-0.01em] mb-3">
                     {feature.description}
                   </p>
-                  <p className="text-sm text-neutral-400 italic">
+                  <p className="text-sm text-[#787771] font-normal tracking-[-0.01em]">
                     {feature.replaces}
                   </p>
                 </div>

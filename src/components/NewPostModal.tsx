@@ -142,12 +142,12 @@ export function NewPostModal({
         onPointerDownOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif' }}>
+          <DialogTitle className="text-lg font-semibold text-[#27251f]" >
             New post
           </DialogTitle>
         </DialogHeader>
-        <p className="text-xs text-[#7b7b74] -mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
-          Posting as <span className="font-semibold text-[#3d3d3a]">{publicName || 'You'}</span>
+        <p className="text-xs text-[#787771] -mt-2" >
+          Posting as <span className="font-semibold text-[#27251f]">{publicName || 'You'}</span>
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,9 +159,8 @@ export function NewPostModal({
                 type="button"
                 onClick={() => setPostType(value)}
                 className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                  postType === value ? 'bg-white text-[#3d3d3a] shadow-sm' : 'text-[#7b7b74] hover:text-[#3d3d3a]'
+                  postType === value ? 'bg-white text-[#27251f] shadow-sm' : 'text-[#787771] hover:text-[#27251f]'
                 }`}
-                style={{ fontFamily: 'Arial, sans-serif' }}
               >
                 {label}
               </button>
@@ -169,14 +168,14 @@ export function NewPostModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#3d3d3a] mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <label className="block text-sm font-medium text-[#27251f] mb-1" >
               Title
             </label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Post title"
-              className="bg-white border-[#e7ded1] text-[#3d3d3a]"
+              className="bg-white border-[#e7ded1] text-[#27251f]"
               maxLength={500}
               required
             />
@@ -185,26 +184,26 @@ export function NewPostModal({
           {postType === 'text_pic' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-[#3d3d3a] mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <label className="block text-sm font-medium text-[#27251f] mb-1" >
                   Body (optional)
                 </label>
                 <Textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="What's on your mind?"
-                  className="bg-white border-[#e7ded1] text-[#3d3d3a] min-h-[80px]"
+                  className="bg-white border-[#e7ded1] text-[#27251f] min-h-[80px]"
                   maxLength={5000}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#3d3d3a] mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <label className="block text-sm font-medium text-[#27251f] mb-1" >
                   Photo (optional)
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                  className="block w-full text-sm text-[#3d3d3a] file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#d47455] file:text-white file:font-medium"
+                  className="block w-full text-sm text-[#27251f] file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#d47455] file:text-white file:font-medium"
                 />
               </div>
             </>
@@ -213,19 +212,19 @@ export function NewPostModal({
           {postType === 'social_url' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-[#3d3d3a] mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <label className="block text-sm font-medium text-[#27251f] mb-1" >
                   Description (optional)
                 </label>
                 <Textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Brief description of the link"
-                  className="bg-white border-[#e7ded1] text-[#3d3d3a] min-h-[60px]"
+                  className="bg-white border-[#e7ded1] text-[#27251f] min-h-[60px]"
                   maxLength={1000}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#3d3d3a] mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <label className="block text-sm font-medium text-[#27251f] mb-1" >
                   Link URL
                 </label>
                 <Input
@@ -233,7 +232,7 @@ export function NewPostModal({
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://..."
-                  className="bg-white border-[#e7ded1] text-[#3d3d3a]"
+                  className="bg-white border-[#e7ded1] text-[#27251f]"
                 />
               </div>
             </>
@@ -242,7 +241,7 @@ export function NewPostModal({
           {postType === 'poll' && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-[#3d3d3a]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <label className="block text-sm font-medium text-[#27251f]" >
                   Options (min 2, max 10)
                 </label>
                 {pollOptions.length < 10 && (
@@ -250,7 +249,6 @@ export function NewPostModal({
                     type="button"
                     onClick={addPollOption}
                     className="flex items-center gap-1 text-sm text-[#d47455] font-medium hover:underline"
-                    style={{ fontFamily: 'Arial, sans-serif' }}
                   >
                     <Plus size={14} /> Add option
                   </button>
@@ -263,14 +261,14 @@ export function NewPostModal({
                       value={opt}
                       onChange={(e) => setPollOption(i, e.target.value)}
                       placeholder={`Option ${i + 1}`}
-                      className="bg-white border-[#e7ded1] text-[#3d3d3a]"
+                      className="bg-white border-[#e7ded1] text-[#27251f]"
                       maxLength={200}
                     />
                     <button
                       type="button"
                       onClick={() => removePollOption(i)}
                       disabled={pollOptions.length <= 2}
-                      className="p-2 rounded-lg text-[#7b7b74] hover:bg-[#F1EFE7] disabled:opacity-40"
+                      className="p-2 rounded-lg text-[#787771] hover:bg-[#F1EFE7] disabled:opacity-40"
                       aria-label="Remove option"
                     >
                       <X size={18} />
@@ -282,7 +280,7 @@ export function NewPostModal({
           )}
 
           {error && (
-            <p className="text-sm text-red-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-sm text-red-600" >
               {error}
             </p>
           )}
@@ -292,8 +290,7 @@ export function NewPostModal({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              className="border-[#e7ded1] text-[#3d3d3a]"
-              style={{ fontFamily: 'Arial, sans-serif' }}
+              className="border-[#e7ded1] text-[#27251f]"
             >
               Cancel
             </Button>
@@ -301,7 +298,7 @@ export function NewPostModal({
               type="submit"
               disabled={submitting}
               className="bg-[#d47455] hover:bg-[#c06545] text-white"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              style={{ fontWeight: 600 }}
             >
               {submitting ? 'Posting...' : 'Post'}
             </Button>

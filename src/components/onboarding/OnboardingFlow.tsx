@@ -139,13 +139,13 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
           <div key={step} className="flex items-center flex-1">
             <div
               className={`h-1 flex-1 rounded-full transition-colors ${
-                step <= currentStep ? 'bg-[#d47455]' : 'bg-gray-200'
+                step <= currentStep ? 'bg-[#d47455]' : 'bg-[#e8e4db]'
               }`}
             />
           </div>
         ))}
       </div>
-      <p className="text-xs text-gray-500 mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+      <p className="text-xs text-[#787771] mt-2" >
         Step {currentStep} of {TOTAL_STEPS}
       </p>
     </div>
@@ -153,9 +153,11 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
 
   return (
     <div
-      className="bg-[#FBF9F5] flex flex-col"
+      className="landing-bg flex flex-col overflow-hidden"
       style={{
         minHeight: 'var(--app-height, 100vh)',
+        height: 'var(--app-height, 100vh)',
+        maxHeight: 'var(--app-height, 100vh)',
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
@@ -163,7 +165,7 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
       }}
     >
       {saveError && (
-        <p className="px-6 text-sm text-red-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <p className="px-6 text-sm text-red-600" >
           {saveError}
         </p>
       )}
@@ -192,13 +194,12 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
       </div>
 
       {/* Navigation Footer */}
-      <div className="px-6 py-4 border-t border-gray-200 flex-shrink-0 bg-[#FBF9F5]">
+      <div className="px-6 py-4 flex-shrink-0">
         <div className="flex gap-3">
           {currentStep > 1 && (
             <button
               onClick={handleBack}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-              style={{ fontFamily: 'Arial, sans-serif' }}
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-[#e8e4db] bg-white text-[#27251f] hover:bg-[#faf9f7] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
               Back
@@ -210,9 +211,8 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white transition-colors ${
               canProceed() && !saving
                 ? 'bg-[#d47455] hover:bg-[#c26645]' 
-                : 'bg-gray-300 cursor-not-allowed'
+                : 'bg-[#e8e4db] cursor-not-allowed'
             }`}
-            style={{ fontFamily: 'Arial, sans-serif' }}
           >
             {saving ? 'Saving...' : currentStep === TOTAL_STEPS ? 'Get Started' : 'Continue'}
             {currentStep < TOTAL_STEPS && !saving && <ChevronRight className="w-4 h-4" />}
@@ -248,21 +248,21 @@ function Step1({ formData, setFormData, progressBar }: {
   const classYears = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl mb-2" style={{ fontFamily: 'Lora, serif' }}>
-          Tell us about yourself
+    <div className="max-w-sm mx-auto w-full space-y-8">
+      {progressBar}
+      <div className="text-center">
+        <h2 className="text-2xl sm:text-3xl text-[#27251f] mb-2" style={{ fontWeight: 600 }}>
+          Let&apos;s get you set up
         </h2>
-        <p className="text-sm text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
-          We'll use this to personalize your experience
+        <p className="text-sm text-[#787771] max-w-xs mx-auto">
+          A few details so we can personalize your experience
         </p>
       </div>
-      {progressBar}
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <label className="block text-sm mb-2 text-gray-700" style={{ fontFamily: 'Arial, sans-serif' }}>
-            Full Name *
+          <label className="block text-sm mb-2 text-[#27251f]" style={{ fontWeight: 500 }}>
+            Full name
           </label>
           <input
             type="text"
@@ -274,40 +274,39 @@ function Step1({ formData, setFormData, progressBar }: {
             }}
             placeholder="Enter your full name"
             autoCapitalize="words"
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="w-full px-4 py-3 rounded-xl border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
           />
         </div>
 
         <div>
-          <label className="block text-sm mb-2 text-gray-700" style={{ fontFamily: 'Arial, sans-serif' }}>
-            Public Name *
+          <label className="block text-sm mb-2 text-[#27251f]" style={{ fontWeight: 500 }}>
+            Public name
           </label>
+          <p className="text-xs text-[#787771] mb-2">Shown to other students</p>
           <input
             type="text"
             value={formData.publicName}
             onChange={(e) => setFormData({ ...formData, publicName: e.target.value })}
-            placeholder="Name shown to others"
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            placeholder="e.g. First name or nickname"
+            className="w-full px-4 py-3 rounded-xl border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
           />
         </div>
 
         <div>
-          <label className="block text-sm mb-2 text-gray-700" style={{ fontFamily: 'Arial, sans-serif' }}>
-            Class Year *
+          <label className="block text-sm mb-2 text-[#27251f]" style={{ fontWeight: 500 }}>
+            Class year
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {classYears.map((year) => (
               <button
                 key={year}
+                type="button"
                 onClick={() => setFormData({ ...formData, classYear: year })}
-                className={`px-4 py-3 rounded-lg border transition-colors ${
+                className={`px-4 py-3 rounded-xl border transition-colors text-sm ${
                   formData.classYear === year
                     ? 'border-[#d47455] bg-[#d47455] text-white'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-[#d47455]'
+                    : 'border-[#e8e4db] bg-white text-[#27251f] hover:border-[#d47455] hover:bg-[#fef9f5]'
                 }`}
-                style={{ fontFamily: 'Arial, sans-serif' }}
               >
                 {year}
               </button>
@@ -373,84 +372,85 @@ function Step2({ formData, setFormData, progressBar }: {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-shrink-0">
-        <h2 className="text-xl mb-2" style={{ fontFamily: 'Lora, serif' }}>
-          Choose the classes you're enrolled in this semester
-        </h2>
-        <p className="text-sm text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
-          Tap to select each course
-        </p>
-      </div>
+    <div className="flex flex-col flex-1 min-h-0 max-w-sm mx-auto w-full">
       {progressBar}
 
-      <div className="relative flex-shrink-0 mt-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+      <div className="text-center flex-shrink-0">
+        <h2 className="text-2xl sm:text-3xl text-[#27251f] mb-2" style={{ fontWeight: 600 }}>
+          Pick your classes
+        </h2>
+        <p className="text-sm text-[#787771] max-w-xs mx-auto">
+          Select the courses you&apos;re in this semester — we&apos;ll use them for your calendar and feed
+        </p>
+      </div>
+
+      <div className="relative flex-shrink-0 mt-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771] pointer-events-none" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by course title..."
-          className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
-          style={{ fontFamily: 'Arial, sans-serif' }}
+          className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
         />
       </div>
 
       {loading && (
-        <div className="flex-shrink-0 mt-4 flex justify-center">
+        <div className="flex-shrink-0 mt-6 flex justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d47455]"></div>
         </div>
       )}
       {error && (
-        <p className="text-sm text-red-600 flex-shrink-0 mt-4" style={{ fontFamily: 'Arial, sans-serif' }}>{error}</p>
+        <p className="text-sm text-red-600 flex-shrink-0 mt-4">{error}</p>
       )}
       {!loading && !error && (
         <div
-          className="mt-4 space-y-2 rounded-xl border border-gray-200 bg-white p-2 max-h-[38vh] overflow-y-auto"
+          className="mt-4 space-y-2 rounded-xl border border-[#e8e4db] bg-white p-2 flex-1 min-h-0 overflow-y-auto"
           style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
         >
           {sortedCourses.length === 0 ? (
-            <p className="text-sm text-gray-500" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-sm text-[#787771] py-4 text-center">
               {searchQuery.trim() ? 'No courses match your search.' : 'No courses available.'}
             </p>
           ) : (
             sortedCourses.map((course) => (
-          <button
-            key={course.id}
-            onClick={() => toggleCourse(course.id)}
-            className={`w-full px-4 py-4 rounded-lg border transition-all ${
-              formData.courses.includes(course.id)
-                ? 'border-[#d47455] bg-white shadow-sm'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex-1 text-left flex flex-col gap-0.5 min-w-0">
-                <div className="text-sm font-medium" style={{ fontFamily: 'Lora, serif' }}>
-                  {((t: string) => t.length > 50 ? t.slice(0, 50) + '...' : t)(course.course_title ?? 'Untitled')}
-                </div>
-                <div className="text-xs text-gray-500" style={{ fontFamily: 'Arial, sans-serif' }}>
-                  {((t: string) => t.length > 40 ? t.slice(0, 40) + '...' : t)(course.instructor ?? '—')}
-                </div>
-                {(course.meeting_days || course.meeting_time || course.term) && (
-                  <div className="text-xs text-gray-400 mt-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
-                    {[course.meeting_days, course.meeting_time, course.term].filter(Boolean).join(' · ')}
+              <button
+                key={course.id}
+                type="button"
+                onClick={() => toggleCourse(course.id)}
+                className={`w-full px-4 py-4 rounded-xl border transition-all text-left ${
+                  formData.courses.includes(course.id)
+                    ? 'border-[#d47455] bg-[#fef9f5] shadow-sm'
+                    : 'border-[#e8e4db] bg-white hover:border-[#d47455]/50 hover:bg-[#fef9f5]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+                    <div className="text-sm font-medium text-[#27251f]">
+                      {((t: string) => t.length > 50 ? t.slice(0, 50) + '...' : t)(course.course_title ?? 'Untitled')}
+                    </div>
+                    <div className="text-xs text-[#787771]">
+                      {((t: string) => t.length > 40 ? t.slice(0, 40) + '...' : t)(course.instructor ?? '—')}
+                    </div>
+                    {(course.meeting_days || course.meeting_time || course.term) && (
+                      <div className="text-xs text-[#787771] mt-0.5">
+                        {[course.meeting_days, course.meeting_time, course.term].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                formData.courses.includes(course.id)
-                  ? 'border-[#d47455] bg-[#d47455]'
-                  : 'border-gray-300'
-              }`}>
-                {formData.courses.includes(course.id) && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-            </div>
-          </button>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    formData.courses.includes(course.id)
+                      ? 'border-[#d47455] bg-[#d47455]'
+                      : 'border-[#e8e4db]'
+                  }`}>
+                    {formData.courses.includes(course.id) && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </button>
             ))
           )}
         </div>
@@ -505,17 +505,17 @@ function Step3({ formData, setFormData }: {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl mb-2" style={{ fontFamily: 'Lora, serif' }}>
+        <h2 className="text-xl mb-2" >
           Join squads & set interests
         </h2>
-        <p className="text-sm text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <p className="text-sm text-[#787771]" >
           Connect with communities and customize your feed
         </p>
       </div>
 
       {/* Squads Section */}
       <div>
-        <h3 className="text-sm mb-3 text-gray-700" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <h3 className="text-sm mb-3 text-[#27251f]" >
           Recommended Squads
         </h3>
         <div className="space-y-2">
@@ -526,23 +526,23 @@ function Step3({ formData, setFormData }: {
               className={`w-full px-4 py-3 rounded-lg border transition-all ${
                 formData.squads.includes(squad.id)
                   ? 'border-[#d47455] bg-white shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  : 'border-[#e8e4db] bg-white hover:border-[#e8e4db]'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div className="text-2xl flex-shrink-0">{squad.icon}</div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm" style={{ fontFamily: 'Lora, serif' }}>
+                  <div className="text-sm" >
                     {squad.name}
                   </div>
-                  <div className="text-xs text-gray-500" style={{ fontFamily: 'Arial, sans-serif' }}>
+                  <div className="text-xs text-[#787771]" >
                     {squad.members} members · {squad.category}
                   </div>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                   formData.squads.includes(squad.id)
                     ? 'border-[#d47455] bg-[#d47455]'
-                    : 'border-gray-300'
+                    : 'border-[#e8e4db]'
                 }`}>
                   {formData.squads.includes(squad.id) && (
                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -558,7 +558,7 @@ function Step3({ formData, setFormData }: {
 
       {/* Interests Section */}
       <div>
-        <h3 className="text-sm mb-3 text-gray-700" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <h3 className="text-sm mb-3 text-[#27251f]" >
           Your Interests
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -569,9 +569,8 @@ function Step3({ formData, setFormData }: {
               className={`px-4 py-2 rounded-full border transition-all flex items-center gap-2 ${
                 formData.interests.includes(interest.id)
                   ? 'border-[#d47455] bg-[#d47455] text-white'
-                  : 'border-gray-300 bg-white text-gray-700 hover:border-[#d47455]'
+                  : 'border-[#e8e4db] bg-white text-[#27251f] hover:border-[#d47455]'
               }`}
-              style={{ fontFamily: 'Arial, sans-serif' }}
             >
               <span>{interest.icon}</span>
               <span className="text-sm">{interest.name}</span>

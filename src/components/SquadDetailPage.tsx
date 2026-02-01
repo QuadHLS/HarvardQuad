@@ -141,7 +141,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
       'academic': '#7b9fb8',
       'hobbies': '#c89b6e',
     };
-    return colors[category] || '#7b7b74';
+    return colors[category] || '#787771';
   };
 
   const getCategoryLabel = (category: string): string => {
@@ -332,14 +332,14 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
   if (loadError && !squad) {
     return (
       <div className="min-h-[60vh] h-full flex flex-col items-center justify-center bg-[#FBF9F5] pt-[18vh] px-4 gap-4">
-        <p className="text-[#3d3d3a] text-center" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <p className="text-[#27251f] text-center" >
           Could not load squad. It may have been deleted or you may not have access.
         </p>
         <button
           type="button"
           onClick={onBack}
           className="px-4 py-2 rounded-xl bg-[#d47455] text-white hover:bg-[#c06545]"
-          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+          style={{ fontWeight: 600 }}
         >
           Go back
         </button>
@@ -398,7 +398,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
   };
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]" style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]" >
       <input
         ref={fileInputRef}
         type="file"
@@ -407,27 +407,27 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
         onChange={handleFileSelect}
       />
       <Dialog open={showAddDocumentModal} onOpenChange={(open) => { if (!open) closeAddDocumentModal(); }}>
-        <DialogContent className="bg-[#FBF9F5] border-[#e7ded1] rounded-xl max-w-sm" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <DialogContent className="bg-[#FBF9F5] border-[#e7ded1] rounded-xl max-w-sm" >
           <DialogHeader>
-            <DialogTitle className="text-[#3d3d3a]" style={{ fontFamily: 'Lora, serif' }}>Add document</DialogTitle>
+            <DialogTitle className="text-[#27251f]" >Add document</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div>
-              <label className="text-sm font-medium text-[#3d3d3a] block mb-1.5">Document name</label>
+              <label className="text-sm font-medium text-[#27251f] block mb-1.5">Document name</label>
               <input
                 type="text"
                 value={addDocumentName}
                 onChange={(e) => setAddDocumentName(e.target.value)}
                 placeholder="e.g. Syllabus 2024"
-                className="w-full px-3 py-2 rounded-xl border-2 border-[#e7ded1] bg-white text-[#3d3d3a] placeholder:text-[#8c867d] focus:outline-none focus:border-[#d47455]"
+                className="w-full px-3 py-2 rounded-xl border-2 border-[#e7ded1] bg-white text-[#27251f] placeholder:text-[#787771] focus:outline-none focus:border-[#d47455]"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[#3d3d3a] block mb-1.5">File</label>
+              <label className="text-sm font-medium text-[#27251f] block mb-1.5">File</label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full px-3 py-2.5 rounded-xl border-2 border-dashed border-[#e7ded1] bg-white text-[#7b7b74] flex items-center justify-center gap-2 hover:border-[#d47455] hover:text-[#3d3d3a] transition-colors"
+                className="w-full px-3 py-2.5 rounded-xl border-2 border-dashed border-[#e7ded1] bg-white text-[#787771] flex items-center justify-center gap-2 hover:border-[#d47455] hover:text-[#27251f] transition-colors"
               >
                 <Upload className="w-4 h-4" />
                 {addDocumentFile ? addDocumentFile.name : 'Choose file'}
@@ -438,7 +438,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             <button
               type="button"
               onClick={closeAddDocumentModal}
-              className="px-4 py-2 rounded-xl border border-[#d9d2c5] text-[#7b7b74] hover:bg-[#f5f3eb]"
+              className="px-4 py-2 rounded-xl border border-[#d9d2c5] text-[#787771] hover:bg-[#f5f3eb]"
             >
               Cancel
             </button>
@@ -462,11 +462,11 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               onClick={onBack}
               className="w-8 h-8 flex items-center justify-center -ml-2"
             >
-              <ChevronLeft className="w-6 h-6 text-[#3d3d3a]" />
+              <ChevronLeft className="w-6 h-6 text-[#27251f]" />
             </button>
             <h1 
               className="text-2xl flex-1"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               {squad.name}
             </h1>
@@ -474,14 +474,14 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               onClick={() => setShowInfoMenu(true)}
               className="w-8 h-8 flex items-center justify-center"
             >
-              <MoreVertical className="w-5 h-5 text-[#3d3d3a]" />
+              <MoreVertical className="w-5 h-5 text-[#27251f]" />
             </button>
           </div>
           <div className="flex items-center gap-2 mb-4">
-            <UsersIcon className="w-4 h-4 text-[#7b7b74]" />
+            <UsersIcon className="w-4 h-4 text-[#787771]" />
             <p 
               className="text-sm"
-              style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+              style={{ color: '#787771' }}
             >
               {squad.member_count || 0} members
             </p>
@@ -492,7 +492,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 onClick={handleOpenChat}
                 disabled={!squad.conversation_id}
                 className="flex-1 py-2.5 bg-[#d47455] text-white rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ fontWeight: 600 }}
               >
                 <MessageCircle className="w-4 h-4" />
                 Open Chat
@@ -503,7 +503,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 onClick={handleJoinSquad}
                 disabled={joining}
                 className="flex-1 py-2.5 bg-[#d47455] text-white rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ fontWeight: 600 }}
               >
                 <UserPlus className="w-4 h-4" />
                 {joining ? 'Joining...' : 'Join Squad'}
@@ -531,7 +531,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             <div className="bg-[#F1EFE7] px-4 py-4 flex items-center justify-between sticky top-0 z-10 rounded-tl-2xl">
               <h2 
                 className="text-lg"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Squad Info
               </h2>
@@ -539,7 +539,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 onClick={() => setShowInfoMenu(false)}
                 className="w-8 h-8 flex items-center justify-center"
               >
-                <X className="w-5 h-5 text-[#3d3d3a]" />
+                <X className="w-5 h-5 text-[#27251f]" />
               </button>
             </div>
 
@@ -548,7 +548,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               <div className="flex items-center justify-between mb-3">
                 <h3 
                   className="text-base"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                  style={{ fontWeight: 600, color: '#27251f' }}
                 >
                   About
                 </h3>
@@ -557,7 +557,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     type="button"
                     onClick={startEditingSquad}
                     className="flex items-center gap-1.5 text-sm text-[#d47455] hover:text-[#c06545]"
-                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                    style={{ fontWeight: 600 }}
                   >
                     <Pencil className="w-4 h-4" />
                     Edit
@@ -567,37 +567,36 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               {isEditingSquad ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-[#7b7b74] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Name</label>
+                    <label className="text-xs text-[#787771] block mb-1" >Name</label>
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-[#e7ded1] text-sm focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      style={{ color: '#27251f' }}
                       placeholder="Squad name"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-[#7b7b74] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Description</label>
+                    <label className="text-xs text-[#787771] block mb-1" >Description</label>
                     <textarea
                       value={editInfo}
                       onChange={(e) => setEditInfo(e.target.value)}
                       rows={3}
                       className="w-full px-3 py-2 rounded-xl border border-[#e7ded1] text-sm focus:outline-none focus:ring-2 focus:ring-[#d47455] resize-none"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      style={{ color: '#27251f' }}
                       placeholder="Description"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-[#7b7b74] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Category</label>
+                    <label className="text-xs text-[#787771] block mb-1" >Category</label>
                     <div className="flex flex-wrap gap-2">
                       {SQUAD_CATEGORIES.map((c) => (
                         <button
                           key={c.id}
                           type="button"
                           onClick={() => setEditCategory(c.id)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#3d3d3a]'}`}
-                          style={{ fontFamily: 'Arial, sans-serif' }}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#27251f]'}`}
                         >
                           {c.label}
                         </button>
@@ -605,13 +604,12 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-[#7b7b74] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Privacy</label>
+                    <label className="text-xs text-[#787771] block mb-1" >Privacy</label>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setEditType('open')}
-                        className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium flex items-center justify-center gap-2 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#3d3d3a]' : 'border-[#e7ded1] bg-white text-[#7b7b74]'}`}
-                        style={{ fontFamily: 'Arial, sans-serif' }}
+                        className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium flex items-center justify-center gap-2 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Globe className="w-4 h-4" />
                         Public
@@ -619,8 +617,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                       <button
                         type="button"
                         onClick={() => setEditType('private')}
-                        className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium flex items-center justify-center gap-2 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#3d3d3a]' : 'border-[#e7ded1] bg-white text-[#7b7b74]'}`}
-                        style={{ fontFamily: 'Arial, sans-serif' }}
+                        className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium flex items-center justify-center gap-2 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Lock className="w-4 h-4" />
                         Private
@@ -631,8 +628,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     <button
                       type="button"
                       onClick={cancelEditingSquad}
-                      className="flex-1 py-2.5 rounded-xl border border-[#e7ded1] text-[#7b7b74] text-sm font-medium"
-                      style={{ fontFamily: 'Arial, sans-serif' }}
+                      className="flex-1 py-2.5 rounded-xl border border-[#e7ded1] text-[#787771] text-sm font-medium"
                     >
                       Cancel
                     </button>
@@ -641,7 +637,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                       onClick={handleSaveSquadEdit}
                       disabled={savingSquad}
                       className="flex-1 py-2.5 rounded-xl bg-[#d47455] text-white text-sm font-medium disabled:opacity-50"
-                      style={{ fontFamily: 'Arial, sans-serif' }}
                     >
                       {savingSquad ? 'Saving...' : 'Save'}
                     </button>
@@ -651,32 +646,32 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 <>
                   <p 
                     className="text-sm mb-4"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+                    style={{ color: '#27251f', lineHeight: 1.5 }}
                   >
                     {squad.info || 'No description available'}
                   </p>
-                  <div className="space-y-2.5 text-sm" style={{ fontFamily: 'Arial, sans-serif' }}>
+                  <div className="space-y-2.5 text-sm" >
                     <div className="flex justify-between">
-                      <span className="text-[#7b7b74]">Category:</span>
-                      <span className="text-[#3d3d3a]">{getCategoryLabel(squad.category)}</span>
+                      <span className="text-[#787771]">Category:</span>
+                      <span className="text-[#27251f]">{getCategoryLabel(squad.category)}</span>
                     </div>
                     {squad.meeting_times && (
                       <div className="flex justify-between">
-                        <span className="text-[#7b7b74]">Meetings:</span>
-                        <span className="text-[#3d3d3a] text-right">{squad.meeting_times}</span>
+                        <span className="text-[#787771]">Meetings:</span>
+                        <span className="text-[#27251f] text-right">{squad.meeting_times}</span>
                       </div>
                     )}
                     {squad.location && (
                       <div className="flex justify-between">
-                        <span className="text-[#7b7b74]">Location:</span>
-                        <span className="text-[#3d3d3a]">{squad.location}</span>
+                        <span className="text-[#787771]">Location:</span>
+                        <span className="text-[#27251f]">{squad.location}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-[#7b7b74]">Privacy:</span>
+                      <span className="text-[#787771]">Privacy:</span>
                       <div className="flex items-center gap-1">
-                        <PrivacyIcon className="w-3 h-3 text-[#7b7b74]" />
-                        <span className="text-[#3d3d3a]">{privacyLabel}</span>
+                        <PrivacyIcon className="w-3 h-3 text-[#787771]" />
+                        <span className="text-[#27251f]">{privacyLabel}</span>
                       </div>
                     </div>
                   </div>
@@ -689,7 +684,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               <div className="flex items-center justify-between mb-3">
                 <h3 
                   className="text-base"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                  style={{ fontWeight: 600, color: '#27251f' }}
                 >
                   Documents ({documents.length})
                 </h3>
@@ -707,7 +702,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               </div>
               <div className="space-y-2">
                 {documents.length === 0 ? (
-                  <p className="text-sm text-[#7b7b74]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                  <p className="text-sm text-[#787771]" >
                     No documents yet
                   </p>
                 ) : (
@@ -722,16 +717,16 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                         className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer no-underline"
                       >
                         <div className="w-10 h-10 bg-[#f0eee6] rounded-lg flex items-center justify-center flex-shrink-0">
-                          <FileText size={18} className="text-[#7b7b74]" />
+                          <FileText size={18} className="text-[#787771]" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 
                             className="text-sm mb-0.5 break-words"
-                            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                            style={{ fontWeight: 600, color: '#27251f' }}
                           >
                             {doc.name}
                           </h4>
-                          <div className="flex items-center gap-2 text-xs" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                          <div className="flex items-center gap-2 text-xs" style={{ color: '#787771' }}>
                             <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                             {formatFileSize(doc.file_size) && (
                               <>
@@ -747,7 +742,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                           type="button"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDocument(doc); }}
                           disabled={deletingDocumentId === doc.id}
-                          className="w-9 h-9 rounded-lg flex items-center justify-center text-[#7b7b74] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0"
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-[#787771] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0"
                           aria-label={`Delete ${doc.name}`}
                         >
                           <Trash2 size={18} />
@@ -765,8 +760,8 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 <button
                   onClick={handleLeaveSquad}
                   disabled={leaving}
-                  className="w-full py-3 bg-white border border-[#d9d2c5] text-[#7b7b74] rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  className="w-full py-3 bg-white border border-[#d9d2c5] text-[#787771] rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ fontWeight: 600 }}
                 >
                   <UserMinus className="w-4 h-4" />
                   {leaving ? 'Leaving...' : 'Leave Squad'}
@@ -779,35 +774,35 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               <div className="px-4 py-4 border-t border-[#e7ded1]">
                 <h3 
                   className="text-base mb-3"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                  style={{ fontWeight: 600, color: '#27251f' }}
                 >
                   Invite Members{' '}
                   {inviteSelectedIds.length > 0 && (
-                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-[#d47455] text-white" style={{ fontFamily: 'Arial, sans-serif' }}>
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-[#d47455] text-white" >
                       {inviteSelectedIds.length} selected
                     </span>
                   )}
                 </h3>
                 <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
                   <input
                     type="text"
                     placeholder="Search by name or email..."
                     value={inviteSearch}
                     onChange={(e) => setInviteSearch(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-white rounded-xl border border-[#e7ded1] focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent transition-all text-sm"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                    style={{ color: '#27251f' }}
                   />
                 </div>
                 <div className="max-h-48 overflow-y-auto bg-white rounded-xl border border-[#e7ded1] mb-3">
                   {inviteSearchLoading && (
-                    <div className="px-4 py-6 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Searching...</div>
+                    <div className="px-4 py-6 text-center text-sm" style={{ color: '#787771' }}>Searching...</div>
                   )}
                   {!inviteSearchLoading && !inviteSearch.trim() && inviteDisplayList.length === 0 && (
-                    <div className="px-4 py-6 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Search by name or email to add members</div>
+                    <div className="px-4 py-6 text-center text-sm" style={{ color: '#787771' }}>Search by name or email to add members</div>
                   )}
                   {!inviteSearchLoading && inviteSearch.trim() && inviteDisplayList.length === 0 && (
-                    <div className="px-4 py-6 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No users found</div>
+                    <div className="px-4 py-6 text-center text-sm" style={{ color: '#787771' }}>No users found</div>
                   )}
                   {!inviteSearchLoading && inviteDisplayList.length > 0 && inviteDisplayList.map((person) => (
                     <div
@@ -817,17 +812,17 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#e7ded1] flex items-center justify-center">
-                          <Users className="w-5 h-5 text-[#7b7b74]" />
+                          <Users className="w-5 h-5 text-[#787771]" />
                         </div>
                         <div>
-                          <div className="text-sm" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}>
+                          <div className="text-sm" style={{ fontWeight: 600, color: '#27251f' }}>
                             {person.full_name || person.email?.split('@')[0] || 'Unknown'}
                           </div>
-                          <div className="text-xs" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>{person.email}</div>
+                          <div className="text-xs" style={{ color: '#787771' }}>{person.email}</div>
                         </div>
                       </div>
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center ${inviteSelectedIds.includes(person.id) ? 'bg-[#d47455]' : 'bg-[#e7ded1]'}`}>
-                        {inviteSelectedIds.includes(person.id) ? <Check className="w-4 h-4 text-white" /> : <Plus className="w-4 h-4 text-[#7b7b74]" />}
+                        {inviteSelectedIds.includes(person.id) ? <Check className="w-4 h-4 text-white" /> : <Plus className="w-4 h-4 text-[#787771]" />}
                       </div>
                     </div>
                   ))}
@@ -838,7 +833,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     onClick={handleAddMembers}
                     disabled={inviteAdding}
                     className="w-full py-3 bg-[#d47455] text-white rounded-xl text-sm font-medium active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ fontFamily: 'Arial, sans-serif' }}
                   >
                     <UserPlus className="w-4 h-4" />
                     {inviteAdding ? 'Adding...' : `Add ${inviteSelectedIds.length} member${inviteSelectedIds.length === 1 ? '' : 's'}`}
@@ -851,7 +845,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             <div className="px-4 py-4">
               <h3 
                 className="text-base mb-3"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Members ({squad.member_count || 0})
               </h3>
@@ -877,7 +871,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                         ) : (
                           <div 
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
-                            style={{ backgroundColor: avatarColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                            style={{ backgroundColor: avatarColor, fontWeight: 600 }}
                           >
                             {initials}
                           </div>
@@ -885,12 +879,12 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                         <div className="flex-1 min-w-0">
                           <div 
                             className="text-sm truncate"
-                            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                            style={{ fontWeight: 600, color: '#27251f' }}
                           >
                             {memberName}
                           </div>
                           {member.role === 'admin' && (
-                            <div className="text-xs" style={{ fontFamily: 'Arial, sans-serif', color: '#d47455' }}>
+                            <div className="text-xs" style={{ color: '#d47455' }}>
                               Admin
                             </div>
                           )}
@@ -902,7 +896,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                           onClick={() => handleRemoveMember(member.user_id)}
                           disabled={isRemoving}
                           className="text-sm font-medium flex-shrink-0 text-[#d47455] hover:text-[#c06545] disabled:opacity-50"
-                          style={{ fontFamily: 'Arial, sans-serif' }}
                         >
                           {isRemoving ? 'Removing...' : 'Remove'}
                         </button>
@@ -920,7 +913,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full py-3 border rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
                   style={{ 
-                    fontFamily: 'Arial, sans-serif', 
                     fontWeight: 600,
                     backgroundColor: '#dc2626',
                     borderColor: '#b91c1c',
@@ -932,7 +924,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 </button>
                 <p 
                   className="text-xs mt-2 text-center"
-                  style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                  style={{ color: '#787771' }}
                 >
                   This action cannot be undone
                 </p>
@@ -952,21 +944,21 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             <div className="relative w-full max-w-md bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[101]">
               <h2
                 className="text-xl mb-4"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Delete Squad
               </h2>
               <p
                 className="text-sm mb-6"
-                style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+                style={{ color: '#27251f', lineHeight: 1.5 }}
               >
                 Are you sure you want to delete <strong>{squad.name}</strong>? This action cannot be undone and will delete all squad data, members, and documents.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2.5 bg-white border border-[#d9d2c5] text-[#7b7b74] rounded-xl text-sm active:scale-95 transition-transform"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  className="flex-1 py-2.5 bg-white border border-[#d9d2c5] text-[#787771] rounded-xl text-sm active:scale-95 transition-transform"
+                  style={{ fontWeight: 600 }}
                 >
                   Cancel
                 </button>
@@ -975,7 +967,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   disabled={deleting}
                   className="flex-1 py-2.5 border rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{ 
-                    fontFamily: 'Arial, sans-serif', 
                     fontWeight: 600,
                     backgroundColor: '#dc2626',
                     borderColor: '#b91c1c',
@@ -994,16 +985,16 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
         <div className="flex-1 overflow-y-auto bg-[#FBF9F5]">
           <div className="p-4">
             <div className="bg-white rounded-2xl p-6 text-center">
-              <MessageCircle className="w-12 h-12 text-[#7b7b74] mx-auto mb-3" />
+              <MessageCircle className="w-12 h-12 text-[#787771] mx-auto mb-3" />
               <p 
                 className="text-base mb-2"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Squad Feed Coming Soon
               </p>
               <p 
                 className="text-sm"
-                style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                style={{ color: '#787771' }}
               >
                 Use the chat to communicate with squad members
               </p>
@@ -1013,13 +1004,12 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
       </div>
 
       {/* Desktop View - Keep existing design */}
-      <div className="hidden md:block h-full overflow-hidden flex flex-col"  style={{ fontFamily: 'Arial, sans-serif' }}>
+      <div className="hidden md:block h-full overflow-hidden flex flex-col"  >
         {/* Squad Header */}
         <div className="bg-[#fefefc] border-b border-[#e7ded1] px-8 py-6">
           <button 
             onClick={onBack}
-            className="text-[13px] text-[#8c867d] hover:text-[#3d3d3a] mb-4 bg-transparent border-0 cursor-pointer"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-[13px] text-[#787771] hover:text-[#27251f] mb-4 bg-transparent border-0 cursor-pointer"
           >
             ← Back to Squads
           </button>
@@ -1030,19 +1020,18 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 className="w-20 h-20 rounded-full bg-[#f8f6f0] border-2 border-[#e7ded1] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#d9d2c5] transition-colors"
                 style={{ backgroundColor: squad.color + '20' }}
               >
-                <Image className="w-8 h-8 text-[#8c867d]" />
+                <Image className="w-8 h-8 text-[#787771]" />
               </div>
               
               <div>
                 <h1 
-                  className="text-[32px] text-[#3d3d3a] mb-2"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600, lineHeight: 1.2 }}
+                  className="text-[32px] text-[#27251f] mb-2"
+                  style={{ fontWeight: 600, lineHeight: 1.2 }}
                 >
                   {squad.name}
                 </h1>
                 <p 
-                  className="text-[16px] text-[#7b7b74]"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="text-[16px] text-[#787771]"
                 >
                   {squad.member_count || 0} members
                 </p>
@@ -1053,8 +1042,8 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 <button 
                   onClick={handleOpenChat}
                   disabled={!squad.conversation_id}
-                  className="px-4 py-2.5 bg-white border border-[#e7ded1] text-[#3d3d3a] rounded-lg text-[14px] hover:bg-[#fefefc] hover:border-[#d9d2c5] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  className="px-4 py-2.5 bg-white border border-[#e7ded1] text-[#27251f] rounded-lg text-[14px] hover:bg-[#fefefc] hover:border-[#d9d2c5] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ fontWeight: 600 }}
                 >
                   <MessageCircle className="w-4 h-4" />
                   Open Chat
@@ -1065,7 +1054,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   onClick={handleJoinSquad}
                   disabled={joining}
                   className="px-4 py-2.5 bg-[#d97757] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors flex items-center gap-2 disabled:opacity-50"
-                  style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                  style={{ fontWeight: 600 }}
                 >
                   <UserPlus className="w-4 h-4" />
                   {joining ? 'Joining...' : 'Join Squad'}
@@ -1076,7 +1065,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   onClick={() => setShowDeleteConfirm(true)}
                   className="px-4 py-2.5 border rounded-lg text-[14px] transition-colors flex items-center gap-2"
                   style={{ 
-                    fontFamily: 'Arial, sans-serif', 
                     fontWeight: 600,
                     backgroundColor: '#dc2626',
                     borderColor: '#b91c1c',
@@ -1098,16 +1086,15 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             <div className="max-w-3xl">
               {/* Feed - Empty state for now */}
               <div className="bg-white border border-[#e7ded1] rounded-lg p-8 text-center">
-                <MessageCircle className="w-16 h-16 text-[#8c867d] mx-auto mb-4" />
+                <MessageCircle className="w-16 h-16 text-[#787771] mx-auto mb-4" />
                 <h3 
                   className="text-[18px] mb-2"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                  style={{ fontWeight: 600, color: '#27251f' }}
                 >
                   Squad Feed Coming Soon
                 </h3>
                 <p 
-                  className="text-[14px] text-[#8c867d]"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="text-[14px] text-[#787771]"
                 >
                   Use the chat to communicate with squad members
                 </p>
@@ -1121,8 +1108,8 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             <div className="mb-6 p-4 bg-white border border-[#e7ded1] rounded-lg">
               <div className="flex items-center justify-between mb-3">
                 <h3 
-                  className="text-[16px] text-[#3d3d3a]"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+                  className="text-[16px] text-[#27251f]"
+                  style={{ fontWeight: 600 }}
                 >
                   About
                 </h3>
@@ -1131,7 +1118,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     type="button"
                     onClick={startEditingSquad}
                     className="flex items-center gap-1.5 text-[13px] text-[#d47455] hover:text-[#c06545]"
-                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                    style={{ fontWeight: 600 }}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edit
@@ -1141,37 +1128,36 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               {isEditingSquad ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[11px] text-[#8c867d] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Name</label>
+                    <label className="text-[11px] text-[#787771] block mb-1" >Name</label>
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-[#e7ded1] text-[13px] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      style={{ color: '#27251f' }}
                       placeholder="Squad name"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-[#8c867d] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Description</label>
+                    <label className="text-[11px] text-[#787771] block mb-1" >Description</label>
                     <textarea
                       value={editInfo}
                       onChange={(e) => setEditInfo(e.target.value)}
                       rows={3}
                       className="w-full px-3 py-2 rounded-lg border border-[#e7ded1] text-[13px] focus:outline-none focus:ring-2 focus:ring-[#d47455] resize-none"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                      style={{ color: '#27251f' }}
                       placeholder="Description"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-[#8c867d] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Category</label>
+                    <label className="text-[11px] text-[#787771] block mb-1" >Category</label>
                     <div className="flex flex-wrap gap-1.5">
                       {SQUAD_CATEGORIES.map((c) => (
                         <button
                           key={c.id}
                           type="button"
                           onClick={() => setEditCategory(c.id)}
-                          className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#3d3d3a]'}`}
-                          style={{ fontFamily: 'Arial, sans-serif' }}
+                          className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#27251f]'}`}
                         >
                           {c.label}
                         </button>
@@ -1179,13 +1165,12 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11px] text-[#8c867d] block mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Privacy</label>
+                    <label className="text-[11px] text-[#787771] block mb-1" >Privacy</label>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setEditType('open')}
-                        className={`flex-1 py-2 rounded-lg border-2 text-[12px] font-medium flex items-center justify-center gap-1.5 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#3d3d3a]' : 'border-[#e7ded1] bg-white text-[#7b7b74]'}`}
-                        style={{ fontFamily: 'Arial, sans-serif' }}
+                        className={`flex-1 py-2 rounded-lg border-2 text-[12px] font-medium flex items-center justify-center gap-1.5 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Globe className="w-3.5 h-3.5" />
                         Public
@@ -1193,8 +1178,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                       <button
                         type="button"
                         onClick={() => setEditType('private')}
-                        className={`flex-1 py-2 rounded-lg border-2 text-[12px] font-medium flex items-center justify-center gap-1.5 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#3d3d3a]' : 'border-[#e7ded1] bg-white text-[#7b7b74]'}`}
-                        style={{ fontFamily: 'Arial, sans-serif' }}
+                        className={`flex-1 py-2 rounded-lg border-2 text-[12px] font-medium flex items-center justify-center gap-1.5 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Lock className="w-3.5 h-3.5" />
                         Private
@@ -1205,8 +1189,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     <button
                       type="button"
                       onClick={cancelEditingSquad}
-                      className="flex-1 py-2 rounded-lg border border-[#e7ded1] text-[#7b7b74] text-[13px] font-medium"
-                      style={{ fontFamily: 'Arial, sans-serif' }}
+                      className="flex-1 py-2 rounded-lg border border-[#e7ded1] text-[#787771] text-[13px] font-medium"
                     >
                       Cancel
                     </button>
@@ -1215,7 +1198,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                       onClick={handleSaveSquadEdit}
                       disabled={savingSquad}
                       className="flex-1 py-2 rounded-lg bg-[#d47455] text-white text-[13px] font-medium disabled:opacity-50"
-                      style={{ fontFamily: 'Arial, sans-serif' }}
                     >
                       {savingSquad ? 'Saving...' : 'Save'}
                     </button>
@@ -1224,33 +1206,32 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               ) : (
                 <>
                   <p 
-                    className="text-[14px] text-[#3d3d3a] leading-relaxed mb-4"
-                    style={{ fontFamily: 'Arial, sans-serif' }}
+                    className="text-[14px] text-[#27251f] leading-relaxed mb-4"
                   >
                     {squad.info || 'No description available'}
                   </p>
-                  <div className="pt-3 border-t border-[#e7ded1] space-y-2 text-[13px]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                  <div className="pt-3 border-t border-[#e7ded1] space-y-2 text-[13px]" >
                     <div className="flex justify-between">
-                      <span className="text-[#8c867d]">Category:</span>
-                      <span className="text-[#3d3d3a]">{getCategoryLabel(squad.category)}</span>
+                      <span className="text-[#787771]">Category:</span>
+                      <span className="text-[#27251f]">{getCategoryLabel(squad.category)}</span>
                     </div>
                     {squad.meeting_times && (
                       <div className="flex justify-between">
-                        <span className="text-[#8c867d]">Meetings:</span>
-                        <span className="text-[#3d3d3a]">{squad.meeting_times}</span>
+                        <span className="text-[#787771]">Meetings:</span>
+                        <span className="text-[#27251f]">{squad.meeting_times}</span>
                       </div>
                     )}
                     {squad.location && (
                       <div className="flex justify-between">
-                        <span className="text-[#8c867d]">Location:</span>
-                        <span className="text-[#3d3d3a]">{squad.location}</span>
+                        <span className="text-[#787771]">Location:</span>
+                        <span className="text-[#27251f]">{squad.location}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-[#8c867d]">Privacy:</span>
+                      <span className="text-[#787771]">Privacy:</span>
                       <div className="flex items-center gap-1">
-                        <PrivacyIcon className="w-3 h-3 text-[#8c867d]" />
-                        <span className="text-[#3d3d3a]">{privacyLabel}</span>
+                        <PrivacyIcon className="w-3 h-3 text-[#787771]" />
+                        <span className="text-[#27251f]">{privacyLabel}</span>
                       </div>
                     </div>
                   </div>
@@ -1266,14 +1247,14 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   className="flex-1 flex items-center justify-between bg-transparent border-0 cursor-pointer p-0 hover:opacity-70 transition-opacity min-w-0"
                 >
                   <h3 
-                    className="text-[16px] text-[#3d3d3a]"
-                    style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+                    className="text-[16px] text-[#27251f]"
+                    style={{ fontWeight: 600 }}
                   >
                     Pinned Documents
                   </h3>
                   <ChevronDown 
                     size={16} 
-                    className={`text-[#8c867d] transition-transform flex-shrink-0 ml-2 ${showDocuments ? '' : '-rotate-90'}`} 
+                    className={`text-[#787771] transition-transform flex-shrink-0 ml-2 ${showDocuments ? '' : '-rotate-90'}`} 
                   />
                 </button>
                 {isAdmin && (
@@ -1291,7 +1272,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
               {showDocuments && (
                 <div className="space-y-2">
                   {documents.length === 0 ? (
-                    <p className="text-[13px] text-[#8c867d]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                    <p className="text-[13px] text-[#787771]" >
                       No documents yet
                     </p>
                   ) : (
@@ -1305,15 +1286,15 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                           onClick={(e) => handleDownloadDocument(e, doc)}
                           className="flex-1 flex items-start gap-3 min-w-0 cursor-pointer no-underline hover:bg-[#fefefc] -m-3 p-3 rounded-lg"
                         >
-                          <FileText size={16} className="text-[#8c867d] mt-0.5 flex-shrink-0" />
+                          <FileText size={16} className="text-[#787771] mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div 
-                              className="text-[13px] text-[#3d3d3a] mb-1 break-words"
-                              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                              className="text-[13px] text-[#27251f] mb-1 break-words"
+                              style={{ fontWeight: 600 }}
                             >
                               {doc.name}
                             </div>
-                            <div className="flex items-center gap-2 text-[11px] text-[#8c867d]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                            <div className="flex items-center gap-2 text-[11px] text-[#787771]" >
                               <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                               {formatFileSize(doc.file_size) && (
                                 <>
@@ -1329,7 +1310,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                             type="button"
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDocument(doc); }}
                             disabled={deletingDocumentId === doc.id}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8c867d] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0 mt-0.5"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#787771] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0 mt-0.5"
                             aria-label={`Delete ${doc.name}`}
                           >
                             <Trash2 size={16} />
@@ -1345,34 +1326,34 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
             {/* Invite Members (Admin only) - Desktop */}
             {isAdmin && (
               <div className="mb-6">
-                <h3 className="text-[16px] mb-2" style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}>
+                <h3 className="text-[16px] mb-2" style={{ fontWeight: 600, color: '#27251f' }}>
                   Invite Members{' '}
                   {inviteSelectedIds.length > 0 && (
-                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-[#d47455] text-white" style={{ fontFamily: 'Arial, sans-serif' }}>
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-[#d47455] text-white" >
                       {inviteSelectedIds.length} selected
                     </span>
                   )}
                 </h3>
                 <div className="relative mb-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
                   <input
                     type="text"
                     placeholder="Search by name or email..."
                     value={inviteSearch}
                     onChange={(e) => setInviteSearch(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-[#e7ded1] focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent transition-all text-[13px]"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                    style={{ color: '#27251f' }}
                   />
                 </div>
                 <div className="max-h-40 overflow-y-auto bg-white rounded-xl border border-[#e7ded1] mb-2">
                   {inviteSearchLoading && (
-                    <div className="px-4 py-4 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Searching...</div>
+                    <div className="px-4 py-4 text-center text-sm" style={{ color: '#787771' }}>Searching...</div>
                   )}
                   {!inviteSearchLoading && !inviteSearch.trim() && inviteDisplayList.length === 0 && (
-                    <div className="px-4 py-4 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>Search by name or email to add members</div>
+                    <div className="px-4 py-4 text-center text-sm" style={{ color: '#787771' }}>Search by name or email to add members</div>
                   )}
                   {!inviteSearchLoading && inviteSearch.trim() && inviteDisplayList.length === 0 && (
-                    <div className="px-4 py-4 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>No users found</div>
+                    <div className="px-4 py-4 text-center text-sm" style={{ color: '#787771' }}>No users found</div>
                   )}
                   {!inviteSearchLoading && inviteDisplayList.length > 0 && inviteDisplayList.map((person) => (
                     <div
@@ -1382,17 +1363,17 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-[#e7ded1] flex items-center justify-center flex-shrink-0">
-                          <Users className="w-4 h-4 text-[#7b7b74]" />
+                          <Users className="w-4 h-4 text-[#787771]" />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[13px] truncate" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}>
+                          <div className="text-[13px] truncate" style={{ fontWeight: 600, color: '#27251f' }}>
                             {person.full_name || person.email?.split('@')[0] || 'Unknown'}
                           </div>
-                          <div className="text-[11px] truncate" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>{person.email}</div>
+                          <div className="text-[11px] truncate" style={{ color: '#787771' }}>{person.email}</div>
                         </div>
                       </div>
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${inviteSelectedIds.includes(person.id) ? 'bg-[#d47455]' : 'bg-[#e7ded1]'}`}>
-                        {inviteSelectedIds.includes(person.id) ? <Check className="w-3 h-3 text-white" /> : <Plus className="w-3 h-3 text-[#7b7b74]" />}
+                        {inviteSelectedIds.includes(person.id) ? <Check className="w-3 h-3 text-white" /> : <Plus className="w-3 h-3 text-[#787771]" />}
                       </div>
                     </div>
                   ))}
@@ -1403,7 +1384,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     onClick={handleAddMembers}
                     disabled={inviteAdding}
                     className="w-full py-2.5 bg-[#d47455] text-white rounded-xl text-[13px] font-medium hover:bg-[#c06545] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ fontFamily: 'Arial, sans-serif' }}
                   >
                     <UserPlus className="w-4 h-4" />
                     {inviteAdding ? 'Adding...' : `Add ${inviteSelectedIds.length} member${inviteSelectedIds.length === 1 ? '' : 's'}`}
@@ -1419,14 +1399,14 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                 className="w-full flex items-center justify-between mb-3 bg-transparent border-0 cursor-pointer p-0 hover:opacity-70 transition-opacity"
               >
                 <h3 
-                  className="text-[16px] text-[#3d3d3a]"
-                  style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+                  className="text-[16px] text-[#27251f]"
+                  style={{ fontWeight: 600 }}
                 >
                   Members
                 </h3>
                 <ChevronDown 
                   size={16} 
-                  className={`text-[#8c867d] transition-transform ${showMembers ? '' : '-rotate-90'}`} 
+                  className={`text-[#787771] transition-transform ${showMembers ? '' : '-rotate-90'}`} 
                 />
               </button>
               {showMembers && (
@@ -1452,20 +1432,20 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                           ) : (
                             <div 
                               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] flex-shrink-0"
-                              style={{ backgroundColor: avatarColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                              style={{ backgroundColor: avatarColor, fontWeight: 600 }}
                             >
                               {initials}
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
                             <div 
-                              className="text-[13px] text-[#3d3d3a] truncate"
-                              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                              className="text-[13px] text-[#27251f] truncate"
+                              style={{ fontWeight: 600 }}
                             >
                               {memberName}
                             </div>
                             {member.role === 'admin' && (
-                              <div className="text-[11px] text-[#d97757]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              <div className="text-[11px] text-[#d97757]" >
                                 Admin
                               </div>
                             )}
@@ -1477,7 +1457,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                             onClick={() => handleRemoveMember(member.user_id)}
                             disabled={isRemoving}
                             className="text-[13px] font-medium flex-shrink-0 text-[#d47455] hover:text-[#c06545] disabled:opacity-50"
-                            style={{ fontFamily: 'Arial, sans-serif' }}
                           >
                             {isRemoving ? 'Removing...' : 'Remove'}
                           </button>
@@ -1487,8 +1466,8 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   })}
                   {members.length < (squad.member_count || 0) && (
                     <button 
-                      className="w-full p-3 bg-white border border-[#e7ded1] rounded-lg hover:border-[#d9d2c5] hover:bg-[#fefefc] transition-all text-center cursor-pointer text-[13px] text-[#8c867d] flex items-center justify-center gap-1" 
-                      style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                      className="w-full p-3 bg-white border border-[#e7ded1] rounded-lg hover:border-[#d9d2c5] hover:bg-[#fefefc] transition-all text-center cursor-pointer text-[13px] text-[#787771] flex items-center justify-center gap-1" 
+                      style={{ fontWeight: 600 }}
                     >
                       View all {squad.member_count || 0} members
                     </button>

@@ -49,9 +49,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
 
   return (
     <div
-      className="flex flex-col items-center relative px-4 overflow-hidden"
+      className="landing-bg flex flex-col items-center relative px-4 overflow-hidden"
       style={{
-        backgroundColor: 'var(--background-color, #f9f5f0)',
         minHeight: 'var(--app-height, 100vh)',
         height: 'var(--app-height, 100vh)',
         maxHeight: 'var(--app-height, 100vh)',
@@ -65,8 +64,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
       {onBack && (
         <button
           onClick={onBack}
-          className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 text-[#3d3d3a] hover:bg-white/50 rounded-xl transition-colors"
-          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 500 }}
+          className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 text-[#27251f] hover:bg-white/50 rounded-xl transition-colors"
+          style={{ fontWeight: 500 }}
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Back</span>

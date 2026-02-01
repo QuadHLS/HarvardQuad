@@ -153,7 +153,7 @@ export function CalendarPage() {
             <div className="flex items-center gap-2">
               <h1 
                 className="text-2xl"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#27251f' }}
               >
                 {monthNames[currentMonth]}
               </h1>
@@ -162,7 +162,7 @@ export function CalendarPage() {
                 className="w-6 h-6 flex items-center justify-center transition-transform"
                 style={{ transform: isMonthExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
               >
-                <ChevronDown className="w-4 h-4" style={{ color: '#7b7b74' }} />
+                <ChevronDown className="w-4 h-4" style={{ color: '#787771' }} />
               </button>
             </div>
 
@@ -172,13 +172,13 @@ export function CalendarPage() {
                   onClick={previousMonth}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white active:scale-95 transition-all"
                 >
-                  <ChevronLeft className="w-4 h-4" style={{ color: '#7b7b74' }} />
+                  <ChevronLeft className="w-4 h-4" style={{ color: '#787771' }} />
                 </button>
                 <button 
                   onClick={nextMonth}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white active:scale-95 transition-all"
                 >
-                  <ChevronRight className="w-4 h-4" style={{ color: '#7b7b74' }} />
+                  <ChevronRight className="w-4 h-4" style={{ color: '#787771' }} />
                 </button>
               </div>
             )}
@@ -196,7 +196,7 @@ export function CalendarPage() {
                   <div key={i} className="text-center py-0.5">
                     <span 
                       className="text-[9px]"
-                      style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#7b7b74' }}
+                      style={{ fontWeight: 600, color: '#787771' }}
                     >
                       {day}
                     </span>
@@ -232,13 +232,12 @@ export function CalendarPage() {
                         <span 
                           className="text-xs relative z-10"
                           style={{ 
-                            fontFamily: 'Arial, sans-serif',
                             fontWeight: isSelectedDay(dayObj.day) || isToday(dayObj.day) ? 600 : 400,
                             color: isSelectedDay(dayObj.day) 
                               ? '#fff' 
                               : isToday(dayObj.day)
                               ? '#d47455'
-                              : '#3d3d3a'
+                              : '#27251f'
                           }}
                         >
                           {dayObj.day}
@@ -278,9 +277,8 @@ export function CalendarPage() {
                       <div 
                         className="text-[8px] mb-0.5"
                         style={{ 
-                          fontFamily: 'Arial, sans-serif',
                           fontWeight: 600,
-                          color: isSelectedWeekDay ? '#fff' : '#7b7b74'
+                          color: isSelectedWeekDay ? '#fff' : '#787771'
                         }}
                       >
                         {dayObj.dayOfWeek.toUpperCase()}
@@ -288,13 +286,12 @@ export function CalendarPage() {
                       <div 
                         className="text-sm"
                         style={{ 
-                          fontFamily: 'Arial, sans-serif',
                           fontWeight: isSelectedWeekDay || isTodayWeekDay ? 600 : 400,
                           color: isSelectedWeekDay 
                             ? '#fff' 
                             : isTodayWeekDay
                             ? '#d47455'
-                            : '#3d3d3a'
+                            : '#27251f'
                         }}
                       >
                         {dayObj.day}
@@ -317,7 +314,7 @@ export function CalendarPage() {
                 <div className="w-16 flex-shrink-0 pr-3 pt-0">
                   <span 
                     className="text-xs"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#c7bcaa' }}
+                    style={{ color: '#c7bcaa' }}
                   >
                     {hourObj.label}
                   </span>
@@ -351,28 +348,27 @@ export function CalendarPage() {
                     <h3 
                       className="text-sm mb-1"
                       style={{ 
-                        fontFamily: 'Lora, serif', 
                         fontWeight: 600, 
-                        color: '#3d3d3a',
+                        color: '#27251f',
                         lineHeight: '1.2'
                       }}
                     >
                       {event.name}
                     </h3>
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Clock className="w-3 h-3" style={{ color: '#7b7b74' }} />
+                      <Clock className="w-3 h-3" style={{ color: '#787771' }} />
                       <span 
                         className="text-xs"
-                        style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                        style={{ color: '#787771' }}
                       >
                         {event.time}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3 h-3" style={{ color: '#7b7b74' }} />
+                      <MapPin className="w-3 h-3" style={{ color: '#787771' }} />
                       <span 
                         className="text-xs"
-                        style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                        style={{ color: '#787771' }}
                       >
                         {event.location}
                       </span>
@@ -388,8 +384,8 @@ export function CalendarPage() {
       {/* Desktop View - Keep existing */}
       <div className="hidden md:block p-12">
         <h1 
-          className="text-[56px] text-[#3d3d3a] mb-8"
-          style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
+          className="text-[56px] text-[#27251f] mb-8"
+          style={{ fontWeight: 400 }}
         >
           Schedule
         </h1>
@@ -400,8 +396,8 @@ export function CalendarPage() {
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-6">
               <h2 
-                className="text-[32px] text-[#3d3d3a]"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 400 }}
+                className="text-[32px] text-[#27251f]"
+                style={{ fontWeight: 400 }}
               >
                 {monthNames[currentMonth]} {currentYear}
               </h2>
@@ -410,13 +406,13 @@ export function CalendarPage() {
                   onClick={previousMonth}
                   className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
                 >
-                  <ChevronLeft className="w-6 h-6" style={{ color: '#7b7b74' }} />
+                  <ChevronLeft className="w-6 h-6" style={{ color: '#787771' }} />
                 </button>
                 <button 
                   onClick={nextMonth}
                   className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f5f3eb] transition-colors"
                 >
-                  <ChevronRight className="w-6 h-6" style={{ color: '#7b7b74' }} />
+                  <ChevronRight className="w-6 h-6" style={{ color: '#787771' }} />
                 </button>
               </div>
             </div>
@@ -427,7 +423,7 @@ export function CalendarPage() {
                 <div key={day} className="text-center">
                   <span 
                     className="text-[14px]"
-                    style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#7b7b74' }}
+                    style={{ fontWeight: 600, color: '#787771' }}
                   >
                     {day}
                   </span>
@@ -457,7 +453,7 @@ export function CalendarPage() {
                       style={{ 
                         fontFamily: 'Arial, sans-serif',
                         fontWeight: isToday(dayObj.day) ? 600 : 400,
-                        color: isToday(dayObj.day) ? '#fff' : '#3d3d3a'
+                        color: isToday(dayObj.day) ? '#fff' : '#27251f'
                       }}
                     >
                       {dayObj.day}
@@ -471,7 +467,7 @@ export function CalendarPage() {
           {/* Today's Classes Sidebar */}
           <div>
             <h3 
-              className="text-[24px] text-[#3d3d3a] mb-4"
+              className="text-[24px] text-[#27251f] mb-4"
               style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
             >
               Today's Classes
@@ -487,24 +483,24 @@ export function CalendarPage() {
                     <div className="flex-1">
                       <h4 
                         className="text-[18px] mb-2"
-                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#27251f' }}
                       >
                         {classItem.name}
                       </h4>
                       <div className="flex items-center gap-2 mb-2">
-                        <Clock className="w-4 h-4" style={{ color: '#7b7b74' }} />
+                        <Clock className="w-4 h-4" style={{ color: '#787771' }} />
                         <span 
                           className="text-[14px]"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                          style={{ color: '#787771' }}
                         >
                           {classItem.time}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" style={{ color: '#7b7b74' }} />
+                        <MapPin className="w-4 h-4" style={{ color: '#787771' }} />
                         <span 
                           className="text-[14px]"
-                          style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                          style={{ color: '#787771' }}
                         >
                           {classItem.location}
                         </span>

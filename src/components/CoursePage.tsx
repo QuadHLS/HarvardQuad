@@ -148,7 +148,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
   ];
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]" style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]" >
       {/* Mobile View */}
       <div className="md:hidden h-full flex flex-col">
         {/* Mobile Header */}
@@ -158,11 +158,11 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
               onClick={onBack}
               className="w-8 h-8 flex items-center justify-center -ml-2"
             >
-              <ChevronLeft className="w-6 h-6 text-[#3d3d3a]" />
+              <ChevronLeft className="w-6 h-6 text-[#27251f]" />
             </button>
             <h1 
               className="text-2xl flex-1"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               {course.name}
             </h1>
@@ -170,7 +170,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
               onClick={() => setShowInfoMenu(true)}
               className="w-8 h-8 flex items-center justify-center"
             >
-              <MoreVertical className="w-5 h-5 text-[#3d3d3a]" />
+              <MoreVertical className="w-5 h-5 text-[#27251f]" />
             </button>
           </div>
         </div>
@@ -194,7 +194,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
             <div className="bg-[#F1EFE7] px-4 py-4 flex items-center justify-between sticky top-0 z-10">
               <h2 
                 className="text-lg"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Course Info
               </h2>
@@ -202,7 +202,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                 onClick={() => setShowInfoMenu(false)}
                 className="w-8 h-8 flex items-center justify-center"
               >
-                <X className="w-5 h-5 text-[#3d3d3a]" />
+                <X className="w-5 h-5 text-[#27251f]" />
               </button>
             </div>
 
@@ -210,32 +210,32 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
             <div className="px-4 py-4 border-b border-[#e7ded1]">
               <h3 
                 className="text-base mb-3"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 About this Course
               </h3>
               <p 
                 className="text-sm mb-4"
-                style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+                style={{ color: '#27251f', lineHeight: 1.5 }}
               >
                 {course.description}
               </p>
-              <div className="space-y-2.5 text-sm" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <div className="space-y-2.5 text-sm" >
                 <div className="flex justify-between">
-                  <span className="text-[#7b7b74]">Professor:</span>
-                  <span className="text-[#3d3d3a]">{course.professor}</span>
+                  <span className="text-[#787771]">Professor:</span>
+                  <span className="text-[#27251f]">{course.professor}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#7b7b74]">Schedule:</span>
-                  <span className="text-[#3d3d3a] text-right">{course.schedule}</span>
+                  <span className="text-[#787771]">Schedule:</span>
+                  <span className="text-[#27251f] text-right">{course.schedule}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#7b7b74]">Location:</span>
-                  <span className="text-[#3d3d3a]">{course.location}</span>
+                  <span className="text-[#787771]">Location:</span>
+                  <span className="text-[#27251f]">{course.location}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#7b7b74]">Semester:</span>
-                  <span className="text-[#3d3d3a]">{course.semester}</span>
+                  <span className="text-[#787771]">Semester:</span>
+                  <span className="text-[#27251f]">{course.semester}</span>
                 </div>
               </div>
             </div>
@@ -244,7 +244,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
             <div className="px-4 py-4 border-b border-[#e7ded1]">
               <h3 
                 className="text-base mb-3"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Course Documents ({documents.length})
               </h3>
@@ -256,21 +256,21 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-[#f0eee6] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <doc.icon size={18} className="text-[#7b7b74]" />
+                        <doc.icon size={18} className="text-[#787771]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 
                           className="text-sm mb-0.5 truncate"
-                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                          style={{ fontWeight: 600, color: '#27251f' }}
                         >
                           {doc.title}
                         </h4>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                          <span className="text-xs" style={{ color: '#787771' }}>
                             {doc.type}
                           </span>
-                          <span className="text-xs text-[#7b7b74]">•</span>
-                          <span className="text-xs" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                          <span className="text-xs text-[#787771]">•</span>
+                          <span className="text-xs" style={{ color: '#787771' }}>
                             {doc.date}
                           </span>
                         </div>
@@ -285,7 +285,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
             <div className="px-4 py-4">
               <h3 
                 className="text-base mb-3"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+                style={{ fontWeight: 600, color: '#27251f' }}
               >
                 Students ({students.length})
               </h3>
@@ -298,14 +298,14 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                     <div className="flex items-center gap-3">
                       <div 
                         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
-                        style={{ backgroundColor: student.avatarColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                        style={{ backgroundColor: student.avatarColor, fontWeight: 600 }}
                       >
                         {student.avatar}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div 
                           className="text-sm truncate"
-                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                          style={{ fontWeight: 600, color: '#27251f' }}
                         >
                           {student.name}
                         </div>
@@ -332,18 +332,18 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                     <div className="flex items-center gap-2">
                       <div 
                         className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs"
-                        style={{ backgroundColor: post.avatarColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                        style={{ backgroundColor: post.avatarColor, fontWeight: 600 }}
                       >
                         {post.avatar}
                       </div>
                       <div>
                         <span 
                           className="text-sm block"
-                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                          style={{ fontWeight: 600, color: '#27251f' }}
                         >
                           {post.author}
                         </span>
-                        <span className="text-xs" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                        <span className="text-xs" style={{ color: '#787771' }}>
                           {post.time}
                         </span>
                       </div>
@@ -351,7 +351,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                     {post.isPinned && (
                       <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: '#fff3e0' }}>
                         <Pin size={12} className="text-[#d97757]" />
-                        <span className="text-xs" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#d97757' }}>
+                        <span className="text-xs" style={{ fontWeight: 600, color: '#d97757' }}>
                           Pinned
                         </span>
                       </div>
@@ -360,14 +360,14 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                   
                   <h3 
                     className="text-base mb-2"
-                    style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a', lineHeight: 1.3 }}
+                    style={{ fontWeight: 600, color: '#27251f', lineHeight: 1.3 }}
                   >
                     {post.title}
                   </h3>
                   
                   <p 
                     className="text-sm mb-3"
-                    style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+                    style={{ color: '#27251f', lineHeight: 1.5 }}
                   >
                     {post.content}
                   </p>
@@ -377,20 +377,20 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                 <div className="border-t border-[#f5f3eb] px-4 py-2 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <button className="flex items-center gap-1.5 py-1 active:scale-95 transition-transform">
-                      <ArrowUp size={18} className="text-[#7b7b74]" />
-                      <span className="text-sm" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}>
+                      <ArrowUp size={18} className="text-[#787771]" />
+                      <span className="text-sm" style={{ fontWeight: 600, color: '#27251f' }}>
                         {post.upvotes}
                       </span>
                     </button>
                     <button className="flex items-center gap-1.5 py-1 active:scale-95 transition-transform">
-                      <MessageSquare size={18} className="text-[#7b7b74]" />
-                      <span className="text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                      <MessageSquare size={18} className="text-[#787771]" />
+                      <span className="text-sm" style={{ color: '#787771' }}>
                         {post.comments}
                       </span>
                     </button>
                   </div>
                   <button className="p-1 active:scale-95 transition-transform">
-                    <Bookmark size={18} className="text-[#7b7b74]" />
+                    <Bookmark size={18} className="text-[#787771]" />
                   </button>
                 </div>
               </div>
@@ -407,47 +407,42 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
       </div>
 
       {/* Desktop View - Keep existing design */}
-      <div className="hidden md:block h-full overflow-hidden flex flex-col"  style={{ fontFamily: 'Arial, sans-serif' }}>
+      <div className="hidden md:block h-full overflow-hidden flex flex-col"  >
         {/* Course Header */}
         <div className="bg-[#fefefc] border-b border-[#e7ded1] px-8 py-6">
           <button 
             onClick={onBack}
-            className="text-[13px] text-[#8c867d] hover:text-[#3d3d3a] mb-4 bg-transparent border-0 cursor-pointer"
-            style={{ fontFamily: 'Arial, sans-serif' }}
+            className="text-[13px] text-[#787771] hover:text-[#27251f] mb-4 bg-transparent border-0 cursor-pointer"
           >
             ← Back to {previousView === 'dashboard' ? 'Home' : previousView === 'messaging' ? 'Messages' : 'Course'}
           </button>
           <div className="flex items-start justify-between">
             <div>
               <h1 
-                className="text-[32px] text-[#3d3d3a] mb-2"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600, lineHeight: 1.2 }}
+                className="text-[32px] text-[#27251f] mb-2"
+                style={{ fontWeight: 600, lineHeight: 1.2 }}
               >
                 {course.name}
               </h1>
               <p 
-                className="text-[16px] text-[#7b7b74] mb-3"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="text-[16px] text-[#787771] mb-3"
               >
                 {course.professor} • {course.schedule}
               </p>
               <p 
-                className="text-[14px] text-[#7b7b74] max-w-2xl"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="text-[14px] text-[#787771] max-w-2xl"
               >
                 {course.description}
               </p>
             </div>
             <div className="text-right">
               <div 
-                className="text-[14px] text-[#7b7b74] mb-1"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="text-[14px] text-[#787771] mb-1"
               >
                 {course.location}
               </div>
               <div 
-                className="text-[13px] text-[#8c867d]"
-                style={{ fontFamily: 'Arial, sans-serif' }}
+                className="text-[13px] text-[#787771]"
               >
                 {course.semester}
               </div>
@@ -470,16 +465,16 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                     <div className="flex">
                       {/* Vote Section */}
                       <div className="w-12 bg-[#f8f6f0] flex flex-col items-center py-3 px-2">
-                        <button className="text-[#8c867d] hover:text-[#d97757] bg-transparent border-0 cursor-pointer p-1">
+                        <button className="text-[#787771] hover:text-[#d97757] bg-transparent border-0 cursor-pointer p-1">
                           <ArrowUp size={18} />
                         </button>
                         <span 
-                          className="text-[13px] text-[#3d3d3a] my-1"
-                          style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                          className="text-[13px] text-[#27251f] my-1"
+                          style={{ fontWeight: 600 }}
                         >
                           {post.upvotes}
                         </span>
-                        <button className="text-[#8c867d] hover:text-[#d97757] bg-transparent border-0 cursor-pointer p-1 rotate-180">
+                        <button className="text-[#787771] hover:text-[#d97757] bg-transparent border-0 cursor-pointer p-1 rotate-180">
                           <ArrowUp size={18} />
                         </button>
                       </div>
@@ -490,52 +485,51 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                           <div className="flex items-center gap-2">
                             <div 
                               className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px]"
-                              style={{ backgroundColor: post.avatarColor, fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                              style={{ backgroundColor: post.avatarColor, fontWeight: 600 }}
                             >
                               {post.avatar}
                             </div>
                             <span 
-                              className="text-[13px] text-[#3d3d3a]"
-                              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                              className="text-[13px] text-[#27251f]"
+                              style={{ fontWeight: 600 }}
                             >
                               {post.author}
                             </span>
-                            <span className="text-[12px] text-[#8c867d]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                            <span className="text-[12px] text-[#787771]" >
                               • {post.time}
                             </span>
                           </div>
                           {post.isPinned && (
                             <div className="flex items-center gap-1 text-[#d97757]">
                               <Pin size={14} />
-                              <span className="text-[11px]" style={{ fontFamily: 'Arial, sans-serif' }}>Pinned</span>
+                              <span className="text-[11px]" >Pinned</span>
                             </div>
                           )}
                         </div>
                         
                         <h3 
-                          className="text-[16px] text-[#3d3d3a] mb-2"
-                          style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+                          className="text-[16px] text-[#27251f] mb-2"
+                          style={{ fontWeight: 600 }}
                         >
                           {post.title}
                         </h3>
                         
                         <p 
-                          className="text-[14px] text-[#3d3d3a] mb-3 leading-relaxed"
-                          style={{ fontFamily: 'Arial, sans-serif' }}
+                          className="text-[14px] text-[#27251f] mb-3 leading-relaxed"
                         >
                           {post.content}
                         </p>
 
                         <div className="flex items-center gap-4">
-                          <button className="flex items-center gap-1 text-[#8c867d] hover:text-[#3d3d3a] bg-transparent border-0 cursor-pointer">
+                          <button className="flex items-center gap-1 text-[#787771] hover:text-[#27251f] bg-transparent border-0 cursor-pointer">
                             <MessageSquare size={16} />
-                            <span className="text-[12px]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                            <span className="text-[12px]" >
                               {post.comments} {post.comments === 1 ? 'comment' : 'comments'}
                             </span>
                           </button>
-                          <button className="flex items-center gap-1 text-[#8c867d] hover:text-[#3d3d3a] bg-transparent border-0 cursor-pointer">
+                          <button className="flex items-center gap-1 text-[#787771] hover:text-[#27251f] bg-transparent border-0 cursor-pointer">
                             <Bookmark size={16} />
-                            <span className="text-[12px]" style={{ fontFamily: 'Arial, sans-serif' }}>Save</span>
+                            <span className="text-[12px]" >Save</span>
                           </button>
                         </div>
                       </div>
@@ -548,7 +542,6 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
             {/* Floating New Post Button */}
             <button 
               className="fixed bottom-8 right-[calc(320px+2rem)] w-14 h-14 bg-[#DD8161] rounded-full flex items-center justify-center shadow-lg hover:bg-[#c7754f] transition-colors border-0 cursor-pointer z-10"
-              style={{ fontFamily: 'Arial, sans-serif' }}
             >
               <Plus size={24} className="text-white" />
             </button>
@@ -557,8 +550,8 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
           {/* Right Column - Pinned Documents */}
           <div className="w-80 bg-[#fefefc] border-l border-[#e7ded1] overflow-y-auto px-6 py-6">
             <h2 
-              className="text-[18px] text-[#3d3d3a] mb-4"
-              style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+              className="text-[18px] text-[#27251f] mb-4"
+              style={{ fontWeight: 600 }}
             >
               Pinned Documents
             </h2>
@@ -571,21 +564,21 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-[#f0eee6] rounded flex items-center justify-center flex-shrink-0">
-                      <doc.icon size={16} className="text-[#7b7b74]" />
+                      <doc.icon size={16} className="text-[#787771]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 
-                        className="text-[13px] text-[#3d3d3a] mb-1 truncate"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                        className="text-[13px] text-[#27251f] mb-1 truncate"
+                        style={{ fontWeight: 600 }}
                       >
                         {doc.title}
                       </h3>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-[#8c867d]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                        <span className="text-[11px] text-[#787771]" >
                           {doc.type}
                         </span>
-                        <span className="text-[11px] text-[#8c867d]">•</span>
-                        <span className="text-[11px] text-[#8c867d]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                        <span className="text-[11px] text-[#787771]">•</span>
+                        <span className="text-[11px] text-[#787771]" >
                           {doc.date}
                         </span>
                       </div>
@@ -598,37 +591,33 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
             {/* Additional Resources Section */}
             <div className="mt-8">
               <h3 
-                className="text-[16px] text-[#3d3d3a] mb-3"
-                style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}
+                className="text-[16px] text-[#27251f] mb-3"
+                style={{ fontWeight: 600 }}
               >
                 Quick Links
               </h3>
               <div className="space-y-2">
                 <a 
                   href="#" 
-                  className="block text-[13px] text-[#8c867d] hover:text-[#3d3d3a] no-underline"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="block text-[13px] text-[#787771] hover:text-[#27251f] no-underline"
                 >
                   → Course Website
                 </a>
                 <a 
                   href="#" 
-                  className="block text-[13px] text-[#8c867d] hover:text-[#3d3d3a] no-underline"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="block text-[13px] text-[#787771] hover:text-[#27251f] no-underline"
                 >
                   → Reading List
                 </a>
                 <a 
                   href="#" 
-                  className="block text-[13px] text-[#8c867d] hover:text-[#3d3d3a] no-underline"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="block text-[13px] text-[#787771] hover:text-[#27251f] no-underline"
                 >
                   → Assignment Portal
                 </a>
                 <a 
                   href="#" 
-                  className="block text-[13px] text-[#8c867d] hover:text-[#3d3d3a] no-underline"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
+                  className="block text-[13px] text-[#787771] hover:text-[#27251f] no-underline"
                 >
                   → Submit Work
                 </a>

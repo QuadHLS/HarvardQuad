@@ -76,14 +76,14 @@ export const AuthCallback: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 fade-in-overlay" style={{ backgroundColor: '#faf3ef' }}>
+      <div className="landing-bg fixed inset-0 flex items-center justify-center z-50 fade-in-overlay">
         <div className="text-center">
           <img
             src="/QUAD.svg"
             alt="Quad Logo"
             className="w-24 h-24 mx-auto"
           />
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-700 mx-auto mt-4"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#27251f] mx-auto mt-4"></div>
         </div>
       </div>
     );

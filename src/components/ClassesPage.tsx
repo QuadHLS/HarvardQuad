@@ -118,23 +118,23 @@ export function ClassesPage() {
   ];
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif' }} className="h-full flex flex-col bg-white">
+    <div  className="h-full flex flex-col bg-white">
       {/* Header */}
       <div className="px-8 py-6 border-b border-[#e8e4db]">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[32px] m-0 text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+            <h1 className="text-[32px] m-0 text-[#27251f]" style={{ fontWeight: 600 }}>
               My Classes
             </h1>
-            <p className="text-[14px] text-[#666] mt-1 mb-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-[14px] text-[#787771] mt-1 mb-0" >
               Spring 2024 • {courses.reduce((sum, c) => sum + c.credits, 0)} Credits
             </p>
           </div>
           <div className="flex gap-3">
             <button 
               onClick={() => setShowUploadModal(true)}
-              className="px-4 py-2 bg-white border border-[#e8e4db] text-[#1a1a1a] rounded-lg text-[14px] hover:bg-[#faf9f7] transition-colors flex items-center gap-2"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              className="px-4 py-2 bg-white border border-[#e8e4db] text-[#27251f] rounded-lg text-[14px] hover:bg-[#faf9f7] transition-colors flex items-center gap-2"
+              style={{ fontWeight: 600 }}
             >
               <Upload className="w-4 h-4" />
               Upload Syllabus
@@ -142,7 +142,7 @@ export function ClassesPage() {
             <button 
               onClick={() => setShowEditModal(true)}
               className="px-4 py-2 bg-[#d47455] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors flex items-center gap-2"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+              style={{ fontWeight: 600 }}
             >
               <Edit2 className="w-4 h-4" />
               Edit Schedule
@@ -158,10 +158,10 @@ export function ClassesPage() {
             onClick={() => setActiveTab('overview')}
             className={`pb-3 px-2 text-[15px] border-b-2 transition-all ${
               activeTab === 'overview'
-                ? 'border-[#d47455] text-[#1a1a1a]'
-                : 'border-transparent text-[#666] hover:text-[#1a1a1a]'
+                ? 'border-[#d47455] text-[#27251f]'
+                : 'border-transparent text-[#787771] hover:text-[#27251f]'
             }`}
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: activeTab === 'overview' ? 600 : 400 }}
+            style={{ fontWeight: activeTab === 'overview' ? 600 : 400 }}
           >
             Overview
           </button>
@@ -169,10 +169,10 @@ export function ClassesPage() {
             onClick={() => setActiveTab('schedule')}
             className={`pb-3 px-2 text-[15px] border-b-2 transition-all ${
               activeTab === 'schedule'
-                ? 'border-[#d47455] text-[#1a1a1a]'
-                : 'border-transparent text-[#666] hover:text-[#1a1a1a]'
+                ? 'border-[#d47455] text-[#27251f]'
+                : 'border-transparent text-[#787771] hover:text-[#27251f]'
             }`}
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: activeTab === 'schedule' ? 600 : 400 }}
+            style={{ fontWeight: activeTab === 'schedule' ? 600 : 400 }}
           >
             Schedule
           </button>
@@ -180,10 +180,10 @@ export function ClassesPage() {
             onClick={() => setActiveTab('assignments')}
             className={`pb-3 px-2 text-[15px] border-b-2 transition-all ${
               activeTab === 'assignments'
-                ? 'border-[#d47455] text-[#1a1a1a]'
-                : 'border-transparent text-[#666] hover:text-[#1a1a1a]'
+                ? 'border-[#d47455] text-[#27251f]'
+                : 'border-transparent text-[#787771] hover:text-[#27251f]'
             }`}
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: activeTab === 'assignments' ? 600 : 400 }}
+            style={{ fontWeight: activeTab === 'assignments' ? 600 : 400 }}
           >
             Assignments
           </button>
@@ -206,39 +206,39 @@ export function ClassesPage() {
                       style={{ backgroundColor: course.color }}
                     ></div>
                     <div>
-                      <h3 className="text-[18px] text-[#1a1a1a] mb-1 mt-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+                      <h3 className="text-[18px] text-[#27251f] mb-1 mt-0" style={{ fontWeight: 600 }}>
                         {course.name}
                       </h3>
-                      <p className="text-[13px] text-[#666] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      <p className="text-[13px] text-[#787771] m-0" >
                         {course.code}
                       </p>
                     </div>
                   </div>
-                  <span className="text-[13px] text-[#666] bg-[#f5f5f5] px-3 py-1 rounded-full" style={{ fontFamily: 'Arial, sans-serif' }}>
+                  <span className="text-[13px] text-[#787771] bg-[#f5f5f5] px-3 py-1 rounded-full" >
                     {course.credits} credits
                   </span>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-[13px] text-[#666]">
+                  <div className="flex items-center gap-2 text-[13px] text-[#787771]">
                     <User className="w-4 h-4" />
-                    <span style={{ fontFamily: 'Arial, sans-serif' }}>{course.professor}</span>
+                    <span >{course.professor}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[13px] text-[#666]">
+                  <div className="flex items-center gap-2 text-[13px] text-[#787771]">
                     <Clock className="w-4 h-4" />
-                    <span style={{ fontFamily: 'Arial, sans-serif' }}>{course.schedule}</span>
+                    <span >{course.schedule}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[13px] text-[#666]">
+                  <div className="flex items-center gap-2 text-[13px] text-[#787771]">
                     <MapPin className="w-4 h-4" />
-                    <span style={{ fontFamily: 'Arial, sans-serif' }}>{course.location}</span>
+                    <span >{course.location}</span>
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-[#e8e4db] flex gap-2">
-                  <button className="flex-1 px-3 py-2 bg-[#faf9f7] text-[#1a1a1a] rounded-lg text-[13px] hover:bg-[#f0ede3] transition-colors" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+                  <button className="flex-1 px-3 py-2 bg-[#faf9f7] text-[#27251f] rounded-lg text-[13px] hover:bg-[#f0ede3] transition-colors" style={{ fontWeight: 600 }}>
                     View Course
                   </button>
-                  <button className="px-3 py-2 bg-[#faf9f7] text-[#1a1a1a] rounded-lg text-[13px] hover:bg-[#f0ede3] transition-colors" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+                  <button className="px-3 py-2 bg-[#faf9f7] text-[#27251f] rounded-lg text-[13px] hover:bg-[#f0ede3] transition-colors" style={{ fontWeight: 600 }}>
                     <FileText className="w-4 h-4" />
                   </button>
                 </div>
@@ -247,11 +247,11 @@ export function ClassesPage() {
 
             {/* Add Course Card */}
             <div className="bg-white border-2 border-dashed border-[#e8e4db] rounded-lg p-6 flex flex-col items-center justify-center min-h-[280px] hover:border-[#d47455] hover:bg-[#fef9f5] transition-all cursor-pointer">
-              <Plus className="w-12 h-12 text-[#999] mb-3" />
-              <p className="text-[14px] text-[#666] m-0" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+              <Plus className="w-12 h-12 text-[#787771] mb-3" />
+              <p className="text-[14px] text-[#787771] m-0" style={{ fontWeight: 600 }}>
                 Add New Course
               </p>
-              <p className="text-[12px] text-[#999] mt-1 m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <p className="text-[12px] text-[#787771] mt-1 m-0" >
                 Manually add or upload syllabus
               </p>
             </div>
@@ -261,14 +261,14 @@ export function ClassesPage() {
         {activeTab === 'schedule' && (
           <div>
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-[20px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+              <h2 className="text-[20px] text-[#27251f] m-0" style={{ fontWeight: 600 }}>
                 This Week
               </h2>
               <div className="flex gap-2">
-                <button className="px-3 py-1.5 text-[13px] text-[#666] hover:text-[#1a1a1a] hover:bg-[#faf9f7] rounded-lg transition-colors" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <button className="px-3 py-1.5 text-[13px] text-[#787771] hover:text-[#27251f] hover:bg-[#faf9f7] rounded-lg transition-colors" >
                   Week
                 </button>
-                <button className="px-3 py-1.5 text-[13px] text-[#666] hover:text-[#1a1a1a] hover:bg-[#faf9f7] rounded-lg transition-colors" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <button className="px-3 py-1.5 text-[13px] text-[#787771] hover:text-[#27251f] hover:bg-[#faf9f7] rounded-lg transition-colors" >
                   Month
                 </button>
               </div>
@@ -279,10 +279,10 @@ export function ClassesPage() {
                 <div key={index} className="bg-white border border-[#e8e4db] rounded-lg p-5">
                   <div className="flex items-start gap-6">
                     <div className="w-24 flex-shrink-0">
-                      <div className="text-[15px] text-[#1a1a1a]" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+                      <div className="text-[15px] text-[#27251f]" style={{ fontWeight: 600 }}>
                         {day.day}
                       </div>
-                      <div className="text-[13px] text-[#999]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      <div className="text-[13px] text-[#787771]" >
                         {day.date}
                       </div>
                     </div>
@@ -298,10 +298,10 @@ export function ClassesPage() {
                                   style={{ backgroundColor: course?.color || '#ccc' }}
                                 ></div>
                                 <div className="flex-1">
-                                  <div className="text-[14px] text-[#1a1a1a]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+                                  <div className="text-[14px] text-[#27251f]" style={{ fontWeight: 600 }}>
                                     {className}
                                   </div>
-                                  <div className="text-[12px] text-[#666]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                                  <div className="text-[12px] text-[#787771]" >
                                     {course?.schedule} • {course?.location}
                                   </div>
                                 </div>
@@ -310,7 +310,7 @@ export function ClassesPage() {
                           })}
                         </div>
                       ) : (
-                        <div className="text-[13px] text-[#999] italic" style={{ fontFamily: 'Arial, sans-serif' }}>
+                        <div className="text-[13px] text-[#787771] italic" >
                           No classes scheduled
                         </div>
                       )}
@@ -325,10 +325,10 @@ export function ClassesPage() {
         {activeTab === 'assignments' && (
           <div>
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-[20px] text-[#1a1a1a] m-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+              <h2 className="text-[20px] text-[#27251f] m-0" style={{ fontWeight: 600 }}>
                 All Assignments
               </h2>
-              <button className="flex items-center gap-2 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[13px] hover:bg-[#c06545] transition-colors" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+              <button className="flex items-center gap-2 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[13px] hover:bg-[#c06545] transition-colors" style={{ fontWeight: 600 }}>
                 <Plus className="w-4 h-4" />
                 New Assignment
               </button>
@@ -352,13 +352,13 @@ export function ClassesPage() {
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h3 className={`text-[16px] text-[#1a1a1a] mb-1 mt-0 ${assignment.completed ? 'line-through' : ''}`} style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+                            <h3 className={`text-[16px] text-[#27251f] mb-1 mt-0 ${assignment.completed ? 'line-through' : ''}`} style={{ fontWeight: 600 }}>
                               {assignment.title}
                             </h3>
-                            <div className="flex items-center gap-3 text-[13px] text-[#666]">
-                              <span style={{ fontFamily: 'Arial, sans-serif' }}>{assignment.courseName}</span>
+                            <div className="flex items-center gap-3 text-[13px] text-[#787771]">
+                              <span >{assignment.courseName}</span>
                               <span>•</span>
-                              <span className="bg-[#f5f5f5] px-2 py-0.5 rounded" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              <span className="bg-[#f5f5f5] px-2 py-0.5 rounded" >
                                 {assignment.type}
                               </span>
                             </div>
@@ -369,9 +369,9 @@ export function ClassesPage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 text-[13px] text-[#999]">
+                        <div className="flex items-center gap-2 text-[13px] text-[#787771]">
                           <Calendar className="w-4 h-4" />
-                          <span style={{ fontFamily: 'Arial, sans-serif' }}>Due: {assignment.dueDate}</span>
+                          <span >Due: {assignment.dueDate}</span>
                         </div>
                       </div>
                     </div>
@@ -387,19 +387,19 @@ export function ClassesPage() {
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-[24px] text-[#1a1a1a] mb-4 mt-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+            <h2 className="text-[24px] text-[#27251f] mb-4 mt-0" style={{ fontWeight: 600 }}>
               Upload Syllabus
             </h2>
-            <p className="text-[14px] text-[#666] mb-6 mt-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-[14px] text-[#787771] mb-6 mt-0" >
               Upload a PDF syllabus and we'll automatically extract course information and add it to your schedule.
             </p>
 
             <div className="border-2 border-dashed border-[#e8e4db] rounded-lg p-8 text-center mb-6 hover:border-[#d47455] hover:bg-[#fef9f5] transition-all cursor-pointer">
-              <Upload className="w-12 h-12 text-[#999] mx-auto mb-3" />
-              <p className="text-[14px] text-[#666] mb-1" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+              <Upload className="w-12 h-12 text-[#787771] mx-auto mb-3" />
+              <p className="text-[14px] text-[#787771] mb-1" style={{ fontWeight: 600 }}>
                 Click to upload or drag and drop
               </p>
-              <p className="text-[12px] text-[#999] m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <p className="text-[12px] text-[#787771] m-0" >
                 PDF files only (max 10MB)
               </p>
             </div>
@@ -407,14 +407,14 @@ export function ClassesPage() {
             <div className="flex gap-3">
               <button 
                 onClick={() => setShowUploadModal(false)}
-                className="flex-1 px-4 py-2 bg-[#faf9f7] text-[#1a1a1a] rounded-lg text-[14px] hover:bg-[#f0ede3] transition-colors"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                className="flex-1 px-4 py-2 bg-[#faf9f7] text-[#27251f] rounded-lg text-[14px] hover:bg-[#f0ede3] transition-colors"
+                style={{ fontWeight: 600 }}
               >
                 Cancel
               </button>
               <button 
                 className="flex-1 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ fontWeight: 600 }}
               >
                 Upload
               </button>
@@ -427,10 +427,10 @@ export function ClassesPage() {
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-[24px] text-[#1a1a1a] mb-4 mt-0" style={{ fontFamily: 'Lora, serif', fontWeight: 600 }}>
+            <h2 className="text-[24px] text-[#27251f] mb-4 mt-0" style={{ fontWeight: 600 }}>
               Edit Course Schedule
             </h2>
-            <p className="text-[14px] text-[#666] mb-6 mt-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-[14px] text-[#787771] mb-6 mt-0" >
               Add, remove, or modify your enrolled courses.
             </p>
 
@@ -443,10 +443,10 @@ export function ClassesPage() {
                       style={{ backgroundColor: course.color }}
                     ></div>
                     <div>
-                      <div className="text-[14px] text-[#1a1a1a]" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}>
+                      <div className="text-[14px] text-[#27251f]" style={{ fontWeight: 600 }}>
                         {course.name}
                       </div>
-                      <div className="text-[12px] text-[#666]" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      <div className="text-[12px] text-[#787771]" >
                         {course.code} • {course.credits} credits
                       </div>
                     </div>
@@ -461,14 +461,14 @@ export function ClassesPage() {
             <div className="flex gap-3">
               <button 
                 onClick={() => setShowEditModal(false)}
-                className="flex-1 px-4 py-2 bg-[#faf9f7] text-[#1a1a1a] rounded-lg text-[14px] hover:bg-[#f0ede3] transition-colors"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                className="flex-1 px-4 py-2 bg-[#faf9f7] text-[#27251f] rounded-lg text-[14px] hover:bg-[#f0ede3] transition-colors"
+                style={{ fontWeight: 600 }}
               >
                 Cancel
               </button>
               <button 
                 className="flex-1 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors"
-                style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+                style={{ fontWeight: 600 }}
               >
                 Save Changes
               </button>

@@ -147,13 +147,13 @@ export function SquadMakingModal({
         <DialogHeader className="pb-4 border-b border-[#e7ded1]">
           <DialogTitle
             className="text-2xl"
-            style={{ fontFamily: 'Lora, serif', fontWeight: 600, color: '#3d3d3a' }}
+            style={{  fontWeight: 600, color: '#27251f' }}
           >
             Create a New Squad
           </DialogTitle>
           <DialogDescription
             className="mt-2"
-            style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+            style={{ color: '#787771' }}
           >
             Build your community and connect with like-minded individuals.
           </DialogDescription>
@@ -164,7 +164,7 @@ export function SquadMakingModal({
           <div className="space-y-2">
             <label
               className="text-sm block"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               Squad Name
             </label>
@@ -173,7 +173,7 @@ export function SquadMakingModal({
               value={newSquadName}
               onChange={(e) => setNewSquadName(e.target.value)}
               className="w-full px-4 py-3 bg-white rounded-xl border border-[#e7ded1] focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent transition-all"
-              style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+              style={{ color: '#27251f' }}
               placeholder="e.g., Run Club, Coffee Lovers"
             />
           </div>
@@ -182,7 +182,7 @@ export function SquadMakingModal({
           <div className="space-y-2">
             <label
               className="text-sm block"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               Description
             </label>
@@ -190,7 +190,7 @@ export function SquadMakingModal({
               value={newSquadDescription}
               onChange={(e) => setNewSquadDescription(e.target.value)}
               className="w-full px-4 py-3 bg-white rounded-xl border border-[#e7ded1] focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent transition-all resize-none"
-              style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a', lineHeight: 1.5 }}
+              style={{ color: '#27251f', lineHeight: 1.5 }}
               placeholder="Share what your squad is all about..."
               rows={4}
             />
@@ -200,7 +200,7 @@ export function SquadMakingModal({
           <div className="space-y-3">
             <label
               className="text-sm block"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               Privacy
             </label>
@@ -226,17 +226,17 @@ export function SquadMakingModal({
                   </div>
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 mb-1">
-                      <Globe className="w-4 h-4 text-[#7b7b74]" />
+                      <Globe className="w-4 h-4 text-[#787771]" />
                       <span
                         className="text-sm"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontWeight: 600, color: '#27251f' }}
                       >
                         Public
                       </span>
                     </div>
                     <p
                       className="text-xs"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                      style={{ color: '#787771' }}
                     >
                       Anyone can join
                     </p>
@@ -264,17 +264,17 @@ export function SquadMakingModal({
                   </div>
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 mb-1">
-                      <Lock className="w-4 h-4 text-[#7b7b74]" />
+                      <Lock className="w-4 h-4 text-[#787771]" />
                       <span
                         className="text-sm"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontWeight: 600, color: '#27251f' }}
                       >
                         Private
                       </span>
                     </div>
                     <p
                       className="text-xs"
-                      style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                      style={{ color: '#787771' }}
                     >
                       Invite only
                     </p>
@@ -288,7 +288,7 @@ export function SquadMakingModal({
           <div className="space-y-2">
             <label
               className="text-sm block"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               Category
             </label>
@@ -314,7 +314,7 @@ export function SquadMakingModal({
                     </div>
                     <span
                       className="text-sm"
-                      style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                      style={{ fontWeight: 600, color: '#27251f' }}
                     >
                       {cat.label}
                     </span>
@@ -328,42 +328,41 @@ export function SquadMakingModal({
           <div className="space-y-3">
             <label
               className="text-sm block"
-              style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+              style={{ fontWeight: 600, color: '#27251f' }}
             >
               Invite Members{' '}
               {selectedMembers.length > 0 && (
                 <span
                   className="ml-2 px-2 py-0.5 rounded-full text-xs bg-[#d47455] text-white"
-                  style={{ fontFamily: 'Arial, sans-serif' }}
                 >
                   {selectedMembers.length} selected
                 </span>
               )}
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b7b74]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
               <input
                 type="text"
                 placeholder="Search by name or email..."
                 value={inviteSearch}
                 onChange={(e) => setInviteSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-white rounded-xl border border-[#e7ded1] focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent transition-all"
-                style={{ fontFamily: 'Arial, sans-serif', color: '#3d3d3a' }}
+                style={{ color: '#27251f' }}
               />
             </div>
             <div className="max-h-48 overflow-y-auto bg-white rounded-xl border border-[#e7ded1]">
               {inviteSearchLoading && (
-                <div className="px-4 py-6 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                <div className="px-4 py-6 text-center text-sm" style={{ color: '#787771' }}>
                   Searching...
                 </div>
               )}
               {!inviteSearchLoading && !inviteSearch.trim() && displayList.length === 0 && (
-                <div className="px-4 py-6 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                <div className="px-4 py-6 text-center text-sm" style={{ color: '#787771' }}>
                   Search by name or email to invite members
                 </div>
               )}
               {!inviteSearchLoading && inviteSearch.trim() && displayList.length === 0 && (
-                <div className="px-4 py-6 text-center text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}>
+                <div className="px-4 py-6 text-center text-sm" style={{ color: '#787771' }}>
                   No users found
                 </div>
               )}
@@ -379,18 +378,18 @@ export function SquadMakingModal({
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#e7ded1] flex items-center justify-center">
-                      <Users className="w-5 h-5 text-[#7b7b74]" />
+                      <Users className="w-5 h-5 text-[#787771]" />
                     </div>
                     <div>
                       <div
                         className="text-sm"
-                        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#3d3d3a' }}
+                        style={{ fontWeight: 600, color: '#27251f' }}
                       >
                         {person.full_name || person.email?.split('@')[0] || 'Unknown'}
                       </div>
                       <div
                         className="text-xs"
-                        style={{ fontFamily: 'Arial, sans-serif', color: '#7b7b74' }}
+                        style={{ color: '#787771' }}
                       >
                         {person.email}
                       </div>
@@ -404,7 +403,7 @@ export function SquadMakingModal({
                     {selectedMembers.includes(person.id) ? (
                       <Check className="w-4 h-4 text-white" />
                     ) : (
-                      <Plus className="w-4 h-4 text-[#7b7b74]" />
+                      <Plus className="w-4 h-4 text-[#787771]" />
                     )}
                   </div>
                 </div>
@@ -417,14 +416,14 @@ export function SquadMakingModal({
         <div className="mt-8 pt-6 border-t border-[#e7ded1] flex gap-3">
           <button
             className="flex-1 px-6 py-3 bg-white border-2 border-[#e7ded1] rounded-xl hover:bg-[#F1EFE7] transition-colors"
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600, color: '#7b7b74' }}
+            style={{ fontWeight: 600, color: '#787771' }}
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </button>
           <button
             className="flex-1 px-6 py-3 bg-[#d47455] text-white rounded-xl hover:bg-[#c06545] transition-colors shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ fontFamily: 'Arial, sans-serif', fontWeight: 600 }}
+            style={{ fontWeight: 600 }}
             onClick={handleCreateSquad}
             disabled={!newSquadName.trim() || !newSquadCategory}
           >

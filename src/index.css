@@ -1,5 +1,26 @@
-@import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap");
 @import "tailwindcss";
+
+/* App: Inter for UI. Shared palette (landing + in-app). */
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Source Serif 4", ui-serif, Georgia, serif;
+  --color-landing-primary: #27251f;
+}
+
+/* Design tokens: use across landing and app pages for consistency */
+:root {
+  --quad-primary: #27251f;      /* headings, primary text, dark buttons */
+  --quad-muted: #787771;        /* body/secondary text */
+  --quad-muted-light: #f7f8f3;  /* text on dark (buttons, dark bg) */
+  --quad-bg: #faf6f1;           /* warm cream background */
+  --quad-bg-app: #F1EFE7;       /* app shell background (slightly cooler) */
+  --quad-border: #e8e4db;       /* borders, dividers */
+  --quad-accent: #d47455;       /* accent/orange (notifications, links) */
+  --quad-tracking: -0.01em;
+  --quad-leading-tight: 1.1;
+}
 
 /* Safari iOS: fix sizing and touch/drag issues app-wide */
 html {
@@ -11,6 +32,10 @@ html {
   background: #F1EFE7;
 }
 body {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
   min-height: 100vh;
   min-height: -webkit-fill-available;
   -webkit-user-select: none;
@@ -21,6 +46,12 @@ body {
   /* No padding here so full-screen wrappers can extend background to edges; they use safe-area padding instead */
   /* Match app shell so any visible area shows app color */
   background: #F1EFE7;
+}
+
+/* Match landing page typography: tight heading line-height */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 /* Allow text selection in inputs and editable content */
 input,
@@ -55,3 +86,30 @@ a {
 .overflow-auto {
   -webkit-overflow-scrolling: touch;
 }
+
+/* All images get rounded corners at any size; avatars use rounded-full, logos use rounded-none */
+img:not(.rounded-full):not(.rounded-none) {
+  border-radius: 0.75rem;
+}
+
+/* Hero typing cursor: vertical expand/collapse from center, brief hold when collapsed */
+@keyframes cursor-expand {
+  0%, 10% { transform: scaleY(0); }
+  50% { transform: scaleY(1); }
+  90%, 100% { transform: scaleY(0); }
+}
+.animate-cursor-expand {
+  animation: cursor-expand 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Landing-style background: warm gradient on cream (sign-in, onboarding, landing) */
+.landing-bg {
+  background:
+    radial-gradient(ellipse 100% 80% at 10% 30%, rgba(249, 222, 202, 0.72), transparent 65%),
+    radial-gradient(ellipse 85% 100% at 88% 50%, rgba(247, 212, 188, 0.68), transparent 60%),
+    radial-gradient(ellipse 95% 75% at 50% 90%, rgba(248, 218, 195, 0.65), transparent 55%),
+    radial-gradient(ellipse 75% 95% at 72% 12%, rgba(250, 228, 208, 0.68), transparent 58%),
+    #faf6f1;
+}
+
