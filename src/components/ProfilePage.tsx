@@ -874,13 +874,16 @@ export function ProfilePage() {
         {/* Sign out */}
         <div className="px-5 pt-2 pb-6">
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
-            <button 
+            <button
+              type="button"
               onClick={async () => {
                 const { error } = await signOut();
                 if (error) {
                   console.error('Error signing out:', error);
                   alert('Failed to sign out. Please try again.');
+                  return;
                 }
+                window.location.href = window.location.origin + window.location.pathname;
               }}
               className="w-full flex items-center justify-between px-4 py-4 min-h-[52px] active:bg-[#fef3ef] transition-colors"
             >
@@ -1252,13 +1255,16 @@ export function ProfilePage() {
             
             {/* Sign Out Button - Bottom Right */}
             <div className="absolute bottom-6 right-6 z-10">
-              <button 
+              <button
+                type="button"
                 onClick={async () => {
                   const { error } = await signOut();
                   if (error) {
                     console.error('Error signing out:', error);
                     alert('Failed to sign out. Please try again.');
+                    return;
                   }
+                  window.location.href = window.location.origin + window.location.pathname;
                 }}
                 className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border-[#f5f3eb] hover:bg-[#fef3ef] transition-colors"
               >
