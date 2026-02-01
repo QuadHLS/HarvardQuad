@@ -878,7 +878,10 @@ export function ProfilePage() {
               type="button"
               onClick={async () => {
                 const { error } = await signOut();
-                if (error) {
+                const isSessionMissing =
+                  error?.message?.toLowerCase().includes('session missing') ||
+                  (error as { name?: string })?.name === 'AuthSessionMissingError';
+                if (error && !isSessionMissing) {
                   console.error('Error signing out:', error);
                   alert('Failed to sign out. Please try again.');
                   return;
@@ -1259,7 +1262,10 @@ export function ProfilePage() {
                 type="button"
                 onClick={async () => {
                   const { error } = await signOut();
-                  if (error) {
+                  const isSessionMissing =
+                    error?.message?.toLowerCase().includes('session missing') ||
+                    (error as { name?: string })?.name === 'AuthSessionMissingError';
+                  if (error && !isSessionMissing) {
                     console.error('Error signing out:', error);
                     alert('Failed to sign out. Please try again.');
                     return;

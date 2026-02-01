@@ -69,14 +69,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    
-    if (!error) {
-      setSession(null);
-      setUser(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      const isSessionMissing =
+        error?.message?.toLowerCase().includes('session missing') ||
+        (error as { name?: string })?.name === 'AuthSessionMissingError';
+      if (!error || isSessionMissing) {
+        setSession(null);
+        setUser(null);
+        return { error: null };
+      }
+      return { error };
+    } catch (e) {
+      const err = e as { message?: string; name?: string };
+      const isSessionMissing =
+        err?.message?.toLowerCase().includes('session missing') ||
+        err?.name === 'AuthSessionMissingError';
+      if (isSessionMissing) {
+        setSession(null);
+        setUser(null);
+        return { error: null };
+      }
+      return { error: e as AuthError };
     }
-    
-    return { error };
   };
 
   const signInWithGoogle = async () => {
