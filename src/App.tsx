@@ -725,6 +725,11 @@ export default function App() {
     return <AuthCallback />;
   }
 
+  // Handle /login route - show auth screen
+  if (window.location.pathname === '/login') {
+    return <AuthScreensStandalone onBack={() => window.location.href = '/'} />;
+  }
+
   // Show loading state
   if (loading) {
     return (

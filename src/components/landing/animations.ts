@@ -1,69 +1,37 @@
 /**
- * Shared animation utilities for landing page scroll-driven animations.
- * Uses Framer Motion + IntersectionObserver for performant, scroll-responsive motion.
+ * Centralized animation utilities for landing page.
+ * Premium easing, consistent motion, optimal performance.
  */
 
-import { useEffect, useState, useRef, RefObject } from 'react';
-import { Variants, useScroll, useTransform, MotionValue } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { Variants } from 'framer-motion';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EASING CURVES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const easeOutExpo = [0.16, 1, 0.3, 1] as const;
+export const easeInOutCubic = [0.65, 0, 0.35, 1] as const;
+export const easeOutQuart = [0.25, 1, 0.5, 1] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOOKS
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Returns a 0→1 progress value as element scrolls through viewport.
- * Starts at 0 when element enters, reaches 1 when fully scrolled through.
- */
-export function useScrollProgress(
-  ref: RefObject<HTMLElement>,
-  offset: ['start end' | 'center center' | 'end start', 'start end' | 'center center' | 'end start'] = ['start end', 'end start']
-): MotionValue<number> {
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset,
-  });
-  return scrollYProgress;
-}
-
-/**
- * Returns true when element is in view (for simple fade-in triggers).
- */
-export function useInView(ref: RefObject<HTMLElement>, threshold = 0.2): boolean {
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          // Once triggered, disconnect — we only animate in once
-          observer.disconnect();
-        }
-      },
-      { threshold }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref, threshold]);
-
-  return inView;
-}
-
-/**
  * Check if user prefers reduced motion.
+ * Memoized to prevent unnecessary re-renders.
  */
 export function usePrefersReducedMotion(): boolean {
-  const [prefersReduced, setPrefersReduced] = useState(false);
+  const [prefersReduced, setPrefersReduced] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  });
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReduced(mq.matches);
-
     const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
+    
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
@@ -72,76 +40,128 @@ export function usePrefersReducedMotion(): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VARIANTS — reusable animation presets
+// MOTION VARIANTS — Centralized for consistency
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Fade up with slight Y translation */
+/** Fade up — subtle vertical travel */
 export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 32 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] },
+    transition: { duration: 0.8, ease: easeOutQuart },
   },
 };
 
-/** Fade in from left */
-export const fadeLeft: Variants = {
-  hidden: { opacity: 0, x: -48 },
+/** Fade in — no movement */
+export const fadeIn: Variants = {
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    x: 0,
-    transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] },
+    transition: { duration: 0.6, ease: easeOutQuart },
   },
 };
 
-/** Fade in from right */
-export const fadeRight: Variants = {
-  hidden: { opacity: 0, x: 48 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] },
-  },
-};
-
-/** Scale up from slightly smaller */
+/** Scale up — very subtle */
 export const scaleUp: Variants = {
-  hidden: { opacity: 0, scale: 0.92 },
+  hidden: { opacity: 0, scale: 0.96 },
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] },
+    transition: { duration: 0.8, ease: easeOutQuart },
   },
 };
 
-/** Stagger container — apply to parent, children use staggered delay */
+/** Slide from left */
+export const slideLeft: Variants = {
+  hidden: { opacity: 0, x: -40 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.7, ease: easeOutQuart },
+  },
+};
+
+/** Slide from right */
+export const slideRight: Variants = {
+  hidden: { opacity: 0, x: 40 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.7, ease: easeOutQuart },
+  },
+};
+
+/** Stagger container — for list animations */
 export const staggerContainer: Variants = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.1,
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
     },
   },
 };
 
-/** Stagger item — use as child of staggerContainer */
+/** Stagger item */
 export const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
+    transition: { duration: 0.5, ease: easeOutQuart },
   },
 };
 
+/** Message bubble entrance */
+export const messageBubble: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.2, ease: easeOutQuart },
+  },
+};
+
+/** Typing indicator pulse */
+export const typingDot: Variants = {
+  pulse: {
+    opacity: [0.4, 1, 0.4],
+    transition: { duration: 1, repeat: Infinity, ease: 'easeInOut' },
+  },
+};
+
+/** Mobile carousel swipe */
+export const carouselSlide: Variants = {
+  enter: { opacity: 0, x: 50 },
+  center: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -50 },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
-// TRANSFORM HELPERS — for scroll-linked animations
+// TRANSITION PRESETS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Map scroll progress [0,1] to any output range.
- * Example: mapProgress(progress, [0, 0.5], [0, 1]) maps first half to 0→1
- */
-export { useTransform };
+export const quickTransition = { duration: 0.2, ease: easeOutQuart };
+export const mediumTransition = { duration: 0.4, ease: easeOutQuart };
+export const slowTransition = { duration: 0.8, ease: easeOutQuart };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEWPORT CONFIG — Consistent animation triggers
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const defaultViewport = {
+  once: true,
+  amount: 0.3 as const,
+  margin: '0px 0px -100px 0px',
+};
+
+export const highThresholdViewport = {
+  once: true,
+  amount: 0.5 as const,
+};
+
+export const lowThresholdViewport = {
+  once: true,
+  amount: 0.1 as const,
+};

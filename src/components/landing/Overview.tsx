@@ -1,119 +1,201 @@
 /**
- * Overview.tsx — "Your campus hub, simplified"
- * 
- * Scroll-driven animation: Multiple iPhone screens converge and assemble
- * into a unified system, visually demonstrating "everything in one place."
- * 
- * Motion story:
- * - Screens start scattered/fanned out
- * - As user scrolls, they slide inward and stack neatly
- * - Final state: cohesive arrangement showing the unified platform
+ * Overview.tsx — "Your campus hub"
+ *
+ * Motion: Scroll-linked animations that reverse when scrolling up.
+ * Phones fan out as section scrolls into view.
+ * Mobile: Carousel that swipes through screens, ending with animated chat.
  */
 
-import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { usePrefersReducedMotion } from './animations';
+import { memo, useRef, useState, useEffect } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence, useInView } from 'framer-motion';
+import { usePrefersReducedMotion, carouselSlide } from './animations';
 import {
   PhoneFrame,
   ChatScreen,
+  AnimatedChatScreen,
   FeedScreen,
   CalendarScreen,
   GroupsScreen,
-  ConversationsScreen,
+  ProfileScreen,
 } from './PhoneMockup';
 
-export function Overview() {
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MOBILE_SCREENS = [
+  { id: 'groups', label: 'Squads', Screen: GroupsScreen },
+  { id: 'calendar', label: 'Calendar', Screen: CalendarScreen },
+  { id: 'feed', label: 'Feed', Screen: FeedScreen },
+  { id: 'profile', label: 'Profile', Screen: ProfileScreen },
+  { id: 'chat', label: 'Messages', Screen: null },
+] as const;
+
+const CAROUSEL_DELAY = 500;
+const CAROUSEL_INTERVAL = 750;
+
+const SCROLL_RANGES = {
+  header: { input: [0.3, 0.6], opacity: [0, 1], y: [24, 0] },
+  center: { input: [0.4, 0.7], opacity: [0, 1], y: [24, 0] },
+  inner: { input: [0.5, 0.8], opacity: [0, 1], y: [35, 0], rotate: { left: [-10, -6], right: [10, 6] } },
+  outer: { input: [0.6, 0.9], opacity: [0, 1], y: [50, 0], rotate: { left: [-18, -12], right: [18, 12] } },
+} as const;
+
+const CAROUSEL_TRANSITION = {
+  duration: 0.3,
+  ease: 'easeOut' as const,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOBILE CAROUSEL
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MobileCarousel = memo(() => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [hasReachedChat, setHasReachedChat] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hasStarted = useRef(false);
+
+  const isInView = useInView(containerRef, { once: true, amount: 0.5 });
+
+  useEffect(() => {
+    if (!isInView || hasStarted.current) return;
+    hasStarted.current = true;
+
+    const advanceScreen = (index: number): void => {
+      if (index >= MOBILE_SCREENS.length - 1) {
+        setCurrentIndex(index);
+        setHasReachedChat(true);
+        return;
+      }
+
+      setCurrentIndex(index);
+      setTimeout(() => advanceScreen(index + 1), CAROUSEL_INTERVAL);
+    };
+
+    setTimeout(() => advanceScreen(0), CAROUSEL_DELAY);
+  }, [isInView]);
+
+  const currentScreen = MOBILE_SCREENS[currentIndex];
+
+  return (
+    <div ref={containerRef} className="flex flex-col items-center">
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentScreen.id}
+            variants={carouselSlide}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={CAROUSEL_TRANSITION}
+          >
+            <PhoneFrame scale={0.85}>
+              {currentScreen.id === 'chat' ? (
+                <AnimatedChatScreen variant="group" />
+              ) : (
+                <currentScreen.Screen />
+              )}
+            </PhoneFrame>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+});
+
+MobileCarousel.displayName = 'MobileCarousel';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATIC VERSION (Reduced Motion)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OverviewStatic = memo(() => (
+  <section id="overview" className="pt-12 pb-24 md:pt-16 md:pb-32">
+    <div className="max-w-6xl mx-auto px-6">
+      <div className="text-center mb-16">
+        <h2 className="text-5xl md:text-6xl font-normal text-[#27251f] mb-4 leading-[1.05] tracking-[-0.02em]">
+          Your campus hub
+        </h2>
+        <p className="text-xl text-[#787771] max-w-md mx-auto">
+          Everything you need. One place.
+        </p>
+      </div>
+      <div className="flex justify-center items-end gap-4">
+        <PhoneFrame scale={0.65}>
+          <GroupsScreen />
+        </PhoneFrame>
+        <PhoneFrame scale={0.75}>
+          <CalendarScreen />
+        </PhoneFrame>
+        <PhoneFrame scale={0.85}>
+          <ChatScreen variant="group" />
+        </PhoneFrame>
+        <PhoneFrame scale={0.75}>
+          <FeedScreen />
+        </PhoneFrame>
+        <PhoneFrame scale={0.65}>
+          <ProfileScreen />
+        </PhoneFrame>
+      </div>
+    </div>
+  </section>
+));
+
+OverviewStatic.displayName = 'OverviewStatic';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const Overview = memo(() => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const prefersReduced = usePrefersReducedMotion();
 
-  // Track scroll progress through this section
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ['start end', 'end start'],
+    offset: ['start end', 'center center'],
   });
 
-  // Map scroll progress to animation values
-  // Phase 1 (0-0.3): Screens enter from edges
-  // Phase 2 (0.3-0.6): Screens converge to center
-  // Phase 3 (0.6-1): Screens settle into final arrangement
+  // Header animations
+  const headerOpacity = useTransform(scrollYProgress, SCROLL_RANGES.header.input, SCROLL_RANGES.header.opacity);
+  const headerY = useTransform(scrollYProgress, SCROLL_RANGES.header.input, SCROLL_RANGES.header.y);
 
-  // Center phone (Conversations) — stays relatively centered
-  const centerY = useTransform(scrollYProgress, [0, 0.4, 0.7], [80, 0, 0]);
-  const centerOpacity = useTransform(scrollYProgress, [0, 0.2], [0, 1]);
-  const centerScale = useTransform(scrollYProgress, [0, 0.4], [0.9, 1]);
+  // Center phone
+  const centerOpacity = useTransform(scrollYProgress, SCROLL_RANGES.center.input, SCROLL_RANGES.center.opacity);
+  const centerY = useTransform(scrollYProgress, SCROLL_RANGES.center.input, SCROLL_RANGES.center.y);
 
-  // Left phone (Calendar) — slides in from left
-  const leftX = useTransform(scrollYProgress, [0, 0.35, 0.65], [-200, -160, -140]);
-  const leftY = useTransform(scrollYProgress, [0, 0.35, 0.65], [120, 40, 20]);
-  const leftRotate = useTransform(scrollYProgress, [0, 0.35, 0.65], [-15, -8, -6]);
-  const leftOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 1]);
-  const leftScale = useTransform(scrollYProgress, [0, 0.4], [0.85, 0.88]);
+  // Inner phones
+  const innerOpacity = useTransform(scrollYProgress, SCROLL_RANGES.inner.input, SCROLL_RANGES.inner.opacity);
+  const innerLeftY = useTransform(scrollYProgress, SCROLL_RANGES.inner.input, SCROLL_RANGES.inner.y);
+  const innerLeftRotate = useTransform(scrollYProgress, SCROLL_RANGES.inner.input, SCROLL_RANGES.inner.rotate.left);
+  const innerRightY = useTransform(scrollYProgress, SCROLL_RANGES.inner.input, SCROLL_RANGES.inner.y);
+  const innerRightRotate = useTransform(scrollYProgress, SCROLL_RANGES.inner.input, SCROLL_RANGES.inner.rotate.right);
 
-  // Right phone (Feed) — slides in from right
-  const rightX = useTransform(scrollYProgress, [0, 0.35, 0.65], [200, 160, 140]);
-  const rightY = useTransform(scrollYProgress, [0, 0.35, 0.65], [120, 40, 20]);
-  const rightRotate = useTransform(scrollYProgress, [0, 0.35, 0.65], [15, 8, 6]);
-  const rightOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 1]);
-  const rightScale = useTransform(scrollYProgress, [0, 0.4], [0.85, 0.88]);
+  // Outer phones
+  const outerOpacity = useTransform(scrollYProgress, SCROLL_RANGES.outer.input, SCROLL_RANGES.outer.opacity);
+  const outerLeftY = useTransform(scrollYProgress, SCROLL_RANGES.outer.input, SCROLL_RANGES.outer.y);
+  const outerLeftRotate = useTransform(scrollYProgress, SCROLL_RANGES.outer.input, SCROLL_RANGES.outer.rotate.left);
+  const outerRightY = useTransform(scrollYProgress, SCROLL_RANGES.outer.input, SCROLL_RANGES.outer.y);
+  const outerRightRotate = useTransform(scrollYProgress, SCROLL_RANGES.outer.input, SCROLL_RANGES.outer.rotate.right);
 
-  // Far left phone (Groups) — slides in last
-  const farLeftX = useTransform(scrollYProgress, [0.1, 0.45, 0.7], [-340, -290, -260]);
-  const farLeftY = useTransform(scrollYProgress, [0.1, 0.45, 0.7], [180, 80, 50]);
-  const farLeftRotate = useTransform(scrollYProgress, [0.1, 0.45, 0.7], [-20, -12, -10]);
-  const farLeftOpacity = useTransform(scrollYProgress, [0.15, 0.35], [0, 1]);
-  const farLeftScale = useTransform(scrollYProgress, [0.1, 0.5], [0.8, 0.78]);
-
-  // Far right phone (Chat) — slides in last
-  const farRightX = useTransform(scrollYProgress, [0.1, 0.45, 0.7], [340, 290, 260]);
-  const farRightY = useTransform(scrollYProgress, [0.1, 0.45, 0.7], [180, 80, 50]);
-  const farRightRotate = useTransform(scrollYProgress, [0.1, 0.45, 0.7], [20, 12, 10]);
-  const farRightOpacity = useTransform(scrollYProgress, [0.15, 0.35], [0, 1]);
-  const farRightScale = useTransform(scrollYProgress, [0.1, 0.5], [0.8, 0.78]);
-
-  // Header text animation
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1]);
-  const headerY = useTransform(scrollYProgress, [0, 0.15], [40, 0]);
-
-  // If reduced motion, show static final state
   if (prefersReduced) {
-    return (
-      <section id="overview" className="py-32">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl md:text-6xl font-normal text-[#0a0a0a] mb-4 leading-[1.05] tracking-[-0.02em]">
-              Your campus hub
-            </h2>
-            <p className="text-xl text-[#787771] max-w-md mx-auto">
-              Everything you need. One place.
-            </p>
-          </div>
-          <div className="flex justify-center items-end gap-4">
-            <PhoneFrame scale={0.65}><GroupsScreen /></PhoneFrame>
-            <PhoneFrame scale={0.75}><CalendarScreen /></PhoneFrame>
-            <PhoneFrame scale={0.85}><ConversationsScreen /></PhoneFrame>
-            <PhoneFrame scale={0.75}><FeedScreen /></PhoneFrame>
-            <PhoneFrame scale={0.65}><ChatScreen /></PhoneFrame>
-          </div>
-        </div>
-      </section>
-    );
+    return <OverviewStatic />;
   }
 
   return (
     <section
       ref={sectionRef}
       id="overview"
-      className="relative py-12 md:py-0"
-      style={{ minHeight: '200vh' }} // Extended height for scroll animation
+      className="pt-12 pb-24 md:pt-16 md:pb-32 overflow-hidden"
     >
-      {/* Sticky container keeps phones visible during scroll */}
-      <div className="sticky top-0 h-screen flex flex-col items-center justify-center overflow-hidden">
+      <div className="max-w-6xl mx-auto px-6">
         {/* Header */}
         <motion.div
-          className="text-center mb-8 md:mb-12 px-6"
+          className="text-center mb-12 md:mb-16"
           style={{ opacity: headerOpacity, y: headerY }}
         >
-          <h2 className="text-4xl md:text-6xl font-normal text-[#0a0a0a] mb-3 leading-[1.05] tracking-[-0.02em]">
+          <h2 className="text-4xl md:text-6xl font-normal text-[#27251f] mb-3 leading-[1.05] tracking-[-0.02em]">
             Your campus hub
           </h2>
           <p className="text-lg md:text-xl text-[#787771]">
@@ -121,92 +203,82 @@ export function Overview() {
           </p>
         </motion.div>
 
-        {/* Phone arrangement */}
-        <div className="relative w-full max-w-5xl h-[500px] md:h-[600px]">
+        {/* Mobile: Carousel */}
+        <div className="md:hidden">
+          <MobileCarousel />
+        </div>
+
+        {/* Desktop: Phone fan arrangement */}
+        <div className="hidden md:flex relative justify-center items-end gap-3 md:gap-4 min-h-[400px] md:min-h-[500px]">
           {/* Far left — Groups */}
           <motion.div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block"
+            className="hidden lg:block"
             style={{
-              x: farLeftX,
-              y: farLeftY,
-              rotate: farLeftRotate,
-              opacity: farLeftOpacity,
-              scale: farLeftScale,
-              zIndex: 1,
+              opacity: outerOpacity,
+              y: outerLeftY,
+              rotate: outerLeftRotate,
             }}
           >
-            <PhoneFrame scale={0.72}>
+            <PhoneFrame scale={0.68}>
               <GroupsScreen />
             </PhoneFrame>
           </motion.div>
 
           {/* Left — Calendar */}
           <motion.div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block"
             style={{
-              x: leftX,
-              y: leftY,
-              rotate: leftRotate,
-              opacity: leftOpacity,
-              scale: leftScale,
-              zIndex: 2,
+              opacity: innerOpacity,
+              y: innerLeftY,
+              rotate: innerLeftRotate,
             }}
           >
-            <PhoneFrame scale={0.8}>
+            <PhoneFrame scale={0.78}>
               <CalendarScreen />
             </PhoneFrame>
           </motion.div>
 
-          {/* Center — Conversations (hero) */}
+          {/* Center — Chat conversation */}
           <motion.div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{
-              y: centerY,
               opacity: centerOpacity,
-              scale: centerScale,
-              zIndex: 5,
+              y: centerY,
             }}
           >
-            <PhoneFrame scale={0.9}>
-              <ConversationsScreen />
+            <PhoneFrame scale={0.88}>
+              <AnimatedChatScreen variant="group" />
             </PhoneFrame>
           </motion.div>
 
           {/* Right — Feed */}
           <motion.div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block"
             style={{
-              x: rightX,
-              y: rightY,
-              rotate: rightRotate,
-              opacity: rightOpacity,
-              scale: rightScale,
-              zIndex: 2,
+              opacity: innerOpacity,
+              y: innerRightY,
+              rotate: innerRightRotate,
             }}
           >
-            <PhoneFrame scale={0.8}>
+            <PhoneFrame scale={0.78}>
               <FeedScreen />
             </PhoneFrame>
           </motion.div>
 
-          {/* Far right — Chat */}
+          {/* Far right — Profile */}
           <motion.div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block"
+            className="hidden lg:block"
             style={{
-              x: farRightX,
-              y: farRightY,
-              rotate: farRightRotate,
-              opacity: farRightOpacity,
-              scale: farRightScale,
-              zIndex: 1,
+              opacity: outerOpacity,
+              y: outerRightY,
+              rotate: outerRightRotate,
             }}
           >
-            <PhoneFrame scale={0.72}>
-              <ChatScreen variant="group" />
+            <PhoneFrame scale={0.68}>
+              <ProfileScreen />
             </PhoneFrame>
           </motion.div>
         </div>
       </div>
     </section>
   );
-}
+});
+
+Overview.displayName = 'Overview';
