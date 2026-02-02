@@ -4,6 +4,8 @@
   import path from 'path';
 
   export default defineConfig({
+    root: __dirname,
+    publicDir: path.join(__dirname, 'public'),
     plugins: [tailwindcss(), react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
