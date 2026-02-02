@@ -90,58 +90,76 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
   className = '',
   scale = 1,
   ...motionProps
-}) => (
-  <motion.div
-    className={`relative ${className}`}
-    style={{
-      width: 280 * scale,
-      height: 572 * scale,
-    }}
-    {...motionProps}
-  >
-    {/* Device shell */}
-    <div
-      className="absolute inset-0 rounded-[44px] bg-[#1a1a1a]"
-      style={{ boxShadow: PHONE_SHADOW }}
-      aria-hidden="true"
-    />
-    {/* Screen area */}
-    <div
-      className="absolute rounded-[36px] bg-white overflow-hidden"
+}) => {
+  // Base dimensions at scale 1
+  const baseWidth = 280;
+  const baseHeight = 572;
+  
+  return (
+    <motion.div
+      className={`relative ${className}`}
       style={{
-        top: 8 * scale,
-        left: 8 * scale,
-        right: 8 * scale,
-        bottom: 8 * scale,
+        width: baseWidth * scale,
+        height: baseHeight * scale,
       }}
+      {...motionProps}
     >
-      {/* Dynamic Island */}
+      {/* Device shell */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 bg-black rounded-full z-10"
-        style={{
-          top: 10 * scale,
-          width: 72 * scale,
-          height: 22 * scale,
+        className="absolute inset-0 rounded-[44px] bg-[#1a1a1a]"
+        style={{ 
+          boxShadow: PHONE_SHADOW,
+          borderRadius: 44 * scale,
         }}
         aria-hidden="true"
       />
-      {/* Screen content */}
-      <div className="absolute inset-0 overflow-hidden">
-        {children}
+      {/* Screen area */}
+      <div
+        className="absolute bg-white overflow-hidden"
+        style={{
+          top: 8 * scale,
+          left: 8 * scale,
+          right: 8 * scale,
+          bottom: 8 * scale,
+          borderRadius: 36 * scale,
+        }}
+      >
+        {/* Dynamic Island */}
+        <div
+          className="absolute left-1/2 -translate-x-1/2 bg-black rounded-full z-10"
+          style={{
+            top: 10 * scale,
+            width: 72 * scale,
+            height: 22 * scale,
+          }}
+          aria-hidden="true"
+        />
+        {/* Screen content - scaled from base size */}
+        <div 
+          className="absolute overflow-hidden"
+          style={{
+            width: baseWidth - 16,
+            height: baseHeight - 16,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+          }}
+        >
+          {children}
+        </div>
       </div>
-    </div>
-    {/* Home indicator */}
-    <div
-      className="absolute left-1/2 -translate-x-1/2 bg-black/70 rounded-full"
-      style={{
-        bottom: 16 * scale,
-        width: 120 * scale,
-        height: 5 * scale,
-      }}
-      aria-hidden="true"
-    />
-  </motion.div>
-));
+      {/* Home indicator */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 bg-black/70 rounded-full"
+        style={{
+          bottom: 16 * scale,
+          width: 120 * scale,
+          height: 5 * scale,
+        }}
+        aria-hidden="true"
+      />
+    </motion.div>
+  );
+});
 
 PhoneFrame.displayName = 'PhoneFrame';
 
@@ -257,7 +275,7 @@ export const ChatScreen = memo<{ variant?: 'dm' | 'group' | 'friends' }>(({ vari
       </div>
 
       {/* Messages */}
-      <div className="flex-1 px-2 py-2 space-y-1.5 overflow-y-auto">
+      <div className="flex-1 px-2 py-2 space-y-1.5 overflow-hidden">
         {messages.map((msg, i) => (
           <MessageBubble key={i} {...msg} />
         ))}

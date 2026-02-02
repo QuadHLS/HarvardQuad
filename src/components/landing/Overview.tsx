@@ -187,7 +187,7 @@ export const Overview = memo(() => {
     <section
       ref={sectionRef}
       id="overview"
-      className="pt-12 pb-24 md:pt-16 md:pb-32 overflow-hidden"
+      className="relative pt-12 pb-24 md:pt-16 md:pb-32 overflow-hidden"
     >
       <div className="max-w-6xl mx-auto px-6">
         {/* Header */}

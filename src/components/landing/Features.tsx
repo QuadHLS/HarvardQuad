@@ -82,7 +82,7 @@ const SectionHeader = memo(() => {
   const subtitleY = useTransform(scrollYProgress, SCROLL_RANGES.header.input, SCROLL_RANGES.header.subtitleY);
 
   return (
-    <div ref={ref} className="text-center mb-20 md:mb-28 px-6">
+    <div ref={ref} className="relative text-center mb-20 md:mb-28 px-6">
       <motion.h2
         className="text-4xl md:text-6xl font-normal text-[#27251f] mb-4 leading-[1.05] tracking-[-0.02em]"
         style={{ opacity, y }}
@@ -123,7 +123,7 @@ const FeatureRow = memo<{ feature: Feature; index: number }>(({ feature, index }
   return (
     <div
       ref={ref}
-      className={`flex items-center gap-10 md:gap-16 ${
+      className={`relative flex items-center gap-10 md:gap-16 ${
         isLeft ? 'flex-col md:flex-row' : 'flex-col md:flex-row-reverse'
       }`}
     >
@@ -206,7 +206,7 @@ export const Features = memo(() => {
   }
 
   return (
-    <section id="features" className="py-24 md:py-32">
+    <section id="features" className="relative py-24 md:py-32">
       <SectionHeader />
 
       <div className="max-w-5xl mx-auto px-6 space-y-24 md:space-y-32">

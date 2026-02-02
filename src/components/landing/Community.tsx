@@ -197,29 +197,29 @@ export const Community = memo<CommunityProps>(({ onSignIn }) => {
         </div>
 
         {/* Stats */}
-        <div ref={statsRef} className="mt-24 pt-24 border-t border-neutral-200">
-          <div className="grid grid-cols-3 gap-12 justify-items-center max-w-2xl mx-auto">
+        <div ref={statsRef} className="mt-16 md:mt-24 pt-16 md:pt-24 border-t border-neutral-200">
+          <div className="grid grid-cols-3 gap-4 md:gap-12 justify-items-center max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="text-4xl font-sans font-normal text-[#27251f] mb-2 leading-[1.1] tracking-[-0.01em]" aria-live="polite">
+              <div className="text-2xl md:text-4xl font-sans font-normal text-[#27251f] mb-1 md:mb-2 leading-[1.1] tracking-[-0.01em]" aria-live="polite">
                 {activeUsers}+
               </div>
-              <div className="text-sm text-[#787771] font-normal tracking-[-0.01em]">
+              <div className="text-xs md:text-sm text-[#787771] font-normal tracking-[-0.01em]">
                 Active Users
               </div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-sans font-normal text-[#27251f] mb-2 leading-[1.1] tracking-[-0.01em]" aria-live="polite">
+              <div className="text-2xl md:text-4xl font-sans font-normal text-[#27251f] mb-1 md:mb-2 leading-[1.1] tracking-[-0.01em]" aria-live="polite">
                 {appsReplaced}+
               </div>
-              <div className="text-sm text-[#787771] font-normal tracking-[-0.01em]">
+              <div className="text-xs md:text-sm text-[#787771] font-normal tracking-[-0.01em]">
                 Apps Replaced
               </div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-sans font-normal text-[#27251f] mb-2 leading-[1.1] tracking-[-0.01em]" aria-live="polite">
+              <div className="text-2xl md:text-4xl font-sans font-normal text-[#27251f] mb-1 md:mb-2 leading-[1.1] tracking-[-0.01em]" aria-live="polite">
                 {courses}
               </div>
-              <div className="text-sm text-[#787771] font-normal tracking-[-0.01em]">
+              <div className="text-xs md:text-sm text-[#787771] font-normal tracking-[-0.01em]">
                 Courses
               </div>
             </div>
@@ -227,8 +227,8 @@ export const Community = memo<CommunityProps>(({ onSignIn }) => {
         </div>
 
         {/* CTA */}
-        <div ref={tryQuadBlockRef} className="mt-24 text-center pt-16 px-16 pb-6">
-          <h3 className="font-sans text-[4.5rem] font-normal text-[#27251f] mb-4 leading-[1.1] tracking-[-0.01em]">
+        <div ref={tryQuadBlockRef} className="mt-24 text-center pt-16 px-4 md:px-16 pb-6">
+          <h3 className="font-sans text-4xl sm:text-6xl md:text-[4.5rem] font-normal text-[#27251f] mb-4 leading-[1.1] tracking-[-0.01em]">
             {tryQuadVisibleText}
             {showCursor && (
               <span className="animate-pulse" aria-hidden="true">|</span>
