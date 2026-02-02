@@ -5,7 +5,7 @@
  * Clean, focused, premium — content changes, device stays grounded.
  */
 
-import { memo, useRef } from 'react';
+import React, { memo, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import type { MotionValue } from 'framer-motion';
 import { usePrefersReducedMotion } from './animations';
@@ -35,7 +35,7 @@ const ANIMATION_CONFIG = {
   phone: { opacity: [0.08, 0.18, 0.85, 0.95], y: [0.08, 0.18] },
   stepTransition: { enter: { first: [0.08, 0.16], default: [-0.02, 0.04] }, exit: [-0.02, 0.04] },
   lastStepHold: 0.88,
-} as const;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP SCREEN — Swipe animation for phone content

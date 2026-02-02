@@ -5,7 +5,7 @@
  * Each feature animates based on its scroll position.
  */
 
-import { memo, useRef } from 'react';
+import React, { memo, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { usePrefersReducedMotion } from './animations';
 import {
@@ -63,7 +63,7 @@ const SCROLL_RANGES = {
   header: { input: [0.4, 0.8], opacity: [0, 1], y: [24, 0], subtitleY: [16, 0] },
   phone: { input: [0.4, 0.8], opacity: [0, 1] },
   label: { input: [0.5, 0.9], opacity: [0, 1], y: [24, 0] },
-} as const;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION HEADER

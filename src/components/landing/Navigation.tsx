@@ -4,7 +4,7 @@
  * Optimized with memoization.
  */
 
-import { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────

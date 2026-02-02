@@ -4,7 +4,7 @@
  * Optimized for 60fps scroll performance.
  */
 
-import { memo, useState, useEffect, useRef, KeyboardEvent } from 'react';
+import React, { memo, useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, useInView } from 'framer-motion';
 import type { MotionProps } from 'framer-motion';
 import { messageBubble, typingDot, carouselSlide, quickTransition } from './animations';

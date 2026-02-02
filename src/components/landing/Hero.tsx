@@ -4,7 +4,7 @@
  * Optimized for performance.
  */
 
-import { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES & CONSTANTS

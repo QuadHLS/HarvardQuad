@@ -4,7 +4,7 @@
  * Memoized for performance.
  */
 
-import { memo } from 'react';
+import React, { memo } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS

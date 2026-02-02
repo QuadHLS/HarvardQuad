@@ -6,7 +6,7 @@
  * Mobile: Carousel that swipes through screens, ending with animated chat.
  */
 
-import { memo, useRef, useState, useEffect } from 'react';
+import React, { memo, useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence, useInView } from 'framer-motion';
 import { usePrefersReducedMotion, carouselSlide } from './animations';
 import {
@@ -39,7 +39,7 @@ const SCROLL_RANGES = {
   center: { input: [0.4, 0.7], opacity: [0, 1], y: [24, 0] },
   inner: { input: [0.5, 0.8], opacity: [0, 1], y: [35, 0], rotate: { left: [-10, -6], right: [10, 6] } },
   outer: { input: [0.6, 0.9], opacity: [0, 1], y: [50, 0], rotate: { left: [-18, -12], right: [18, 12] } },
-} as const;
+};
 
 const CAROUSEL_TRANSITION = {
   duration: 0.3,
