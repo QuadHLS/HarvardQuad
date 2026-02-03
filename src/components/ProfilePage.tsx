@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Phone, MapPin, Calendar, Book, Award, Edit2, ChevronRight, LogOut, Save, X, Trash2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Book, Edit2, ChevronRight, LogOut, Save, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -11,7 +11,6 @@ interface ProfileData {
   graduation_year: string | null;
   phone: string | null;
   location: string | null;
-  gpa: string | null;
   avatar_url: string | null;
   classes?: unknown[];
 }
@@ -29,7 +28,6 @@ export function ProfilePage() {
     public_name: '',
     phone: '',
     location: '',
-    gpa: '',
     major: '',
     graduation_year: '',
   });
@@ -44,7 +42,7 @@ export function ProfilePage() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, gpa, avatar_url, classes')
+          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, avatar_url, classes')
           .eq('id', user.id)
           .single();
 
@@ -59,7 +57,6 @@ export function ProfilePage() {
             graduation_year: null,
             phone: null,
             location: null,
-            gpa: null,
             avatar_url: null,
             classes: [],
           });
@@ -81,7 +78,6 @@ export function ProfilePage() {
           graduation_year: null,
           phone: null,
           location: null,
-          gpa: null,
           avatar_url: null,
           classes: [],
         });
@@ -100,7 +96,6 @@ export function ProfilePage() {
         public_name: profile.public_name || '',
         phone: profile.phone || '',
         location: profile.location || '',
-        gpa: profile.gpa || '',
         major: profile.major || '',
         graduation_year: profile.graduation_year || '',
       });
@@ -134,7 +129,6 @@ export function ProfilePage() {
         public_name: profile.public_name || '',
         phone: profile.phone || '',
         location: profile.location || '',
-        gpa: profile.gpa || '',
         major: profile.major || '',
         graduation_year: profile.graduation_year || '',
       });
@@ -152,7 +146,6 @@ export function ProfilePage() {
           public_name: editValues.public_name.trim() || null,
           phone: editValues.phone || null,
           location: editValues.location || null,
-          gpa: editValues.gpa || null,
           major: editValues.major.trim() || null,
           graduation_year: editValues.graduation_year || null,
           updated_at: new Date().toISOString(),
@@ -172,7 +165,6 @@ export function ProfilePage() {
         public_name: editValues.public_name.trim() || null,
         phone: editValues.phone || null,
         location: editValues.location || null,
-        gpa: editValues.gpa || null,
         major: editValues.major || null,
         graduation_year: editValues.graduation_year || null,
       });
@@ -445,58 +437,62 @@ export function ProfilePage() {
         onChange={handleAvatarChange}
         className="hidden"
       />
-      {/* Mobile View - gradient on scroll container so it extends to bottom */}
+      {/* Mobile View - premium iOS-native design */}
       <div
         className="md:hidden min-h-full overflow-y-auto relative"
-        style={{ paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))', ...profilePageBackground }}
+        style={{ 
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', 
+          ...profilePageBackground 
+        }}
       >
-        {/* Edit / Save & Cancel - top right only */}
-        <div
-          className="absolute top-0 right-0 z-10 flex items-center gap-2 pr-5 pt-3"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+        {/* Edit / Save & Cancel - top right */}
+        <div className="absolute top-0 right-0 z-10 flex items-center gap-2 pr-4 pt-3"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
         >
           {!isEditing ? (
             <button
               onClick={handleEditClick}
-              className="w-10 h-10 rounded-full bg-[#27251f] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm hover:bg-[#1a1916]"
+              className="w-9 h-9 rounded-full bg-[#27251f]/90 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-all"
               aria-label="Edit profile"
             >
-              <Edit2 className="w-5 h-5" />
+              <Edit2 className="w-4 h-4" />
             </button>
           ) : (
             <>
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="w-10 h-10 rounded-full border-2 border-[#e8e4db] bg-white/90 text-[#27251f] flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shadow-sm"
+                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm text-[#787771] flex items-center justify-center active:scale-95 transition-all disabled:opacity-50 border border-[#e8e4db]/50"
                 aria-label="Cancel"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-10 h-10 rounded-full bg-[#27251f] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm hover:bg-[#1a1916] disabled:opacity-50"
+                className="w-9 h-9 rounded-full bg-[#27251f]/90 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-all disabled:opacity-50"
                 aria-label={saving ? 'Saving' : 'Save'}
               >
                 {saving ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Save className="w-5 h-5" />
+                  <Save className="w-4 h-4" />
                 )}
               </button>
             </>
           )}
         </div>
 
-        {/* Profile content */}
-        <div className="px-5 pb-8 pt-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3rem)' }}>
+        {/* Hero section - tighter spacing */}
+        <div className="px-4 pt-10 pb-4">
           <div className="flex flex-col items-center">
+            {/* Avatar - responsive sizing */}
             {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
               <img 
                 src={profile.avatar_url} 
                 alt="Profile" 
-                className="w-32 h-32 rounded-full object-cover mb-3 shadow-md"
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-white/80 shadow-lg"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';
@@ -506,7 +502,7 @@ export function ProfilePage() {
               />
             ) : null}
             <div
-              className="w-32 h-32 rounded-full flex items-center justify-center mb-3 shadow-md text-white text-3xl"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center ring-4 ring-white/80 shadow-lg text-white text-2xl sm:text-3xl font-semibold"
               style={{ 
                 backgroundColor: (() => {
                   const name = profile?.public_name || profile?.full_name || user?.email || 'User';
@@ -514,7 +510,6 @@ export function ProfilePage() {
                   return colors[name.charCodeAt(0) % colors.length];
                 })(),
                 display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
-                fontWeight: 600
               }}
             >
               {(() => {
@@ -530,23 +525,24 @@ export function ProfilePage() {
                 return name.charAt(0).toUpperCase().slice(0, 2);
               })()}
             </div>
+            
+            {/* Avatar edit buttons */}
             {isEditing && (
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mt-3">
                 <button 
                   onClick={handleAvatarClick}
                   disabled={uploadingAvatar || deletingAvatar}
-                  className="px-4 py-1.5 bg-[#27251f] text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-[#1a1916] disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{  fontWeight: 500 }}
+                  className="px-3 py-1.5 bg-[#27251f] text-white rounded-full text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
                 >
                   {uploadingAvatar ? (
                     <>
                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Uploading...
+                      <span>Uploading</span>
                     </>
                   ) : (
                     <>
                       <Edit2 className="w-3 h-3" />
-                      Change Avatar
+                      <span>Change</span>
                     </>
                   )}
                 </button>
@@ -554,67 +550,61 @@ export function ProfilePage() {
                   <button 
                     onClick={handleDeleteAvatar}
                     disabled={uploadingAvatar || deletingAvatar}
-                    className="px-4 py-1.5 bg-red-500/20 backdrop-blur-sm text-white rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition-transform shadow-sm hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{  fontWeight: 500 }}
+                    className="px-3 py-1.5 bg-[#d47455]/15 text-[#d47455] rounded-full text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
                   >
                     {deletingAvatar ? (
                       <>
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Deleting...
+                        <div className="w-3 h-3 border-2 border-[#d47455] border-t-transparent rounded-full animate-spin" />
+                        <span>Deleting</span>
                       </>
                     ) : (
                       <>
                         <Trash2 className="w-3 h-3" />
-                        Delete Avatar
+                        <span>Remove</span>
                       </>
                     )}
                   </button>
                 )}
               </div>
             )}
-            {isEditing ? (
-              <input
-                type="text"
-                value={editValues.public_name}
-                onChange={handleNameChange}
-                className="text-3xl text-[#27251f] mb-1 rounded-xl px-4 py-2.5 w-full max-w-xs text-center focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[48px] bg-white border border-[#e8e4db]"
-                style={{ fontWeight: 600 }}
-                placeholder="Public name (shown to others)"
-              />
-            ) : (
-              <h1 
-                className="text-3xl mb-1"
-                style={{ fontWeight: 600, color: '#27251f' }}
-              >
-                {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
-              </h1>
-            )}
-            {!isEditing && (
-              <p 
-                className="text-sm mb-2"
-                style={{ color: '#787771' }}
-              >
-                {getClassYearDisplay()}
-              </p>
-            )}
+            
+            {/* Name + class label */}
+            <div className="mt-4 text-center">
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editValues.public_name}
+                  onChange={handleNameChange}
+                  className="text-xl sm:text-2xl font-semibold text-[#27251f] rounded-xl px-4 py-2 w-full max-w-[280px] text-center focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white border border-[#e8e4db]"
+                  placeholder="Display name"
+                />
+              ) : (
+                <h1 className="text-xl sm:text-2xl font-semibold text-[#27251f] leading-tight">
+                  {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                </h1>
+              )}
+              {!isEditing && getClassYearDisplay() && (
+                <p className="text-[13px] text-[#787771] mt-0.5">
+                  {getClassYearDisplay()}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="px-5 mt-2 mb-6">
-          <div className="grid grid-cols-3 gap-3">
+        {/* Stats Grid - tighter, equal height */}
+        <div className="px-4 pb-5">
+          <div className="grid grid-cols-3 gap-2">
             {stats.map((stat, index) => (
-              <div key={index} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-[#f5f3eb]">
-                <p 
-                  className="text-2xl mb-1"
-                  style={{ fontWeight: 600, color: '#d47455' }}
-                >
+              <div 
+                key={index} 
+                className="bg-white/90 backdrop-blur-sm rounded-2xl py-3 px-2 text-center border border-white/50"
+                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+              >
+                <p className="text-xl sm:text-2xl font-semibold text-[#d47455] leading-none">
                   {stat.value}
                 </p>
-                <p 
-                  className="text-xs"
-                  style={{  color: '#787771' }}
-                >
+                <p className="text-[11px] text-[#787771] mt-1 leading-none">
                   {stat.label}
                 </p>
               </div>
@@ -623,88 +613,64 @@ export function ProfilePage() {
         </div>
 
         {/* Contact Info */}
-        <div className="px-5 mb-6">
-          <h2 
-            className="text-xl mb-4"
-            style={{ fontWeight: 600, color: '#27251f' }}
-          >
+        <div className="px-4 mb-4">
+          <h2 className="text-base font-semibold text-[#27251f] mb-2.5 px-1">
             Contact
           </h2>
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-              <div className="w-11 h-11 rounded-2xl bg-[#fef3ef] flex items-center justify-center">
-                <Mail className="w-5 h-5" style={{ color: '#d47455' }} />
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/50"
+            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+          >
+            {/* Email row */}
+            <div className="flex items-center gap-3 px-3.5 py-3 border-b border-[#f5f3eb]/80">
+              <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center flex-shrink-0">
+                <Mail className="w-4 h-4 text-[#d47455]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p 
-                  className="text-xs mb-1"
-                  style={{  color: '#787771' }}
-                >
-                  Email
-                </p>
-                <p 
-                  className="text-sm"
-                  style={{  color: '#27251f' }}
-                >
+                <p className="text-[11px] text-[#787771] leading-none mb-0.5">Email</p>
+                <p className="text-[14px] text-[#27251f] leading-snug truncate">
                   {profile?.email || user?.email || 'Not provided'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-              <div className="w-11 h-11 rounded-2xl bg-[#f5f7f9] flex items-center justify-center">
-                <Phone className="w-5 h-5" style={{ color: '#7b9fb8' }} />
+            {/* Phone row */}
+            <div className="flex items-center gap-3 px-3.5 py-3 border-b border-[#f5f3eb]/80">
+              <div className="w-9 h-9 rounded-xl bg-[#f0f4f7] flex items-center justify-center flex-shrink-0">
+                <Phone className="w-4 h-4 text-[#7b9fb8]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p 
-                  className="text-xs mb-1"
-                  style={{  color: '#787771' }}
-                >
-                  Phone
-                </p>
+                <p className="text-[11px] text-[#787771] leading-none mb-0.5">Phone</p>
                 {isEditing ? (
                   <input
                     type="tel"
                     value={editValues.phone}
                     onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
-                    className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[44px] bg-white"
-                    style={{  color: '#27251f' }}
+                    className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                     placeholder="Add phone number"
                   />
                 ) : (
-                  <p 
-                    className="text-sm"
-                    style={{  color: '#27251f' }}
-                  >
+                  <p className="text-[14px] text-[#27251f] leading-snug truncate">
                     {profile?.phone || 'Not provided'}
                   </p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-              <div className="w-11 h-11 rounded-2xl bg-[#f5f7f5] flex items-center justify-center">
-                <MapPin className="w-5 h-5" style={{ color: '#8c9e8c' }} />
+            {/* Location row */}
+            <div className="flex items-center gap-3 px-3.5 py-3">
+              <div className="w-9 h-9 rounded-xl bg-[#f2f5f2] flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-4 h-4 text-[#8c9e8c]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p 
-                  className="text-xs mb-1"
-                  style={{  color: '#787771' }}
-                >
-                  Location
-                </p>
+                <p className="text-[11px] text-[#787771] leading-none mb-0.5">Location</p>
                 {isEditing ? (
                   <input
                     type="text"
                     value={editValues.location}
                     onChange={(e) => setEditValues({ ...editValues, location: e.target.value })}
-                    className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[44px] bg-white"
-                    style={{  color: '#27251f' }}
-                    placeholder="Add city or location"
+                    className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
+                    placeholder="Add location"
                   />
                 ) : (
-                  <p 
-                    className="text-sm"
-                    style={{  color: '#27251f' }}
-                  >
+                  <p className="text-[14px] text-[#27251f] leading-snug truncate">
                     {profile?.location || 'Not provided'}
                   </p>
                 )}
@@ -714,32 +680,26 @@ export function ProfilePage() {
         </div>
 
         {/* Academic Info */}
-        {(profile?.major || profile?.graduation_year || profile?.gpa || isEditing) && (
-          <div className="px-5 mb-6">
-            <h2 
-              className="text-xl mb-4"
-              style={{ fontWeight: 600, color: '#27251f' }}
-            >
+        {(profile?.major || profile?.graduation_year || isEditing) && (
+          <div className="px-4 mb-4">
+            <h2 className="text-base font-semibold text-[#27251f] mb-2.5 px-1">
               Academic Info
             </h2>
-            <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
-              <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-                <div className="w-11 h-11 rounded-2xl bg-[#f5f7f9] flex items-center justify-center">
-                  <Book className="w-5 h-5" style={{ color: '#7b9fb8' }} />
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/50"
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+            >
+              {/* Major row */}
+              <div className="flex items-center gap-3 px-3.5 py-3 border-b border-[#f5f3eb]/80">
+                <div className="w-9 h-9 rounded-xl bg-[#f0f4f7] flex items-center justify-center flex-shrink-0">
+                  <Book className="w-4 h-4 text-[#7b9fb8]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p 
-                    className="text-xs mb-1"
-                    style={{  color: '#787771' }}
-                  >
-                    Major
-                  </p>
+                  <p className="text-[11px] text-[#787771] leading-none mb-0.5">Major</p>
                   {isEditing ? (
                     <select
                       value={editValues.major}
                       onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
-                      className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white min-h-[44px]"
-                      style={{  color: '#27251f' }}
+                      className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                     >
                       <option value="">Select Major</option>
                       <option value="African and African American Studies (B.A.)">African and African American Studies (B.A.)</option>
@@ -794,75 +754,34 @@ export function ProfilePage() {
                       <option value="Other">Other</option>
                     </select>
                   ) : (
-                    <p 
-                      className="text-sm"
-                      style={{  color: '#27251f' }}
-                    >
+                    <p className="text-[14px] text-[#27251f] leading-snug line-clamp-2">
                       {profile?.major || 'Not provided'}
                     </p>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-                <div className="w-11 h-11 rounded-2xl bg-[#f5f7f9] flex items-center justify-center">
-                  <Calendar className="w-5 h-5" style={{ color: '#7b9fb8' }} />
+              {/* Graduation year row */}
+              <div className="flex items-center gap-3 px-3.5 py-3">
+                <div className="w-9 h-9 rounded-xl bg-[#f0f4f7] flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4 text-[#7b9fb8]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p 
-                    className="text-xs mb-1"
-                    style={{  color: '#787771' }}
-                  >
-                    Graduation Year
-                  </p>
+                  <p className="text-[11px] text-[#787771] leading-none mb-0.5">Graduation Year</p>
                   {isEditing ? (
                     <select
                       value={editValues.graduation_year || ''}
                       onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
-                      className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white min-h-[44px]"
-                      style={{  color: '#27251f' }}
+                      className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
                     >
-                      <option value="">Select graduation year</option>
+                      <option value="">Select year</option>
                       <option value="2026">2026</option>
                       <option value="2027">2027</option>
                       <option value="2028">2028</option>
                       <option value="2029">2029</option>
                     </select>
                   ) : (
-                    <p 
-                      className="text-sm"
-                      style={{  color: '#27251f' }}
-                    >
+                    <p className="text-[14px] text-[#27251f] leading-snug">
                       {profile?.graduation_year || 'Not provided'}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3 px-4 py-4">
-                <div className="w-11 h-11 rounded-2xl bg-[#fef3ef] flex items-center justify-center">
-                  <Award className="w-5 h-5" style={{ color: '#d47455' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p 
-                    className="text-xs mb-1"
-                    style={{  color: '#787771' }}
-                  >
-                    GPA
-                  </p>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editValues.gpa}
-                      onChange={(e) => setEditValues({ ...editValues, gpa: e.target.value })}
-                      className="w-full text-sm px-3 py-2.5 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] min-h-[44px] bg-white"
-                      style={{  color: '#27251f' }}
-                      placeholder="e.g. 3.7"
-                    />
-                  ) : (
-                    <p 
-                      className="text-sm"
-                      style={{  color: '#27251f' }}
-                    >
-                      {profile?.gpa || 'Not provided'}
                     </p>
                   )}
                 </div>
@@ -871,38 +790,29 @@ export function ProfilePage() {
           </div>
         )}
 
-        {/* Sign out */}
-        <div className="px-5 pt-2 pb-6">
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
-            <button
-              type="button"
-              onClick={async () => {
-                const { error } = await signOut();
-                const isSessionMissing =
-                  error?.message?.toLowerCase().includes('session missing') ||
-                  (error as { name?: string })?.name === 'AuthSessionMissingError';
-                if (error && !isSessionMissing) {
-                  console.error('Error signing out:', error);
-                  alert('Failed to sign out. Please try again.');
-                  return;
-                }
-                window.location.href = window.location.origin + window.location.pathname;
-              }}
-              className="w-full flex items-center justify-between px-4 py-4 min-h-[52px] active:bg-[#fef3ef] transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center">
-                  <LogOut className="w-5 h-5 text-[#d47455]" />
-                </div>
-                <span 
-                  className="text-sm"
-                  style={{  color: '#d47455', fontWeight: 600 }}
-                >
-                  Sign Out
-                </span>
-              </div>
-            </button>
-          </div>
+        {/* Sign out - clear destructive action */}
+        <div className="px-4 pt-2 pb-4">
+          <button
+            type="button"
+            onClick={async () => {
+              const { error } = await signOut();
+              const isSessionMissing =
+                error?.message?.toLowerCase().includes('session missing') ||
+                (error as { name?: string })?.name === 'AuthSessionMissingError';
+              if (error && !isSessionMissing) {
+                console.error('Error signing out:', error);
+                alert('Failed to sign out. Please try again.');
+                return;
+              }
+              window.location.href = window.location.origin + window.location.pathname;
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#d47455]/10 rounded-2xl active:bg-[#d47455]/20 transition-colors"
+          >
+            <LogOut className="w-4 h-4 text-[#d47455]" />
+            <span className="text-[14px] font-semibold text-[#d47455]">
+              Sign Out
+            </span>
+          </button>
         </div>
       </div>
 
@@ -1226,26 +1136,6 @@ export function ProfilePage() {
                         ) : (
                           <p className="text-[14px] text-[#27251f] m-0" >
                             {profile?.graduation_year || 'Not provided'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Award className="w-5 h-5 text-[#787771]" />
-                      <div className="flex-1">
-                        <p className="text-[12px] text-[#787771] m-0 mb-1" >GPA</p>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editValues.gpa}
-                            onChange={(e) => setEditValues({ ...editValues, gpa: e.target.value })}
-                            className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                            style={{  color: '#27251f' }}
-                            placeholder="Enter GPA"
-                          />
-                        ) : (
-                          <p className="text-[14px] text-[#27251f] m-0" >
-                            {profile?.gpa || 'Not provided'}
                           </p>
                         )}
                       </div>
