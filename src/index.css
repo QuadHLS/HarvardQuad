@@ -103,6 +103,18 @@ img:not(.rounded-full):not(.rounded-none) {
   transform-origin: center;
 }
 
+/* Fade in animation for notifications */
+@keyframes fadeIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Landing-style background: warm gradient on cream (sign-in, onboarding, landing) */
 .landing-bg {
   background:

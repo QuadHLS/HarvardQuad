@@ -15,6 +15,7 @@ import { FeedService, type FeedPostWithAuthor, type FeedReplyWithAuthor } from '
 import { getEmbedInfo } from '../lib/embedUrl';
 import { ScrollArea } from './ui/scroll-area';
 import { NewPostModal } from './NewPostModal';
+import { UserProfileView } from './UserProfileView';
 
 function EmbedBlock({ url, className = '', compact = false }: { url: string; className?: string; compact?: boolean }) {
   const embed = getEmbedInfo(url);
@@ -64,9 +65,10 @@ interface PostDetailViewProps {
   userId: string | undefined;
   userDisplayName?: string;
   onBack: () => void;
+  onOpenUserProfile?: (userId: string) => void;
 }
 
-function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailViewProps) {
+function PostDetailView({ post, userId, userDisplayName, onBack, onOpenUserProfile }: PostDetailViewProps) {
   const [detailPost, setDetailPost] = useState<FeedPostWithAuthor | null>(post);
   const [replies, setReplies] = useState<FeedReplyWithAuthor[]>([]);
   const [replyInput, setReplyInput] = useState('');
@@ -176,12 +178,35 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
         <div className="bg-white p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
-                style={{ backgroundColor: authorColor, fontWeight: 600 }}
-              >
-                {authorInitials}
-              </div>
+              {detailPost.author_id !== userId ? (
+                <button
+                  type="button"
+                  data-profile-button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenUserProfile?.(detailPost.author_id);
+                  }}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenUserProfile?.(detailPost.author_id);
+                  }}
+                  className="min-w-[44px] min-h-[44px] w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
+                  style={{ backgroundColor: authorColor, fontWeight: 600 }}
+                  aria-label={`View ${authorName}'s profile`}
+                >
+                  {authorInitials}
+                </button>
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
+                  style={{ backgroundColor: authorColor, fontWeight: 600 }}
+                  aria-hidden
+                >
+                  {authorInitials}
+                </div>
+              )}
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
@@ -354,6 +379,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack }: PostDetailVie
                 submitting={submitting}
                 userDisplayName={userDisplayName}
                 onReplyInputFocusChange={setIsReplyInputFocused}
+                onOpenUserProfile={onOpenUserProfile}
               />
             ))}
           </div>
@@ -386,6 +412,8 @@ interface ReplyBlockProps {
   parentReply?: FeedReplyWithAuthor | null;
   /** Called when inline reply textarea is focused/blurred (for keyboard/padding) */
   onReplyInputFocusChange?: (focused: boolean) => void;
+  /** When avatar is clicked, open this user's profile */
+  onOpenUserProfile?: (userId: string) => void;
 }
 
 function InlineReplyForm({
@@ -477,6 +505,7 @@ function ReplyBlock({
   depth = 0,
   parentReply,
   onReplyInputFocusChange,
+  onOpenUserProfile,
 }: ReplyBlockProps) {
   const name = FeedService.displayName(reply.author);
   const initials = FeedService.initials(reply.author);
@@ -497,13 +526,46 @@ function ReplyBlock({
         ? 'mt-2 min-w-0'
         : 'ml-8 mt-2 min-w-0 max-w-[calc(100%-2rem)]';
   const parentName = parentReply ? FeedService.displayName(parentReply.author) : '';
+  const avatarClass = `${size} rounded-full flex items-center justify-center text-white flex-shrink-0`;
+  const isOwnReply = reply.author_id === userId;
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onOpenUserProfile?.(reply.author_id);
+  };
+  const handleAvatarPointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onOpenUserProfile?.(reply.author_id);
+  };
   return (
     <div className={indentClass}>
       <div className={isTopLevel ? 'bg-white rounded-2xl p-4 shadow-sm' : 'bg-[#fefefc] rounded-2xl p-4'}>
         <div className="flex items-start gap-3">
-          <div className={`${size} rounded-full flex items-center justify-center text-white flex-shrink-0`} style={{ backgroundColor: color, fontWeight: 600 }}>
-            {initials}
-          </div>
+          {onOpenUserProfile && !isOwnReply ? (
+            <div
+              role="button"
+              tabIndex={0}
+              data-profile-button
+              onClick={handleAvatarClick}
+              onPointerDown={handleAvatarPointerDown}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onOpenUserProfile(reply.author_id);
+                }
+              }}
+              className={`relative z-10 flex-shrink-0 min-w-[44px] min-h-[44px] ${size} rounded-full flex items-center justify-center text-white cursor-pointer active:scale-95 transition-transform`}
+              style={{ backgroundColor: color, fontWeight: 600 }}
+              aria-label={`View ${name}'s profile`}
+            >
+              {initials}
+            </div>
+          ) : (
+            <div className={avatarClass} style={{ backgroundColor: color, fontWeight: 600 }}>
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
               <span className="text-sm font-semibold text-[#27251f]">{name}</span>
@@ -568,6 +630,7 @@ function ReplyBlock({
               depth={depth + 1}
               parentReply={reply}
               onReplyInputFocusChange={onReplyInputFocusChange}
+              onOpenUserProfile={onOpenUserProfile}
             />
           ))}
         </div>
@@ -594,6 +657,7 @@ export function HomeFeed({
   const [posts, setPosts] = useState<FeedPostWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<FeedPostWithAuthor | null>(null);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [newPostModalOpen, setNewPostModalOpen] = useState(false);
 
   const loadPosts = useCallback(async () => {
@@ -638,6 +702,15 @@ export function HomeFeed({
     } catch {}
   };
 
+  if (viewingUserId) {
+    return (
+      <UserProfileView
+        userId={viewingUserId}
+        onBack={() => setViewingUserId(null)}
+      />
+    );
+  }
+
   if (selectedPost) {
     return (
       <PostDetailView
@@ -648,6 +721,7 @@ export function HomeFeed({
           setSelectedPost(null);
           loadPosts();
         }}
+        onOpenUserProfile={setViewingUserId}
       />
     );
   }
@@ -700,19 +774,50 @@ export function HomeFeed({
               const authorInitials = FeedService.initials(post.author);
               const authorColor = FeedService.avatarColor(post.author_id);
               const timeStr = FeedService.timeAgo(post.created_at);
+              const openPost = () => setSelectedPost(post);
               return (
                 <div
                   key={post.id}
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
-                  onClick={() => setSelectedPost(post)}
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm"
                 >
                   <div className="p-4 pb-3">
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ backgroundColor: authorColor, fontWeight: 600 }}>
-                          {authorInitials}
-                        </div>
-                        <div>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {post.author_id !== userId ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setViewingUserId(post.author_id);
+                            }}
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setViewingUserId(post.author_id);
+                            }}
+                            className="relative z-10 min-w-[44px] min-h-[44px] w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
+                            style={{ backgroundColor: authorColor, fontWeight: 600 }}
+                            aria-label={`View ${authorName}'s profile`}
+                          >
+                            {authorInitials}
+                          </button>
+                        ) : (
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
+                            style={{ backgroundColor: authorColor, fontWeight: 600 }}
+                            aria-hidden
+                          >
+                            {authorInitials}
+                          </div>
+                        )}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={openPost}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPost(); } }}
+                          className="flex-1 min-w-0 cursor-pointer active:scale-[0.98] transition-transform"
+                        >
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
                             <span className="text-xs text-[#787771]">• {timeStr}</span>
@@ -722,7 +827,7 @@ export function HomeFeed({
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-0.5">
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
                         {userId && (
                           <button
                             type="button"
@@ -747,32 +852,46 @@ export function HomeFeed({
                       </div>
                     </div>
 
-                    <h3 className="text-base mb-2 font-semibold text-[#27251f] leading-tight" >{post.title}</h3>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={openPost}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPost(); } }}
+                      className="cursor-pointer active:scale-[0.98] transition-transform"
+                    >
+                      <h3 className="text-base mb-2 font-semibold text-[#27251f] leading-tight" >{post.title}</h3>
 
-                    {post.post_type === 'poll' && post.poll_options && post.poll_options.length > 0 ? (
-                      <div className="text-sm text-[#787771] mb-2">
-                        Poll · {post.poll_options.reduce((s, o) => s + (o.vote_count ?? 0), 0)} votes
-                      </div>
-                    ) : (
-                      <>
-                        {post.content && (
-                          <p className="selectable-text text-sm mb-2 line-clamp-2 text-[#27251f] leading-relaxed whitespace-pre-wrap">{post.content}</p>
-                        )}
-                        {post.image_path && (
-                          <div className="block isolate rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30">
-                            <img src={post.image_path} alt="" className="block w-full max-h-48 object-contain" />
-                          </div>
-                        )}
-                        {post.url && (
-                          <div className="mb-2">
-                            <EmbedBlock url={post.url} className="text-xs" compact />
-                          </div>
-                        )}
-                      </>
-                    )}
+                      {post.post_type === 'poll' && post.poll_options && post.poll_options.length > 0 ? (
+                        <div className="text-sm text-[#787771] mb-2">
+                          Poll · {post.poll_options.reduce((s, o) => s + (o.vote_count ?? 0), 0)} votes
+                        </div>
+                      ) : (
+                        <>
+                          {post.content && (
+                            <p className="selectable-text text-sm mb-2 line-clamp-2 text-[#27251f] leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                          )}
+                          {post.image_path && (
+                            <div className="block isolate rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30">
+                              <img src={post.image_path} alt="" className="block w-full max-h-48 object-contain" />
+                            </div>
+                          )}
+                          {post.url && (
+                            <div className="mb-2">
+                              <EmbedBlock url={post.url} className="text-xs" compact />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="border-t border-[#f5f3eb] px-4 py-2 flex items-center justify-between">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={openPost}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPost(); } }}
+                    className="border-t border-[#f5f3eb] px-4 py-2 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
+                  >
                     <div className="flex items-center gap-4">
                       <button type="button" className="flex items-center gap-1.5 py-1 active:scale-95 transition-transform" onClick={(e) => handleHeartPost(e, post)}>
                         <Heart size={18} className={post.current_user_hearted ? 'text-[#d47455]' : 'text-[#787771]'} fill={post.current_user_hearted ? '#d47455' : 'none'} />

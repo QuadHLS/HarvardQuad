@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, Phone, MapPin, Calendar, Book, Award, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Mail, Phone, MapPin, Calendar, Book, ChevronLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isValidSocialUrl, normalizeSocialUrl } from '../lib/urlUtils';
 
 interface ProfileData {
   full_name: string | null;
@@ -10,9 +11,55 @@ interface ProfileData {
   graduation_year: string | null;
   phone: string | null;
   location: string | null;
-  gpa: string | null;
   avatar_url: string | null;
+  instagram_url: string | null;
+  linkedin_url: string | null;
   classes?: unknown[];
+}
+
+// Stable background gradient style
+const PROFILE_PAGE_BACKGROUND = {
+  background: `
+    radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.9), transparent 65%),
+    radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.88), transparent 60%),
+    radial-gradient(ellipse 95% 75% at 50% 90%, rgba(253, 208, 178, 0.85), transparent 55%),
+    radial-gradient(ellipse 75% 95% at 72% 12%, rgba(254, 218, 192, 0.88), transparent 58%),
+    #fbf2eb
+  `,
+  minHeight: 'var(--app-height, 100vh)',
+};
+
+// Glassmorphic surface styles
+const GLASS_SURFACE_STRONG = {
+  background: 'rgba(255, 255, 255, 0.72)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+};
+
+const GLASS_SURFACE_LIGHT = {
+  background: 'rgba(255, 255, 255, 0.65)',
+  backdropFilter: 'blur(16px)',
+  WebkitBackdropFilter: 'blur(16px)',
+};
+
+// Helper: Get avatar color from name
+function getAvatarColor(name: string): string {
+  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
+  return colors[name.charCodeAt(0) % colors.length];
+}
+
+// Helper: Get initials from name
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.charAt(0).toUpperCase();
+}
+
+// Helper: Remove degree suffix from major
+function cleanMajorName(major: string): string {
+  return major.replace(/ \(B\.[A-Z.\/]+\)$/, '');
 }
 
 interface UserProfileViewProps {
@@ -23,13 +70,14 @@ interface UserProfileViewProps {
 export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [socialNotification, setSocialNotification] = useState<'instagram' | 'linkedin' | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, gpa, avatar_url, classes')
+          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, avatar_url, instagram_url, linkedin_url, classes')
           .eq('id', userId)
           .single();
 
@@ -43,14 +91,17 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
             graduation_year: null,
             phone: null,
             location: null,
-            gpa: null,
             avatar_url: null,
+            instagram_url: null,
+            linkedin_url: null,
             classes: [],
           });
         } else {
           setProfile({
             ...data,
             major: data.major ?? null,
+            instagram_url: data.instagram_url ?? null,
+            linkedin_url: data.linkedin_url ?? null,
             classes: Array.isArray(data.classes) ? data.classes : [],
           });
         }
@@ -64,8 +115,9 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
           graduation_year: null,
           phone: null,
           location: null,
-          gpa: null,
           avatar_url: null,
+          instagram_url: null,
+          linkedin_url: null,
           classes: [],
         });
       } finally {
@@ -76,232 +128,286 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
     fetchProfile();
   }, [userId]);
 
-  const classesCount = profile?.classes?.length ?? 0;
-  const creditsTotal = (profile?.classes ?? []).reduce(
-    (sum, c) => sum + (Number((c as { credits?: number | null }).credits) || 0),
-    0
-  );
-  const stats = [
-    { label: 'Classes', value: String(classesCount) },
-    { label: 'Squads', value: '5' },
-    { label: 'Credits', value: String(creditsTotal) }
-  ];
+  // Memoized computed values
+  const stats = useMemo(() => {
+    const classesCount = profile?.classes?.length ?? 0;
+    const creditsTotal = (profile?.classes ?? []).reduce(
+      (sum, c) => sum + (Number((c as { credits?: number | null }).credits) || 0),
+      0
+    );
+    return [
+      { label: 'Classes', value: String(classesCount) },
+      { label: 'Squads', value: '5' },
+      { label: 'Credits', value: String(creditsTotal) }
+    ];
+  }, [profile?.classes]);
 
-  // Helper function to get class year display
-  const getClassYearDisplay = () => {
-    if (!profile) return '';
-    if (profile.graduation_year) {
-      return `Class of ${profile.graduation_year}`;
-    }
-    return '';
-  };
+  const displayName = useMemo(() => {
+    return profile?.public_name || profile?.full_name || profile?.email?.split('@')[0] || 'User';
+  }, [profile?.public_name, profile?.full_name, profile?.email]);
 
-  const profilePageBackground = {
-    background: `
-      radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.9), transparent 65%),
-      radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.88), transparent 60%),
-      radial-gradient(ellipse 95% 75% at 50% 90%, rgba(253, 208, 178, 0.85), transparent 55%),
-      radial-gradient(ellipse 75% 95% at 72% 12%, rgba(254, 218, 192, 0.88), transparent 58%),
-      #fbf2eb
-    `,
-    minHeight: 'var(--app-height, 100vh)',
-  };
+  const classYearDisplay = useMemo(() => {
+    return profile?.graduation_year ? `Class of ${profile.graduation_year}` : '';
+  }, [profile?.graduation_year]);
+
+  const avatarColor = useMemo(() => getAvatarColor(displayName), [displayName]);
+  const avatarInitials = useMemo(() => {
+    const forInitials = profile?.public_name || profile?.full_name;
+    return forInitials ? getInitials(forInitials) : displayName.charAt(0).toUpperCase();
+  }, [profile?.public_name, profile?.full_name, displayName]);
 
   if (loading) {
     return (
-      <div className="md:hidden h-screen w-full flex items-center justify-center fixed inset-0" style={profilePageBackground}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
+      <div className="md:hidden h-screen w-full flex items-center justify-center fixed inset-0" style={PROFILE_PAGE_BACKGROUND}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto" aria-label="Loading profile"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full min-h-full w-full md:hidden" style={profilePageBackground}>
-      {/* Mobile View - same design as own profile, no editing */}
+    <div className="h-full min-h-full w-full md:hidden" style={PROFILE_PAGE_BACKGROUND}>
+      {/* Mobile View - v2 iOS-native premium design */}
       <div
-        className="min-h-full overflow-y-auto relative"
-        style={{ paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))', ...profilePageBackground }}
+        className="min-h-full overflow-y-auto"
+        style={{ 
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))', 
+          ...PROFILE_PAGE_BACKGROUND 
+        }}
       >
-        {/* Back button - top left */}
-        <div
-          className="absolute top-0 left-0 z-10 flex items-center pl-5 pt-3"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+        {/* Compact Header with Back button */}
+        <div 
+          className="flex items-center justify-between px-5 h-11"
+          style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
         >
           <button
             onClick={onBack}
-            className="w-10 h-10 rounded-full bg-[#27251f] text-white flex items-center justify-center active:scale-95 transition-transform shadow-sm hover:bg-[#1a1916]"
-            aria-label="Back"
+            className="text-[15px] font-medium text-[#d47455] active:opacity-60 transition-opacity min-h-[44px] -my-2 flex items-center gap-1"
+            aria-label="Go back"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" />
+            Back
           </button>
+          <span className="text-[13px] font-medium text-[#9b8f7f] tracking-wide uppercase">Profile</span>
+          <div className="w-16" /> {/* Spacer for centering */}
         </div>
 
-        {/* Profile content - same layout as ProfilePage */}
-        <div className="px-5 pb-8 pt-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3rem)' }}>
-          <div className="flex flex-col items-center">
-            {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
-              <img 
-                src={profile.avatar_url} 
-                alt="Profile" 
-                className="w-32 h-32 rounded-full object-cover mb-3 shadow-md"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = 'flex';
-                }}
-              />
-            ) : null}
-            <div
-              className="w-32 h-32 rounded-full flex items-center justify-center mb-3 shadow-md text-white text-3xl"
-              style={{ 
-                backgroundColor: (() => {
-                  const name = profile?.public_name || profile?.full_name || profile?.email || 'User';
-                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
-                  return colors[name.charCodeAt(0) % colors.length];
-                })(),
-                display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
-                fontWeight: 600
-              }}
-            >
-              {(() => {
-                const name = profile?.public_name || profile?.full_name || profile?.email?.split('@')[0] || 'User';
-                const forInitials = profile?.public_name || profile?.full_name;
-                if (forInitials) {
-                  const parts = forInitials.trim().split(/\s+/);
-                  if (parts.length >= 2) {
-                    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
-                  }
-                  return name.charAt(0).toUpperCase().slice(0, 2);
-                }
-                return name.charAt(0).toUpperCase().slice(0, 2);
-              })()}
-            </div>
-            <h1 
-              className="text-3xl mb-1"
-              style={{ fontWeight: 600, color: '#27251f' }}
-            >
-              {profile?.public_name || profile?.full_name || profile?.email?.split('@')[0] || 'User'}
-            </h1>
-            <p 
-              className="text-sm mb-2"
-              style={{ color: '#787771' }}
-            >
-              {getClassYearDisplay()}
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="px-5 mt-2 mb-6">
-          <div className="grid grid-cols-3 gap-3">
-            {stats.map((stat, index) => (
-              <div key={index} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-[#f5f3eb]">
-                <p 
-                  className="text-2xl mb-1"
-                  style={{ fontWeight: 600, color: '#d47455' }}
-                >
-                  {stat.value}
-                </p>
-                <p 
-                  className="text-xs"
-                  style={{ color: '#787771' }}
-                >
-                  {stat.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Contact Info - same as ProfilePage, always show all rows */}
-        <div className="px-5 mb-6">
-          <h2 
-            className="text-xl mb-4"
-            style={{ fontWeight: 600, color: '#27251f' }}
+        {/* Hero Card - Unified identity block */}
+        <div className="mx-4 mt-2 mb-5">
+          <div 
+            className="rounded-[20px] px-5 py-5"
+            style={GLASS_SURFACE_STRONG}
           >
-            Contact
-          </h2>
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-              <div className="w-11 h-11 rounded-2xl bg-[#fef3ef] flex items-center justify-center">
-                <Mail className="w-5 h-5" style={{ color: '#d47455' }} />
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt={`${displayName}'s profile picture`}
+                    className="w-[72px] h-[72px] rounded-full object-cover"
+                    style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-white text-xl font-semibold"
+                  style={{ 
+                    backgroundColor: avatarColor,
+                    display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                  }}
+                  aria-label={`${displayName}'s avatar`}
+                >
+                  {avatarInitials}
+                </div>
               </div>
+
+              {/* Name + Year */}
               <div className="flex-1 min-w-0">
-                <p className="text-xs mb-1" style={{ color: '#787771' }}>Email</p>
-                <p className="text-sm" style={{ color: '#27251f' }}>
-                  {profile?.email || 'Not provided'}
-                </p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-[20px] font-semibold text-[#27251f] leading-tight truncate">
+                    {displayName}
+                  </h1>
+                  {/* Social links - always visible at full opacity; popup when not linked */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {isValidSocialUrl(profile?.instagram_url) ? (
+                      <a
+                        href={normalizeSocialUrl(profile?.instagram_url)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center active:scale-95 transition-transform"
+                        aria-label="Instagram profile"
+                      >
+                        <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[18px] w-auto rounded-none" />
+                      </a>
+                    ) : (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSocialNotification('instagram');
+                            setTimeout(() => setSocialNotification(null), 3000);
+                          }}
+                          className="flex items-center justify-center active:scale-95 transition-transform"
+                          aria-label="Instagram not linked"
+                        >
+                          <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[18px] w-auto rounded-none" />
+                        </button>
+                        {socialNotification === 'instagram' && (
+                          <div
+                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-[#27251f] text-white text-[11px] rounded-lg shadow-lg whitespace-nowrap z-20"
+                            style={{ minWidth: '180px', animation: 'fadeIn 0.2s ease-out' }}
+                          >
+                            {displayName} hasn&apos;t added Instagram.
+                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#27251f] rotate-45" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {isValidSocialUrl(profile?.linkedin_url) ? (
+                      <a
+                        href={normalizeSocialUrl(profile?.linkedin_url)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center active:scale-95 transition-transform"
+                        aria-label="LinkedIn profile"
+                      >
+                        <img src="/LI-In-Bug.png" alt="" className="h-[18px] w-auto rounded-none" />
+                      </a>
+                    ) : (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSocialNotification('linkedin');
+                            setTimeout(() => setSocialNotification(null), 3000);
+                          }}
+                          className="flex items-center justify-center active:scale-95 transition-transform"
+                          aria-label="LinkedIn not linked"
+                        >
+                          <img src="/LI-In-Bug.png" alt="" className="h-[18px] w-auto rounded-none" />
+                        </button>
+                        {socialNotification === 'linkedin' && (
+                          <div
+                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-[#27251f] text-white text-[11px] rounded-lg shadow-lg whitespace-nowrap z-20"
+                            style={{ minWidth: '180px', animation: 'fadeIn 0.2s ease-out' }}
+                          >
+                            {displayName} hasn&apos;t added LinkedIn.
+                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#27251f] rotate-45" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {classYearDisplay && (
+                  <p className="text-[14px] text-[#9b8f7f] mt-0.5">
+                    {classYearDisplay}
+                  </p>
+                )}
+                {profile?.major && (
+                  <p className="text-[13px] text-[#787771] mt-1 line-clamp-1">
+                    {cleanMajorName(profile.major)}
+                  </p>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-              <div className="w-11 h-11 rounded-2xl bg-[#f5f7f9] flex items-center justify-center">
-                <Phone className="w-5 h-5" style={{ color: '#7b9fb8' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs mb-1" style={{ color: '#787771' }}>Phone</p>
-                <p className="text-sm" style={{ color: '#27251f' }}>
-                  {profile?.phone || 'Not provided'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-4">
-              <div className="w-11 h-11 rounded-2xl bg-[#f5f7f5] flex items-center justify-center">
-                <MapPin className="w-5 h-5" style={{ color: '#8c9e8c' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs mb-1" style={{ color: '#787771' }}>Location</p>
-                <p className="text-sm" style={{ color: '#27251f' }}>
-                  {profile?.location || 'Not provided'}
-                </p>
-              </div>
+
+            {/* Stats Row - Inline pill style */}
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[#27251f]/[0.06]" role="list" aria-label="Profile statistics">
+              {stats.map((stat, index) => (
+                <React.Fragment key={stat.label}>
+                  <div className="flex items-center gap-1.5" role="listitem">
+                    <span className="text-[15px] font-semibold text-[#27251f]">{stat.value}</span>
+                    <span className="text-[13px] text-[#9b8f7f]">{stat.label}</span>
+                  </div>
+                  {index < stats.length - 1 && (
+                    <div className="w-[3px] h-[3px] rounded-full bg-[#d4cfc4]" aria-hidden="true" />
+                  )}
+                </React.Fragment>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Academic Info - same as ProfilePage, always show all rows */}
-        <div className="px-5 mb-6">
-          <h2 
-            className="text-xl mb-4"
-            style={{ fontWeight: 600, color: '#27251f' }}
-          >
-            Academic Info
-          </h2>
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#f5f3eb]">
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-              <div className="w-11 h-11 rounded-2xl bg-[#f5f7f9] flex items-center justify-center">
-                <Book className="w-5 h-5" style={{ color: '#7b9fb8' }} />
+        {/* Content Sections */}
+        <div className="px-4 space-y-6">
+          {/* Contact Section */}
+          <section aria-labelledby="contact-heading">
+            <h2 id="contact-heading" className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
+              Contact
+            </h2>
+            <div 
+              className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
+              style={GLASS_SURFACE_LIGHT}
+            >
+              {/* Email */}
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Mail className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] text-[#27251f] truncate">
+                    {profile?.email || 'Not provided'}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs mb-1" style={{ color: '#787771' }}>Major</p>
-                <p className="text-sm" style={{ color: '#27251f' }}>
-                  {profile?.major || 'Not provided'}
-                </p>
+              {/* Phone */}
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Phone className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[15px] truncate ${profile?.phone ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                    {profile?.phone || 'Not provided'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-[#f5f3eb]">
-              <div className="w-11 h-11 rounded-2xl bg-[#f5f7f9] flex items-center justify-center">
-                <Calendar className="w-5 h-5" style={{ color: '#7b9fb8' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs mb-1" style={{ color: '#787771' }}>Graduation Year</p>
-                <p className="text-sm" style={{ color: '#27251f' }}>
-                  {profile?.graduation_year || 'Not provided'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-4">
-              <div className="w-11 h-11 rounded-2xl bg-[#fef3ef] flex items-center justify-center">
-                <Award className="w-5 h-5" style={{ color: '#d47455' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs mb-1" style={{ color: '#787771' }}>GPA</p>
-                <p className="text-sm" style={{ color: '#27251f' }}>
-                  {profile?.gpa || 'Not provided'}
-                </p>
+              {/* Location */}
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <MapPin className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[15px] truncate ${profile?.location ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                    {profile?.location || 'Not provided'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
+
+          {/* Academic Section */}
+          <section aria-labelledby="academic-heading">
+            <h2 id="academic-heading" className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
+              Academic
+            </h2>
+            <div 
+              className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
+              style={GLASS_SURFACE_LIGHT}
+            >
+              {/* Major */}
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Book className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[15px] line-clamp-2 ${profile?.major ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                    {profile?.major ? cleanMajorName(profile.major) : 'Not provided'}
+                  </p>
+                </div>
+              </div>
+              {/* Graduation */}
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Calendar className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[15px] ${profile?.graduation_year ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                    {classYearDisplay || 'Not provided'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>

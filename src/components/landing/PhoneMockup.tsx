@@ -76,7 +76,7 @@ interface Message {
 }
 
 interface ChatVariant {
-  icon: JSX.Element;
+  icon: React.ReactElement;
   name: string;
   subtitle: string;
 }
@@ -117,11 +117,11 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
       <div
         className="absolute bg-white overflow-hidden"
         style={{
-          top: 8 * scale,
-          left: 8 * scale,
-          right: 8 * scale,
-          bottom: 8 * scale,
-          borderRadius: 36 * scale,
+          top: 3 * scale,
+          left: 3 * scale,
+          right: 3 * scale,
+          bottom: 3 * scale,
+          borderRadius: 41 * scale,
         }}
       >
         {/* Dynamic Island */}
@@ -138,8 +138,8 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
         <div 
           className="absolute overflow-hidden"
           style={{
-            width: baseWidth - 16,
-            height: baseHeight - 16,
+            width: baseWidth - 6,
+            height: baseHeight - 6,
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
           }}
@@ -147,16 +147,6 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
           {children}
         </div>
       </div>
-      {/* Home indicator */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 bg-black/70 rounded-full"
-        style={{
-          bottom: 16 * scale,
-          width: 120 * scale,
-          height: 5 * scale,
-        }}
-        aria-hidden="true"
-      />
     </motion.div>
   );
 });
@@ -252,7 +242,7 @@ const getChatHeader = (variant: 'dm' | 'group' | 'friends'): ChatVariant => {
 
 export const ChatScreen = memo<{ variant?: 'dm' | 'group' | 'friends' }>(({ variant = 'group' }) => {
   const messages = variant === 'friends' ? FRIENDS_MESSAGES : CHAT_MESSAGES;
-  const header = getChatHeader(variant);
+  const header = getChatHeader(variant as 'dm' | 'group' | 'friends');
 
   return (
     <div className="h-full bg-[#FBF9F5] flex flex-col">
@@ -417,7 +407,7 @@ export const AnimatedChatScreen = memo<{ variant?: 'dm' | 'group' }>(({ variant 
     }
   };
 
-  const header = getChatHeader(variant);
+  const header = getChatHeader(variant as 'dm' | 'group' | 'friends');
 
   return (
     <div ref={containerRef} className="h-full bg-[#FBF9F5] flex flex-col">

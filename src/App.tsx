@@ -28,7 +28,6 @@ interface ProfileData {
   graduation_year: string | null;
   phone: string | null;
   location: string | null;
-  gpa: string | null;
   avatar_url: string | null;
 }
 
@@ -267,7 +266,7 @@ export default function App() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, public_name, email, class_year, graduation_year, phone, location, gpa, avatar_url')
+          .select('full_name, public_name, email, class_year, graduation_year, phone, location, avatar_url')
           .eq('id', user.id)
           .single();
 
@@ -281,7 +280,6 @@ export default function App() {
             graduation_year: null,
             phone: null,
             location: null,
-            gpa: null,
             avatar_url: null,
           });
         } else {
@@ -297,7 +295,6 @@ export default function App() {
           graduation_year: null,
           phone: null,
           location: null,
-          gpa: null,
           avatar_url: null,
         });
       } finally {

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Mail, Phone, MapPin, Calendar, Book, Edit2, ChevronRight, LogOut, Save, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { isValidSocialUrl, normalizeSocialUrl } from '../lib/urlUtils';
 
 interface ProfileData {
   full_name: string | null;
@@ -12,7 +13,54 @@ interface ProfileData {
   phone: string | null;
   location: string | null;
   avatar_url: string | null;
+  instagram_url: string | null;
+  linkedin_url: string | null;
   classes?: unknown[];
+}
+
+// Stable background gradient style
+const PROFILE_PAGE_BACKGROUND = {
+  background: `
+    radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.9), transparent 65%),
+    radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.88), transparent 60%),
+    radial-gradient(ellipse 95% 75% at 50% 90%, rgba(253, 208, 178, 0.85), transparent 55%),
+    radial-gradient(ellipse 75% 95% at 72% 12%, rgba(254, 218, 192, 0.88), transparent 58%),
+    #fbf2eb
+  `,
+  minHeight: 'var(--app-height, 100vh)',
+};
+
+// Glassmorphic surface styles
+const GLASS_SURFACE_STRONG = {
+  background: 'rgba(255, 255, 255, 0.72)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+};
+
+const GLASS_SURFACE_LIGHT = {
+  background: 'rgba(255, 255, 255, 0.65)',
+  backdropFilter: 'blur(16px)',
+  WebkitBackdropFilter: 'blur(16px)',
+};
+
+// Helper: Get avatar color from name
+function getAvatarColor(name: string): string {
+  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
+  return colors[name.charCodeAt(0) % colors.length];
+}
+
+// Helper: Get initials from name
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.charAt(0).toUpperCase();
+}
+
+// Helper: Remove degree suffix from major
+function cleanMajorName(major: string): string {
+  return major.replace(/ \(B\.[A-Z.\/]+\)$/, '');
 }
 
 export function ProfilePage() {
@@ -23,6 +71,7 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deletingAvatar, setDeletingAvatar] = useState(false);
+  const [socialNotification, setSocialNotification] = useState<'instagram' | 'linkedin' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editValues, setEditValues] = useState({
     public_name: '',
@@ -30,6 +79,8 @@ export function ProfilePage() {
     location: '',
     major: '',
     graduation_year: '',
+    instagram_url: '',
+    linkedin_url: '',
   });
 
   useEffect(() => {
@@ -42,7 +93,7 @@ export function ProfilePage() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, avatar_url, classes')
+          .select('full_name, public_name, email, class_year, major, graduation_year, phone, location, avatar_url, instagram_url, linkedin_url, classes')
           .eq('id', user.id)
           .single();
 
@@ -58,12 +109,16 @@ export function ProfilePage() {
             phone: null,
             location: null,
             avatar_url: null,
+            instagram_url: null,
+            linkedin_url: null,
             classes: [],
           });
         } else {
           setProfile({
             ...data,
             major: data.major ?? null,
+            instagram_url: data.instagram_url ?? null,
+            linkedin_url: data.linkedin_url ?? null,
             classes: Array.isArray(data.classes) ? data.classes : [],
           });
         }
@@ -79,6 +134,8 @@ export function ProfilePage() {
           phone: null,
           location: null,
           avatar_url: null,
+          instagram_url: null,
+          linkedin_url: null,
           classes: [],
         });
       } finally {
@@ -98,23 +155,14 @@ export function ProfilePage() {
         location: profile.location || '',
         major: profile.major || '',
         graduation_year: profile.graduation_year || '',
+        instagram_url: profile.instagram_url || '',
+        linkedin_url: profile.linkedin_url || '',
       });
     }
   }, [profile, isEditing]);
 
   const handleEditClick = () => {
     setIsEditing(true);
-  };
-
-  // Function to capitalize first letter of each word
-  const capitalizeWords = (text: string): string => {
-    return text
-      .split(' ')
-      .map(word => {
-        if (!word) return word;
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      })
-      .join(' ');
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,6 +179,8 @@ export function ProfilePage() {
         location: profile.location || '',
         major: profile.major || '',
         graduation_year: profile.graduation_year || '',
+        instagram_url: profile.instagram_url || '',
+        linkedin_url: profile.linkedin_url || '',
       });
     }
   };
@@ -148,6 +198,8 @@ export function ProfilePage() {
           location: editValues.location || null,
           major: editValues.major.trim() || null,
           graduation_year: editValues.graduation_year || null,
+          instagram_url: editValues.instagram_url.trim() || null,
+          linkedin_url: editValues.linkedin_url.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -167,6 +219,8 @@ export function ProfilePage() {
         location: editValues.location || null,
         major: editValues.major || null,
         graduation_year: editValues.graduation_year || null,
+        instagram_url: editValues.instagram_url.trim() || null,
+        linkedin_url: editValues.linkedin_url.trim() || null,
       });
 
       // Dispatch event to notify other components of profile update
@@ -370,57 +424,47 @@ export function ProfilePage() {
     }
   };
 
-  const classesCount = profile?.classes?.length ?? 0;
-  const creditsTotal = (profile?.classes ?? []).reduce(
-    (sum, c) => sum + (Number((c as { credits?: number | null }).credits) || 0),
-    0
-  );
-  const stats = [
-    { label: 'Classes', value: String(classesCount) },
-    { label: 'Squads', value: '5' },
-    { label: 'Credits', value: String(creditsTotal) }
-  ];
+  // Memoized computed values
+  const stats = useMemo(() => {
+    const classesCount = profile?.classes?.length ?? 0;
+    const creditsTotal = (profile?.classes ?? []).reduce(
+      (sum, c) => sum + (Number((c as { credits?: number | null }).credits) || 0),
+      0
+    );
+    return [
+      { label: 'Classes', value: String(classesCount) },
+      { label: 'Squads', value: '5' },
+      { label: 'Credits', value: String(creditsTotal) }
+    ];
+  }, [profile?.classes]);
 
-  // Helper function to get class year display
-  const getClassYearDisplay = () => {
-    if (!profile) return '';
-    if (profile.graduation_year) {
-      return `Class of ${profile.graduation_year}`;
-    }
-    return '';
-  };
+  const displayName = useMemo(() => {
+    return profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User';
+  }, [profile?.public_name, profile?.full_name, user?.email]);
 
-  // Helper function to get graduation year display
-  const getGraduationDisplay = () => {
-    if (!profile) return '';
-    if (profile.graduation_year) return `Class of ${profile.graduation_year}`;
-    return '';
-  };
+  const classYearDisplay = useMemo(() => {
+    return profile?.graduation_year ? `Class of ${profile.graduation_year}` : '';
+  }, [profile?.graduation_year]);
 
-  const profilePageBackground = {
-    background: `
-      radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.9), transparent 65%),
-      radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.88), transparent 60%),
-      radial-gradient(ellipse 95% 75% at 50% 90%, rgba(253, 208, 178, 0.85), transparent 55%),
-      radial-gradient(ellipse 75% 95% at 72% 12%, rgba(254, 218, 192, 0.88), transparent 58%),
-      #fbf2eb
-    `,
-    minHeight: 'var(--app-height, 100vh)',
-  };
+  const avatarColor = useMemo(() => getAvatarColor(displayName), [displayName]);
+  const avatarInitials = useMemo(() => {
+    const forInitials = profile?.public_name || profile?.full_name;
+    return forInitials ? getInitials(forInitials) : displayName.charAt(0).toUpperCase();
+  }, [profile?.public_name, profile?.full_name, displayName]);
 
   if (loading) {
     return (
       <>
         {/* Mobile View - Centered on screen */}
-        <div className="md:hidden h-screen w-full flex items-center justify-center fixed inset-0" style={profilePageBackground}>
+        <div className="md:hidden h-screen w-full flex items-center justify-center fixed inset-0" style={PROFILE_PAGE_BACKGROUND}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto" aria-label="Loading profile"></div>
           </div>
         </div>
         {/* Desktop View */}
-        <div className="hidden md:flex h-full w-full items-center justify-center" style={profilePageBackground}>
+        <div className="hidden md:flex h-full w-full items-center justify-center" style={PROFILE_PAGE_BACKGROUND}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455] mx-auto" aria-label="Loading profile"></div>
           </div>
         </div>
       </>
@@ -428,7 +472,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="h-full min-h-full w-full" style={profilePageBackground}>
+    <div className="h-full min-h-full w-full" style={PROFILE_PAGE_BACKGROUND}>
       {/* Hidden file input for avatar upload */}
       <input
         ref={fileInputRef}
@@ -443,7 +487,7 @@ export function ProfilePage() {
         style={{ 
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))', 
-          ...profilePageBackground 
+          ...PROFILE_PAGE_BACKGROUND 
         }}
       >
         {/* Compact Header with Edit */}
@@ -455,7 +499,8 @@ export function ProfilePage() {
           {!isEditing ? (
             <button
               onClick={handleEditClick}
-              className="text-[15px] font-medium text-[#d47455] active:opacity-60 transition-opacity"
+              className="text-[15px] font-medium text-[#d47455] active:opacity-60 transition-opacity min-h-[44px] -my-2"
+              aria-label="Edit profile"
             >
               Edit
             </button>
@@ -464,14 +509,16 @@ export function ProfilePage() {
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="text-[15px] font-medium text-[#787771] active:opacity-60 transition-opacity disabled:opacity-40"
+                className="text-[15px] font-medium text-[#787771] active:opacity-60 transition-opacity disabled:opacity-40 min-h-[44px] -my-2"
+                aria-label="Cancel editing"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="text-[15px] font-semibold text-[#d47455] active:opacity-60 transition-opacity disabled:opacity-40"
+                className="text-[15px] font-semibold text-[#d47455] active:opacity-60 transition-opacity disabled:opacity-40 min-h-[44px] -my-2"
+                aria-label={saving ? 'Saving profile' : 'Save profile'}
               >
                 {saving ? 'Saving...' : 'Done'}
               </button>
@@ -483,11 +530,7 @@ export function ProfilePage() {
         <div className="mx-4 mt-2 mb-5">
           <div 
             className="rounded-[20px] px-5 py-5"
-            style={{ 
-              background: 'rgba(255, 255, 255, 0.72)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-            }}
+            style={GLASS_SURFACE_STRONG}
           >
             <div className="flex items-center gap-4">
               {/* Avatar */}
@@ -495,7 +538,7 @@ export function ProfilePage() {
                 {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
                   <img 
                     src={profile.avatar_url} 
-                    alt="Profile" 
+                    alt={`${displayName}'s profile picture`}
                     className="w-[72px] h-[72px] rounded-full object-cover"
                     style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
                     onError={(e) => {
@@ -509,27 +552,13 @@ export function ProfilePage() {
                 <div
                   className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-white text-xl font-semibold"
                   style={{ 
-                    backgroundColor: (() => {
-                      const name = profile?.public_name || profile?.full_name || user?.email || 'User';
-                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
-                      return colors[name.charCodeAt(0) % colors.length];
-                    })(),
+                    backgroundColor: avatarColor,
                     display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
                     boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                   }}
+                  aria-label={`${displayName}'s avatar`}
                 >
-                  {(() => {
-                    const name = profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User';
-                    const forInitials = profile?.public_name || profile?.full_name;
-                    if (forInitials) {
-                      const parts = forInitials.trim().split(/\s+/);
-                      if (parts.length >= 2) {
-                        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                      }
-                      return name.charAt(0).toUpperCase();
-                    }
-                    return name.charAt(0).toUpperCase();
-                  })()}
+                  {avatarInitials}
                 </div>
                 {isEditing && (
                   <button 
@@ -537,11 +566,12 @@ export function ProfilePage() {
                     disabled={uploadingAvatar || deletingAvatar}
                     className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#27251f] flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
                     style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+                    aria-label={uploadingAvatar ? 'Uploading avatar' : 'Change avatar'}
                   >
                     {uploadingAvatar ? (
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
                     ) : (
-                      <Edit2 className="w-3.5 h-3.5 text-white" />
+                      <Edit2 className="w-3.5 h-3.5 text-white" aria-hidden="true" />
                     )}
                   </button>
                 )}
@@ -556,31 +586,118 @@ export function ProfilePage() {
                     onChange={handleNameChange}
                     className="text-[20px] font-semibold text-[#27251f] w-full px-0 py-1 bg-transparent border-b-2 border-[#d47455]/30 focus:border-[#d47455] focus:outline-none transition-colors"
                     placeholder="Display name"
+                    aria-label="Display name"
                   />
                 ) : (
-                  <h1 className="text-[20px] font-semibold text-[#27251f] leading-tight truncate">
-                    {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
-                  </h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-[20px] font-semibold text-[#27251f] leading-tight truncate">
+                      {displayName}
+                    </h1>
+                    {/* Social links - always visible */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            const instagramUrl = normalizeSocialUrl(profile?.instagram_url);
+                            if (instagramUrl) {
+                              window.open(instagramUrl, '_blank', 'noopener,noreferrer');
+                            } else {
+                              setSocialNotification('instagram');
+                              setTimeout(() => setSocialNotification(null), 3000);
+                            }
+                          }}
+                          className="flex items-center justify-center active:scale-95 transition-transform"
+                          aria-label={isValidSocialUrl(profile?.instagram_url) ? 'Instagram profile' : 'Add Instagram profile'}
+                        >
+                          <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[18px] w-auto rounded-none" />
+                        </button>
+                        {socialNotification === 'instagram' && (
+                          <div
+                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-[#27251f] text-white text-[11px] rounded-lg shadow-lg whitespace-nowrap z-20"
+                            style={{ minWidth: '180px', animation: 'fadeIn 0.2s ease-out' }}
+                          >
+                            No Instagram added. Click &quot;Edit&quot; to add.
+                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#27251f] rotate-45" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            const linkedinUrl = normalizeSocialUrl(profile?.linkedin_url);
+                            if (linkedinUrl) {
+                              window.open(linkedinUrl, '_blank', 'noopener,noreferrer');
+                            } else {
+                              setSocialNotification('linkedin');
+                              setTimeout(() => setSocialNotification(null), 3000);
+                            }
+                          }}
+                          className="flex items-center justify-center active:scale-95 transition-transform"
+                          aria-label={isValidSocialUrl(profile?.linkedin_url) ? 'LinkedIn profile' : 'Add LinkedIn profile'}
+                        >
+                          <img src="/LI-In-Bug.png" alt="" className="h-[18px] w-auto rounded-none" />
+                        </button>
+                        {socialNotification === 'linkedin' && (
+                          <div
+                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-[#27251f] text-white text-[11px] rounded-lg shadow-lg whitespace-nowrap z-20"
+                            style={{ minWidth: '180px', animation: 'fadeIn 0.2s ease-out' }}
+                          >
+                            No LinkedIn added. Click &quot;Edit&quot; to add.
+                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#27251f] rotate-45" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
-                {!isEditing && getClassYearDisplay() && (
+                {!isEditing && classYearDisplay && (
                   <p className="text-[14px] text-[#9b8f7f] mt-0.5">
-                    {getClassYearDisplay()}
+                    {classYearDisplay}
                   </p>
                 )}
                 {!isEditing && profile?.major && (
                   <p className="text-[13px] text-[#787771] mt-1 line-clamp-1">
-                    {profile.major.replace(/ \(B\.[A-Z.\/]+\)$/, '')}
+                    {cleanMajorName(profile.major)}
                   </p>
                 )}
               </div>
             </div>
+
+            {/* Social links edit mode */}
+            {isEditing && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[16px] w-auto flex-shrink-0 rounded-none" />
+                  <input
+                    type="url"
+                    value={editValues.instagram_url}
+                    onChange={(e) => setEditValues({ ...editValues, instagram_url: e.target.value })}
+                    className="flex-1 text-[14px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors"
+                    placeholder="Instagram URL"
+                    aria-label="Instagram URL"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <img src="/LI-In-Bug.png" alt="" className="h-[16px] w-auto flex-shrink-0 rounded-none" />
+                  <input
+                    type="url"
+                    value={editValues.linkedin_url}
+                    onChange={(e) => setEditValues({ ...editValues, linkedin_url: e.target.value })}
+                    className="flex-1 text-[14px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors"
+                    placeholder="LinkedIn URL"
+                    aria-label="LinkedIn URL"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Avatar delete when editing */}
             {isEditing && profile?.avatar_url && profile.avatar_url.trim() !== '' && (
               <button 
                 onClick={handleDeleteAvatar}
                 disabled={uploadingAvatar || deletingAvatar}
-                className="mt-3 text-[13px] text-[#d47455] font-medium active:opacity-60 transition-opacity disabled:opacity-40"
+                className="mt-3 text-[13px] text-[#d47455] font-medium active:opacity-60 transition-opacity disabled:opacity-40 min-h-[44px]"
+                aria-label={deletingAvatar ? 'Removing profile photo' : 'Remove profile photo'}
               >
                 {deletingAvatar ? 'Removing photo...' : 'Remove photo'}
               </button>
@@ -588,15 +705,15 @@ export function ProfilePage() {
 
             {/* Stats Row - Inline pill style */}
             {!isEditing && (
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[#27251f]/[0.06]">
+              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[#27251f]/[0.06]" role="list" aria-label="Profile statistics">
                 {stats.map((stat, index) => (
-                  <React.Fragment key={index}>
-                    <div className="flex items-center gap-1.5">
+                  <React.Fragment key={stat.label}>
+                    <div className="flex items-center gap-1.5" role="listitem">
                       <span className="text-[15px] font-semibold text-[#27251f]">{stat.value}</span>
                       <span className="text-[13px] text-[#9b8f7f]">{stat.label}</span>
                     </div>
                     {index < stats.length - 1 && (
-                      <div className="w-[3px] h-[3px] rounded-full bg-[#d4cfc4]" />
+                      <div className="w-[3px] h-[3px] rounded-full bg-[#d4cfc4]" aria-hidden="true" />
                     )}
                   </React.Fragment>
                 ))}
@@ -608,21 +725,17 @@ export function ProfilePage() {
         {/* Content Sections */}
         <div className="px-4 space-y-6">
           {/* Contact Section */}
-          <section>
-            <h2 className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
+          <section aria-labelledby="contact-heading">
+            <h2 id="contact-heading" className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
               Contact
             </h2>
             <div 
               className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
-              style={{ 
-                background: 'rgba(255, 255, 255, 0.65)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-              }}
+              style={GLASS_SURFACE_LIGHT}
             >
               {/* Email */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Mail className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Mail className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] text-[#27251f] truncate">
                     {profile?.email || user?.email || 'Not provided'}
@@ -630,8 +743,8 @@ export function ProfilePage() {
                 </div>
               </div>
               {/* Phone */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Phone className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Phone className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <input
@@ -640,6 +753,7 @@ export function ProfilePage() {
                       onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
                       className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors"
                       placeholder="Add phone"
+                      aria-label="Phone number"
                     />
                   ) : (
                     <p className={`text-[15px] truncate ${profile?.phone ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
@@ -649,8 +763,8 @@ export function ProfilePage() {
                 </div>
               </div>
               {/* Location */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <MapPin className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <MapPin className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <input
@@ -659,6 +773,7 @@ export function ProfilePage() {
                       onChange={(e) => setEditValues({ ...editValues, location: e.target.value })}
                       className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors"
                       placeholder="Add location"
+                      aria-label="Location"
                     />
                   ) : (
                     <p className={`text-[15px] truncate ${profile?.location ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
@@ -671,27 +786,24 @@ export function ProfilePage() {
           </section>
 
           {/* Academic Section */}
-          <section>
-            <h2 className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
+          <section aria-labelledby="academic-heading">
+            <h2 id="academic-heading" className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
               Academic
             </h2>
             <div 
               className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
-              style={{ 
-                background: 'rgba(255, 255, 255, 0.65)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-              }}
+              style={GLASS_SURFACE_LIGHT}
             >
               {/* Major */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Book className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Book className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <select
                       value={editValues.major}
                       onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
                       className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors appearance-none"
+                      aria-label="Major"
                     >
                       <option value="">Select major</option>
                       <option value="African and African American Studies (B.A.)">African and African American Studies</option>
@@ -747,21 +859,22 @@ export function ProfilePage() {
                     </select>
                   ) : (
                     <p className={`text-[15px] line-clamp-2 ${profile?.major ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
-                      {profile?.major ? profile.major.replace(/ \(B\.[A-Z.\/]+\)$/, '') : 'Add major'}
+                      {profile?.major ? cleanMajorName(profile.major) : 'Add major'}
                     </p>
                   )}
                 </div>
-                {isEditing && <ChevronRight className="w-4 h-4 text-[#d4cfc4]" />}
+                {isEditing && <ChevronRight className="w-4 h-4 text-[#d4cfc4]" aria-hidden="true" />}
               </div>
               {/* Graduation */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Calendar className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
+                <Calendar className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <select
                       value={editValues.graduation_year || ''}
                       onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
                       className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors appearance-none"
+                      aria-label="Graduation year"
                     >
                       <option value="">Select year</option>
                       <option value="2026">2026</option>
@@ -771,11 +884,11 @@ export function ProfilePage() {
                     </select>
                   ) : (
                     <p className={`text-[15px] ${profile?.graduation_year ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
-                      {profile?.graduation_year ? `Class of ${profile.graduation_year}` : 'Add graduation year'}
+                      {classYearDisplay || 'Add graduation year'}
                     </p>
                   )}
                 </div>
-                {isEditing && <ChevronRight className="w-4 h-4 text-[#d4cfc4]" />}
+                {isEditing && <ChevronRight className="w-4 h-4 text-[#d4cfc4]" aria-hidden="true" />}
               </div>
             </div>
           </section>
@@ -796,10 +909,11 @@ export function ProfilePage() {
                 }
                 window.location.href = window.location.origin + window.location.pathname;
               }}
-              className="w-full py-3.5 rounded-2xl text-[15px] font-medium text-[#c94a3a] active:bg-[#c94a3a]/10 transition-colors"
+              className="w-full py-3.5 rounded-2xl text-[15px] font-medium text-[#c94a3a] active:bg-[#c94a3a]/10 transition-colors min-h-[44px]"
               style={{ 
                 background: 'rgba(201, 74, 58, 0.08)',
               }}
+              aria-label="Sign out of your account"
             >
               Sign Out
             </button>
@@ -869,7 +983,7 @@ export function ProfilePage() {
                   {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
                     <img 
                       src={profile.avatar_url} 
-                      alt="Profile" 
+                      alt={`${displayName}'s profile picture`}
                       className="w-24 h-24 rounded-full object-cover mb-2"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -882,27 +996,13 @@ export function ProfilePage() {
                   <div
                     className="w-24 h-24 rounded-full flex items-center justify-center mb-2 text-white text-2xl"
                     style={{ 
-                      backgroundColor: (() => {
-                        const name = profile?.public_name || profile?.full_name || user?.email || 'User';
-                        const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
-                        return colors[name.charCodeAt(0) % colors.length];
-                      })(),
+                      backgroundColor: avatarColor,
                       display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
                       fontWeight: 600
                     }}
+                    aria-label={`${displayName}'s avatar`}
                   >
-                    {(() => {
-                      const name = profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User';
-                      const forInitials = profile?.public_name || profile?.full_name;
-                      if (forInitials) {
-                        const parts = forInitials.trim().split(/\s+/);
-                        if (parts.length >= 2) {
-                          return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
-                        }
-                        return name.charAt(0).toUpperCase().slice(0, 2);
-                      }
-                      return name.charAt(0).toUpperCase().slice(0, 2);
-                    })()}
+                    {avatarInitials}
                   </div>
                   {isEditing && (
                     <>
@@ -910,16 +1010,17 @@ export function ProfilePage() {
                         onClick={handleAvatarClick}
                         disabled={uploadingAvatar || deletingAvatar}
                         className="mb-2 px-3 py-1.5 bg-[#f5f3eb] text-[#27251f] rounded-lg text-xs flex items-center gap-1.5 hover:bg-[#ebe8df] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{  fontWeight: 500 }}
+                        style={{ fontWeight: 500 }}
+                        aria-label={uploadingAvatar ? 'Uploading avatar' : 'Change avatar'}
                       >
                         {uploadingAvatar ? (
                           <>
-                            <div className="w-3 h-3 border-2 border-[#27251f] border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border-2 border-[#27251f] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
                             Uploading...
                           </>
                         ) : (
                           <>
-                            <Edit2 className="w-3 h-3" />
+                            <Edit2 className="w-3 h-3" aria-hidden="true" />
                             Change Avatar
                           </>
                         )}
@@ -929,16 +1030,17 @@ export function ProfilePage() {
                           onClick={handleDeleteAvatar}
                           disabled={uploadingAvatar || deletingAvatar}
                           className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{  fontWeight: 500, backgroundColor: 'rgba(232, 59, 59, 1)', color: 'rgba(255, 255, 255, 1)' }}
+                          style={{ fontWeight: 500, backgroundColor: 'rgba(232, 59, 59, 1)', color: 'rgba(255, 255, 255, 1)' }}
+                          aria-label={deletingAvatar ? 'Deleting avatar' : 'Delete avatar'}
                         >
                           {deletingAvatar ? (
                             <>
-                              <div className="w-3 h-3 border-2 border-red-700 border-t-transparent rounded-full animate-spin" />
+                              <div className="w-3 h-3 border-2 border-red-700 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
                               Deleting...
                             </>
                           ) : (
                             <>
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3" aria-hidden="true" />
                               Delete Avatar
                             </>
                           )}
@@ -956,22 +1058,23 @@ export function ProfilePage() {
                       className="text-[24px] mb-1 text-[#27251f] w-full px-3 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
                       style={{ fontWeight: 600, backgroundColor: '#fff' }}
                       placeholder="Public name (shown to others)"
+                      aria-label="Display name"
                     />
                   ) : (
                     <h3 className="text-[24px] mb-1 text-[#27251f]" style={{ fontWeight: 600 }}>
-                      {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                      {displayName}
                     </h3>
                   )}
-                  {!isEditing && (
-                    <p className="text-[14px] text-[#787771] mb-3" >
-                      {getClassYearDisplay()}
+                  {!isEditing && classYearDisplay && (
+                    <p className="text-[14px] text-[#787771] mb-3">
+                      {classYearDisplay}
                     </p>
                   )}
-                  <div className="flex gap-4">
+                  <div className="flex gap-4" role="list" aria-label="Profile statistics">
                     {stats.map((stat, index) => (
-                      <div key={index}>
+                      <div key={stat.label} role="listitem">
                         <p className="text-[20px] text-[#d47455] m-0" style={{ fontWeight: 600 }}>{stat.value}</p>
-                        <p className="text-[12px] text-[#787771] m-0" >{stat.label}</p>
+                        <p className="text-[12px] text-[#787771] m-0">{stat.label}</p>
                       </div>
                     ))}
                   </div>
@@ -1001,11 +1104,12 @@ export function ProfilePage() {
                             value={editValues.phone}
                             onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                            style={{  color: '#27251f' }}
+                            style={{ color: '#27251f' }}
                             placeholder="Enter phone number"
+                            aria-label="Phone number"
                           />
                         ) : (
-                          <p className="text-[14px] text-[#27251f] m-0" >
+                          <p className="text-[14px] text-[#27251f] m-0">
                             {profile?.phone || 'Not provided'}
                           </p>
                         )}
@@ -1014,19 +1118,80 @@ export function ProfilePage() {
                     <div className="flex items-center gap-3">
                       <MapPin className="w-5 h-5 text-[#787771]" />
                       <div className="flex-1">
-                        <p className="text-[12px] text-[#787771] m-0 mb-1" >Location</p>
+                        <p className="text-[12px] text-[#787771] m-0 mb-1">Location</p>
                         {isEditing ? (
                           <input
                             type="text"
                             value={editValues.location}
                             onChange={(e) => setEditValues({ ...editValues, location: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
-                            style={{  color: '#27251f' }}
+                            style={{ color: '#27251f' }}
                             placeholder="Enter location"
+                            aria-label="Location"
                           />
                         ) : (
-                          <p className="text-[14px] text-[#27251f] m-0" >
+                          <p className="text-[14px] text-[#27251f] m-0">
                             {profile?.location || 'Not provided'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-5 w-auto rounded-none" />
+                      <div className="flex-1">
+                        <p className="text-[12px] text-[#787771] m-0 mb-1">Instagram</p>
+                        {isEditing ? (
+                          <input
+                            type="url"
+                            value={editValues.instagram_url}
+                            onChange={(e) => setEditValues({ ...editValues, instagram_url: e.target.value })}
+                            className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                            style={{ color: '#27251f' }}
+                            placeholder="Instagram URL"
+                            aria-label="Instagram URL"
+                          />
+                        ) : isValidSocialUrl(profile?.instagram_url) ? (
+                          <a 
+                            href={normalizeSocialUrl(profile?.instagram_url)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[14px] text-[#d47455] m-0 hover:underline"
+                          >
+                            View Profile
+                          </a>
+                        ) : (
+                          <p className="text-[14px] text-[#27251f] m-0">
+                            Not provided
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <img src="/LI-In-Bug.png" alt="" className="h-5 w-auto rounded-none" />
+                      <div className="flex-1">
+                        <p className="text-[12px] text-[#787771] m-0 mb-1">LinkedIn</p>
+                        {isEditing ? (
+                          <input
+                            type="url"
+                            value={editValues.linkedin_url}
+                            onChange={(e) => setEditValues({ ...editValues, linkedin_url: e.target.value })}
+                            className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                            style={{ color: '#27251f' }}
+                            placeholder="LinkedIn URL"
+                            aria-label="LinkedIn URL"
+                          />
+                        ) : isValidSocialUrl(profile?.linkedin_url) ? (
+                          <a 
+                            href={normalizeSocialUrl(profile?.linkedin_url)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[14px] text-[#d47455] m-0 hover:underline"
+                          >
+                            View Profile
+                          </a>
+                        ) : (
+                          <p className="text-[14px] text-[#27251f] m-0">
+                            Not provided
                           </p>
                         )}
                       </div>
@@ -1046,7 +1211,8 @@ export function ProfilePage() {
                             value={editValues.major}
                             onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                            style={{  color: '#27251f' }}
+                            style={{ color: '#27251f' }}
+                            aria-label="Major"
                           >
                             <option value="">Select Major</option>
                             <option value="African and African American Studies (B.A.)">African and African American Studies (B.A.)</option>
@@ -1116,7 +1282,8 @@ export function ProfilePage() {
                             value={editValues.graduation_year || ''}
                             onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
                             className="w-full text-[14px] px-2 py-1 rounded border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                            style={{  color: '#27251f' }}
+                            style={{ color: '#27251f' }}
+                            aria-label="Graduation year"
                           >
                             <option value="">Select Graduation Year</option>
                             <option value="2026">2026</option>
@@ -1154,13 +1321,14 @@ export function ProfilePage() {
                   window.location.href = window.location.origin + window.location.pathname;
                 }}
                 className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border-[#f5f3eb] hover:bg-[#fef3ef] transition-colors"
+                aria-label="Sign out of your account"
               >
                 <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center">
-                  <LogOut className="w-5 h-5 text-[#d47455]" />
+                  <LogOut className="w-5 h-5 text-[#d47455]" aria-hidden="true" />
                 </div>
                 <span 
                   className="text-sm"
-                  style={{  color: '#d47455', fontWeight: 600 }}
+                  style={{ color: '#d47455', fontWeight: 600 }}
                 >
                   Sign Out
                 </span>

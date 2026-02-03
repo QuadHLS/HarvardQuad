@@ -121,22 +121,32 @@ const OverviewStatic = memo(() => (
           Everything you need. One place.
         </p>
       </div>
-      <div className="flex justify-center items-end gap-4">
-        <PhoneFrame scale={0.65}>
-          <GroupsScreen />
-        </PhoneFrame>
-        <PhoneFrame scale={0.75}>
-          <CalendarScreen />
-        </PhoneFrame>
-        <PhoneFrame scale={0.85}>
-          <ChatScreen variant="group" />
-        </PhoneFrame>
-        <PhoneFrame scale={0.75}>
-          <FeedScreen />
-        </PhoneFrame>
-        <PhoneFrame scale={0.65}>
-          <ProfileScreen />
-        </PhoneFrame>
+      <div className="flex justify-center items-end">
+        <div style={{ marginRight: '-10px', zIndex: 1, position: 'relative' }}>
+          <PhoneFrame scale={0.65}>
+            <GroupsScreen />
+          </PhoneFrame>
+        </div>
+        <div style={{ marginRight: '-8px', zIndex: 2, position: 'relative' }}>
+          <PhoneFrame scale={0.75}>
+            <CalendarScreen />
+          </PhoneFrame>
+        </div>
+        <div style={{ marginRight: '-8px', zIndex: 5, position: 'relative' }}>
+          <PhoneFrame scale={0.85}>
+            <ChatScreen variant="group" />
+          </PhoneFrame>
+        </div>
+        <div style={{ marginRight: '-8px', zIndex: 4, position: 'relative' }}>
+          <PhoneFrame scale={0.75}>
+            <FeedScreen />
+          </PhoneFrame>
+        </div>
+        <div style={{ zIndex: 3, position: 'relative' }}>
+          <PhoneFrame scale={0.65}>
+            <ProfileScreen />
+          </PhoneFrame>
+        </div>
       </div>
     </div>
   </section>
@@ -209,14 +219,16 @@ export const Overview = memo(() => {
         </div>
 
         {/* Desktop: Phone fan arrangement */}
-        <div className="hidden md:flex relative justify-center items-end gap-3 md:gap-4 min-h-[400px] md:min-h-[500px]">
+        <div className="hidden md:flex relative justify-center items-end min-h-[400px] md:min-h-[500px]">
           {/* Far left — Groups */}
           <motion.div
-            className="hidden lg:block"
+            className="hidden lg:block relative"
             style={{
               opacity: outerOpacity,
               y: outerLeftY,
               rotate: outerLeftRotate,
+              zIndex: 1,
+              marginRight: '-10px',
             }}
           >
             <PhoneFrame scale={0.68}>
@@ -226,10 +238,13 @@ export const Overview = memo(() => {
 
           {/* Left — Calendar */}
           <motion.div
+            className="relative"
             style={{
               opacity: innerOpacity,
               y: innerLeftY,
               rotate: innerLeftRotate,
+              zIndex: 2,
+              marginRight: '-8px',
             }}
           >
             <PhoneFrame scale={0.78}>
@@ -239,9 +254,12 @@ export const Overview = memo(() => {
 
           {/* Center — Chat conversation */}
           <motion.div
+            className="relative"
             style={{
               opacity: centerOpacity,
               y: centerY,
+              zIndex: 5,
+              marginRight: '-8px',
             }}
           >
             <PhoneFrame scale={0.88}>
@@ -251,10 +269,13 @@ export const Overview = memo(() => {
 
           {/* Right — Feed */}
           <motion.div
+            className="relative"
             style={{
               opacity: innerOpacity,
               y: innerRightY,
               rotate: innerRightRotate,
+              zIndex: 4,
+              marginRight: '-8px',
             }}
           >
             <PhoneFrame scale={0.78}>
@@ -264,11 +285,12 @@ export const Overview = memo(() => {
 
           {/* Far right — Profile */}
           <motion.div
-            className="hidden lg:block"
+            className="hidden lg:block relative"
             style={{
               opacity: outerOpacity,
               y: outerRightY,
               rotate: outerRightRotate,
+              zIndex: 3,
             }}
           >
             <PhoneFrame scale={0.68}>
