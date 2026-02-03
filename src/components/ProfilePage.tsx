@@ -437,341 +437,331 @@ export function ProfilePage() {
         onChange={handleAvatarChange}
         className="hidden"
       />
-      {/* Mobile View - premium iOS-native design */}
+      {/* Mobile View - v2 iOS-native premium redesign */}
       <div
-        className="md:hidden min-h-full overflow-y-auto relative"
+        className="md:hidden min-h-full overflow-y-auto"
         style={{ 
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', 
+          paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))', 
           ...profilePageBackground 
         }}
       >
-        {/* Edit / Save & Cancel - top right */}
-        <div className="absolute top-0 right-0 z-10 flex items-center gap-2 pr-4 pt-3"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+        {/* Compact Header with Edit */}
+        <div 
+          className="flex items-center justify-between px-5 h-11"
+          style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
         >
+          <span className="text-[13px] font-medium text-[#9b8f7f] tracking-wide uppercase">Profile</span>
           {!isEditing ? (
             <button
               onClick={handleEditClick}
-              className="w-9 h-9 rounded-full bg-[#27251f]/90 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-all"
-              aria-label="Edit profile"
+              className="text-[15px] font-medium text-[#d47455] active:opacity-60 transition-opacity"
             >
-              <Edit2 className="w-4 h-4" />
+              Edit
             </button>
           ) : (
-            <>
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm text-[#787771] flex items-center justify-center active:scale-95 transition-all disabled:opacity-50 border border-[#e8e4db]/50"
-                aria-label="Cancel"
+                className="text-[15px] font-medium text-[#787771] active:opacity-60 transition-opacity disabled:opacity-40"
               >
-                <X className="w-4 h-4" />
+                Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-9 h-9 rounded-full bg-[#27251f]/90 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-all disabled:opacity-50"
-                aria-label={saving ? 'Saving' : 'Save'}
+                className="text-[15px] font-semibold text-[#d47455] active:opacity-60 transition-opacity disabled:opacity-40"
               >
-                {saving ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
+                {saving ? 'Saving...' : 'Done'}
               </button>
-            </>
+            </div>
           )}
         </div>
 
-        {/* Hero section - tighter spacing */}
-        <div className="px-4 pt-10 pb-4">
-          <div className="flex flex-col items-center">
-            {/* Avatar - responsive sizing */}
-            {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
-              <img 
-                src={profile.avatar_url} 
-                alt="Profile" 
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-white/80 shadow-lg"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = 'flex';
-                }}
-              />
-            ) : null}
-            <div
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center ring-4 ring-white/80 shadow-lg text-white text-2xl sm:text-3xl font-semibold"
-              style={{ 
-                backgroundColor: (() => {
-                  const name = profile?.public_name || profile?.full_name || user?.email || 'User';
-                  const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
-                  return colors[name.charCodeAt(0) % colors.length];
-                })(),
-                display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
-              }}
-            >
-              {(() => {
-                const name = profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User';
-                const forInitials = profile?.public_name || profile?.full_name;
-                if (forInitials) {
-                  const parts = forInitials.trim().split(/\s+/);
-                  if (parts.length >= 2) {
-                    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2);
-                  }
-                  return name.charAt(0).toUpperCase().slice(0, 2);
-                }
-                return name.charAt(0).toUpperCase().slice(0, 2);
-              })()}
-            </div>
-            
-            {/* Avatar edit buttons */}
-            {isEditing && (
-              <div className="flex items-center gap-2 mt-3">
-                <button 
-                  onClick={handleAvatarClick}
-                  disabled={uploadingAvatar || deletingAvatar}
-                  className="px-3 py-1.5 bg-[#27251f] text-white rounded-full text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
+        {/* Hero Card - Unified identity block */}
+        <div className="mx-4 mt-2 mb-5">
+          <div 
+            className="rounded-[20px] px-5 py-5"
+            style={{ 
+              background: 'rgba(255, 255, 255, 0.72)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+            }}
+          >
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile" 
+                    className="w-[72px] h-[72px] rounded-full object-cover"
+                    style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-white text-xl font-semibold"
+                  style={{ 
+                    backgroundColor: (() => {
+                      const name = profile?.public_name || profile?.full_name || user?.email || 'User';
+                      const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
+                      return colors[name.charCodeAt(0) % colors.length];
+                    })(),
+                    display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                  }}
                 >
-                  {uploadingAvatar ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Uploading</span>
-                    </>
-                  ) : (
-                    <>
-                      <Edit2 className="w-3 h-3" />
-                      <span>Change</span>
-                    </>
-                  )}
-                </button>
-                {profile?.avatar_url && profile.avatar_url.trim() !== '' && (
+                  {(() => {
+                    const name = profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User';
+                    const forInitials = profile?.public_name || profile?.full_name;
+                    if (forInitials) {
+                      const parts = forInitials.trim().split(/\s+/);
+                      if (parts.length >= 2) {
+                        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                      }
+                      return name.charAt(0).toUpperCase();
+                    }
+                    return name.charAt(0).toUpperCase();
+                  })()}
+                </div>
+                {isEditing && (
                   <button 
-                    onClick={handleDeleteAvatar}
+                    onClick={handleAvatarClick}
                     disabled={uploadingAvatar || deletingAvatar}
-                    className="px-3 py-1.5 bg-[#d47455]/15 text-[#d47455] rounded-full text-xs font-medium flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
+                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#27251f] flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
                   >
-                    {deletingAvatar ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-[#d47455] border-t-transparent rounded-full animate-spin" />
-                        <span>Deleting</span>
-                      </>
+                    {uploadingAvatar ? (
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <>
-                        <Trash2 className="w-3 h-3" />
-                        <span>Remove</span>
-                      </>
+                      <Edit2 className="w-3.5 h-3.5 text-white" />
                     )}
                   </button>
                 )}
               </div>
-            )}
-            
-            {/* Name + class label */}
-            <div className="mt-4 text-center">
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editValues.public_name}
-                  onChange={handleNameChange}
-                  className="text-xl sm:text-2xl font-semibold text-[#27251f] rounded-xl px-4 py-2 w-full max-w-[280px] text-center focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white border border-[#e8e4db]"
-                  placeholder="Display name"
-                />
-              ) : (
-                <h1 className="text-xl sm:text-2xl font-semibold text-[#27251f] leading-tight">
-                  {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
-                </h1>
-              )}
-              {!isEditing && getClassYearDisplay() && (
-                <p className="text-[13px] text-[#787771] mt-0.5">
-                  {getClassYearDisplay()}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Stats Grid - tighter, equal height */}
-        <div className="px-4 pb-5">
-          <div className="grid grid-cols-3 gap-2">
-            {stats.map((stat, index) => (
-              <div 
-                key={index} 
-                className="bg-white/90 backdrop-blur-sm rounded-2xl py-3 px-2 text-center border border-white/50"
-                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-              >
-                <p className="text-xl sm:text-2xl font-semibold text-[#d47455] leading-none">
-                  {stat.value}
-                </p>
-                <p className="text-[11px] text-[#787771] mt-1 leading-none">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Contact Info */}
-        <div className="px-4 mb-4">
-          <h2 className="text-base font-semibold text-[#27251f] mb-2.5 px-1">
-            Contact
-          </h2>
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/50"
-            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-          >
-            {/* Email row */}
-            <div className="flex items-center gap-3 px-3.5 py-3 border-b border-[#f5f3eb]/80">
-              <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center flex-shrink-0">
-                <Mail className="w-4 h-4 text-[#d47455]" />
-              </div>
+              {/* Name + Year */}
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-[#787771] leading-none mb-0.5">Email</p>
-                <p className="text-[14px] text-[#27251f] leading-snug truncate">
-                  {profile?.email || user?.email || 'Not provided'}
-                </p>
-              </div>
-            </div>
-            {/* Phone row */}
-            <div className="flex items-center gap-3 px-3.5 py-3 border-b border-[#f5f3eb]/80">
-              <div className="w-9 h-9 rounded-xl bg-[#f0f4f7] flex items-center justify-center flex-shrink-0">
-                <Phone className="w-4 h-4 text-[#7b9fb8]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-[#787771] leading-none mb-0.5">Phone</p>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    value={editValues.phone}
-                    onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
-                    className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                    placeholder="Add phone number"
-                  />
-                ) : (
-                  <p className="text-[14px] text-[#27251f] leading-snug truncate">
-                    {profile?.phone || 'Not provided'}
-                  </p>
-                )}
-              </div>
-            </div>
-            {/* Location row */}
-            <div className="flex items-center gap-3 px-3.5 py-3">
-              <div className="w-9 h-9 rounded-xl bg-[#f2f5f2] flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-4 h-4 text-[#8c9e8c]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-[#787771] leading-none mb-0.5">Location</p>
                 {isEditing ? (
                   <input
                     type="text"
-                    value={editValues.location}
-                    onChange={(e) => setEditValues({ ...editValues, location: e.target.value })}
-                    className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                    placeholder="Add location"
+                    value={editValues.public_name}
+                    onChange={handleNameChange}
+                    className="text-[20px] font-semibold text-[#27251f] w-full px-0 py-1 bg-transparent border-b-2 border-[#d47455]/30 focus:border-[#d47455] focus:outline-none transition-colors"
+                    placeholder="Display name"
                   />
                 ) : (
-                  <p className="text-[14px] text-[#27251f] leading-snug truncate">
-                    {profile?.location || 'Not provided'}
+                  <h1 className="text-[20px] font-semibold text-[#27251f] leading-tight truncate">
+                    {profile?.public_name || profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                  </h1>
+                )}
+                {!isEditing && getClassYearDisplay() && (
+                  <p className="text-[14px] text-[#9b8f7f] mt-0.5">
+                    {getClassYearDisplay()}
+                  </p>
+                )}
+                {!isEditing && profile?.major && (
+                  <p className="text-[13px] text-[#787771] mt-1 line-clamp-1">
+                    {profile.major.replace(/ \(B\.[A-Z.\/]+\)$/, '')}
                   </p>
                 )}
               </div>
             </div>
+
+            {/* Avatar delete when editing */}
+            {isEditing && profile?.avatar_url && profile.avatar_url.trim() !== '' && (
+              <button 
+                onClick={handleDeleteAvatar}
+                disabled={uploadingAvatar || deletingAvatar}
+                className="mt-3 text-[13px] text-[#d47455] font-medium active:opacity-60 transition-opacity disabled:opacity-40"
+              >
+                {deletingAvatar ? 'Removing photo...' : 'Remove photo'}
+              </button>
+            )}
+
+            {/* Stats Row - Inline pill style */}
+            {!isEditing && (
+              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[#27251f]/[0.06]">
+                {stats.map((stat, index) => (
+                  <React.Fragment key={index}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[15px] font-semibold text-[#27251f]">{stat.value}</span>
+                      <span className="text-[13px] text-[#9b8f7f]">{stat.label}</span>
+                    </div>
+                    {index < stats.length - 1 && (
+                      <div className="w-[3px] h-[3px] rounded-full bg-[#d4cfc4]" />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Academic Info */}
-        {(profile?.major || profile?.graduation_year || isEditing) && (
-          <div className="px-4 mb-4">
-            <h2 className="text-base font-semibold text-[#27251f] mb-2.5 px-1">
-              Academic Info
+        {/* Content Sections */}
+        <div className="px-4 space-y-6">
+          {/* Contact Section */}
+          <section>
+            <h2 className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
+              Contact
             </h2>
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/50"
-              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+            <div 
+              className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.65)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}
             >
-              {/* Major row */}
-              <div className="flex items-center gap-3 px-3.5 py-3 border-b border-[#f5f3eb]/80">
-                <div className="w-9 h-9 rounded-xl bg-[#f0f4f7] flex items-center justify-center flex-shrink-0">
-                  <Book className="w-4 h-4 text-[#7b9fb8]" />
-                </div>
+              {/* Email */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Mail className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-[#787771] leading-none mb-0.5">Major</p>
+                  <p className="text-[15px] text-[#27251f] truncate">
+                    {profile?.email || user?.email || 'Not provided'}
+                  </p>
+                </div>
+              </div>
+              {/* Phone */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Phone className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
                   {isEditing ? (
-                    <select
-                      value={editValues.major}
-                      onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
-                      className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
-                    >
-                      <option value="">Select Major</option>
-                      <option value="African and African American Studies (B.A.)">African and African American Studies (B.A.)</option>
-                      <option value="Anthropology (B.A.)">Anthropology (B.A.)</option>
-                      <option value="Applied Mathematics (B.A.)">Applied Mathematics (B.A.)</option>
-                      <option value="Art, Film, and Visual Studies (B.A.)">Art, Film, and Visual Studies (B.A.)</option>
-                      <option value="Astrophysics (B.A.)">Astrophysics (B.A.)</option>
-                      <option value="Biomedical Engineering (B.A.)">Biomedical Engineering (B.A.)</option>
-                      <option value="Chemical and Physical Biology (B.A.)">Chemical and Physical Biology (B.A.)</option>
-                      <option value="Chemistry (B.A.)">Chemistry (B.A.)</option>
-                      <option value="Chemistry and Physics (B.A.)">Chemistry and Physics (B.A.)</option>
-                      <option value="Classics (B.A.)">Classics (B.A.)</option>
-                      <option value="Comparative Literature (B.A.)">Comparative Literature (B.A.)</option>
-                      <option value="Comparative Study of Religion (B.A.)">Comparative Study of Religion (B.A.)</option>
-                      <option value="Computer Science (B.A.)">Computer Science (B.A.)</option>
-                      <option value="Earth and Planetary Sciences (B.A.)">Earth and Planetary Sciences (B.A.)</option>
-                      <option value="East Asian Studies (B.A.)">East Asian Studies (B.A.)</option>
-                      <option value="Economics (B.A.)">Economics (B.A.)</option>
-                      <option value="Electrical Engineering (B.A./B.S.)">Electrical Engineering (B.A./B.S.)</option>
-                      <option value="Engineering Sciences (B.A./B.S.)">Engineering Sciences (B.A./B.S.)</option>
-                      <option value="English (B.A.)">English (B.A.)</option>
-                      <option value="Environmental Science and Engineering (B.A.)">Environmental Science and Engineering (B.A.)</option>
-                      <option value="Environmental Science and Public Policy (B.A.)">Environmental Science and Public Policy (B.A.)</option>
-                      <option value="Folklore and Mythology (B.A.)">Folklore and Mythology (B.A.)</option>
-                      <option value="Germanic Languages and Literature (B.A.)">Germanic Languages and Literature (B.A.)</option>
-                      <option value="Government (B.A.)">Government (B.A.)</option>
-                      <option value="History (B.A.)">History (B.A.)</option>
-                      <option value="History and Literature (B.A.)">History and Literature (B.A.)</option>
-                      <option value="History and Science (B.A.)">History and Science (B.A.)</option>
-                      <option value="History of Art and Architecture (B.A.)">History of Art and Architecture (B.A.)</option>
-                      <option value="Human Developmental and Regenerative Biology (B.A.)">Human Developmental and Regenerative Biology (B.A.)</option>
-                      <option value="Human Evolutionary Biology (B.A.)">Human Evolutionary Biology (B.A.)</option>
-                      <option value="Integrative Biology (B.A.)">Integrative Biology (B.A.)</option>
-                      <option value="Linguistics (B.A.)">Linguistics (B.A.)</option>
-                      <option value="Mathematics (B.A.)">Mathematics (B.A.)</option>
-                      <option value="Mechanical Engineering (B.S.)">Mechanical Engineering (B.S.)</option>
-                      <option value="Molecular and Cellular Biology (B.A.)">Molecular and Cellular Biology (B.A.)</option>
-                      <option value="Music (B.A.)">Music (B.A.)</option>
-                      <option value="Near Eastern Languages and Civilizations (B.A.)">Near Eastern Languages and Civilizations (B.A.)</option>
-                      <option value="Neuroscience (B.A.)">Neuroscience (B.A.)</option>
-                      <option value="Philosophy (B.A.)">Philosophy (B.A.)</option>
-                      <option value="Physics (B.A.)">Physics (B.A.)</option>
-                      <option value="Psychology (B.A.)">Psychology (B.A.)</option>
-                      <option value="Romance Languages and Literature (B.A.)">Romance Languages and Literature (B.A.)</option>
-                      <option value="Slavic Literatures and Cultures (B.A.)">Slavic Literatures and Cultures (B.A.)</option>
-                      <option value="Social Studies (B.A.)">Social Studies (B.A.)</option>
-                      <option value="Sociology (B.A.)">Sociology (B.A.)</option>
-                      <option value="South Asian Studies (B.A.)">South Asian Studies (B.A.)</option>
-                      <option value="Statistics (B.A.)">Statistics (B.A.)</option>
-                      <option value="Studies of Women, Gender, and Sexuality (B.A.)">Studies of Women, Gender, and Sexuality (B.A.)</option>
-                      <option value="Theater, Dance & Media (B.A.)">Theater, Dance & Media (B.A.)</option>
-                      <option value="Other">Other</option>
-                    </select>
+                    <input
+                      type="tel"
+                      value={editValues.phone}
+                      onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
+                      className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors"
+                      placeholder="Add phone"
+                    />
                   ) : (
-                    <p className="text-[14px] text-[#27251f] leading-snug line-clamp-2">
-                      {profile?.major || 'Not provided'}
+                    <p className={`text-[15px] truncate ${profile?.phone ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                      {profile?.phone || 'Add phone'}
                     </p>
                   )}
                 </div>
               </div>
-              {/* Graduation year row */}
-              <div className="flex items-center gap-3 px-3.5 py-3">
-                <div className="w-9 h-9 rounded-xl bg-[#f0f4f7] flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-4 h-4 text-[#7b9fb8]" />
-                </div>
+              {/* Location */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <MapPin className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-[#787771] leading-none mb-0.5">Graduation Year</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editValues.location}
+                      onChange={(e) => setEditValues({ ...editValues, location: e.target.value })}
+                      className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors"
+                      placeholder="Add location"
+                    />
+                  ) : (
+                    <p className={`text-[15px] truncate ${profile?.location ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                      {profile?.location || 'Add location'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Academic Section */}
+          <section>
+            <h2 className="text-[12px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-2 px-1">
+              Academic
+            </h2>
+            <div 
+              className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.65)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+              }}
+            >
+              {/* Major */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Book className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  {isEditing ? (
+                    <select
+                      value={editValues.major}
+                      onChange={(e) => setEditValues({ ...editValues, major: e.target.value })}
+                      className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors appearance-none"
+                    >
+                      <option value="">Select major</option>
+                      <option value="African and African American Studies (B.A.)">African and African American Studies</option>
+                      <option value="Anthropology (B.A.)">Anthropology</option>
+                      <option value="Applied Mathematics (B.A.)">Applied Mathematics</option>
+                      <option value="Art, Film, and Visual Studies (B.A.)">Art, Film, and Visual Studies</option>
+                      <option value="Astrophysics (B.A.)">Astrophysics</option>
+                      <option value="Biomedical Engineering (B.A.)">Biomedical Engineering</option>
+                      <option value="Chemical and Physical Biology (B.A.)">Chemical and Physical Biology</option>
+                      <option value="Chemistry (B.A.)">Chemistry</option>
+                      <option value="Chemistry and Physics (B.A.)">Chemistry and Physics</option>
+                      <option value="Classics (B.A.)">Classics</option>
+                      <option value="Comparative Literature (B.A.)">Comparative Literature</option>
+                      <option value="Comparative Study of Religion (B.A.)">Comparative Study of Religion</option>
+                      <option value="Computer Science (B.A.)">Computer Science</option>
+                      <option value="Earth and Planetary Sciences (B.A.)">Earth and Planetary Sciences</option>
+                      <option value="East Asian Studies (B.A.)">East Asian Studies</option>
+                      <option value="Economics (B.A.)">Economics</option>
+                      <option value="Electrical Engineering (B.A./B.S.)">Electrical Engineering</option>
+                      <option value="Engineering Sciences (B.A./B.S.)">Engineering Sciences</option>
+                      <option value="English (B.A.)">English</option>
+                      <option value="Environmental Science and Engineering (B.A.)">Environmental Science and Engineering</option>
+                      <option value="Environmental Science and Public Policy (B.A.)">Environmental Science and Public Policy</option>
+                      <option value="Folklore and Mythology (B.A.)">Folklore and Mythology</option>
+                      <option value="Germanic Languages and Literature (B.A.)">Germanic Languages and Literature</option>
+                      <option value="Government (B.A.)">Government</option>
+                      <option value="History (B.A.)">History</option>
+                      <option value="History and Literature (B.A.)">History and Literature</option>
+                      <option value="History and Science (B.A.)">History and Science</option>
+                      <option value="History of Art and Architecture (B.A.)">History of Art and Architecture</option>
+                      <option value="Human Developmental and Regenerative Biology (B.A.)">Human Developmental and Regenerative Biology</option>
+                      <option value="Human Evolutionary Biology (B.A.)">Human Evolutionary Biology</option>
+                      <option value="Integrative Biology (B.A.)">Integrative Biology</option>
+                      <option value="Linguistics (B.A.)">Linguistics</option>
+                      <option value="Mathematics (B.A.)">Mathematics</option>
+                      <option value="Mechanical Engineering (B.S.)">Mechanical Engineering</option>
+                      <option value="Molecular and Cellular Biology (B.A.)">Molecular and Cellular Biology</option>
+                      <option value="Music (B.A.)">Music</option>
+                      <option value="Near Eastern Languages and Civilizations (B.A.)">Near Eastern Languages and Civilizations</option>
+                      <option value="Neuroscience (B.A.)">Neuroscience</option>
+                      <option value="Philosophy (B.A.)">Philosophy</option>
+                      <option value="Physics (B.A.)">Physics</option>
+                      <option value="Psychology (B.A.)">Psychology</option>
+                      <option value="Romance Languages and Literature (B.A.)">Romance Languages and Literature</option>
+                      <option value="Slavic Literatures and Cultures (B.A.)">Slavic Literatures and Cultures</option>
+                      <option value="Social Studies (B.A.)">Social Studies</option>
+                      <option value="Sociology (B.A.)">Sociology</option>
+                      <option value="South Asian Studies (B.A.)">South Asian Studies</option>
+                      <option value="Statistics (B.A.)">Statistics</option>
+                      <option value="Studies of Women, Gender, and Sexuality (B.A.)">Studies of Women, Gender, and Sexuality</option>
+                      <option value="Theater, Dance & Media (B.A.)">Theater, Dance & Media</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  ) : (
+                    <p className={`text-[15px] line-clamp-2 ${profile?.major ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                      {profile?.major ? profile.major.replace(/ \(B\.[A-Z.\/]+\)$/, '') : 'Add major'}
+                    </p>
+                  )}
+                </div>
+                {isEditing && <ChevronRight className="w-4 h-4 text-[#d4cfc4]" />}
+              </div>
+              {/* Graduation */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Calendar className="w-[18px] h-[18px] text-[#b8b2a7] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <select
                       value={editValues.graduation_year || ''}
                       onChange={(e) => setEditValues({ ...editValues, graduation_year: e.target.value })}
-                      className="w-full text-[14px] px-2.5 py-2 rounded-lg border border-[#e8e4db] focus:outline-none focus:ring-2 focus:ring-[#d47455] bg-white"
+                      className="w-full text-[15px] text-[#27251f] bg-transparent border-b border-[#d4cfc4] focus:border-[#d47455] focus:outline-none py-0.5 transition-colors appearance-none"
                     >
                       <option value="">Select year</option>
                       <option value="2026">2026</option>
@@ -780,39 +770,40 @@ export function ProfilePage() {
                       <option value="2029">2029</option>
                     </select>
                   ) : (
-                    <p className="text-[14px] text-[#27251f] leading-snug">
-                      {profile?.graduation_year || 'Not provided'}
+                    <p className={`text-[15px] ${profile?.graduation_year ? 'text-[#27251f]' : 'text-[#b8b2a7]'}`}>
+                      {profile?.graduation_year ? `Class of ${profile.graduation_year}` : 'Add graduation year'}
                     </p>
                   )}
                 </div>
+                {isEditing && <ChevronRight className="w-4 h-4 text-[#d4cfc4]" />}
               </div>
             </div>
-          </div>
-        )}
+          </section>
 
-        {/* Sign out - clear destructive action */}
-        <div className="px-4 pt-2 pb-4">
-          <button
-            type="button"
-            onClick={async () => {
-              const { error } = await signOut();
-              const isSessionMissing =
-                error?.message?.toLowerCase().includes('session missing') ||
-                (error as { name?: string })?.name === 'AuthSessionMissingError';
-              if (error && !isSessionMissing) {
-                console.error('Error signing out:', error);
-                alert('Failed to sign out. Please try again.');
-                return;
-              }
-              window.location.href = window.location.origin + window.location.pathname;
-            }}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#d47455]/10 rounded-2xl active:bg-[#d47455]/20 transition-colors"
-          >
-            <LogOut className="w-4 h-4 text-[#d47455]" />
-            <span className="text-[14px] font-semibold text-[#d47455]">
+          {/* Sign Out - Minimal destructive */}
+          <section className="pt-4">
+            <button
+              type="button"
+              onClick={async () => {
+                const { error } = await signOut();
+                const isSessionMissing =
+                  error?.message?.toLowerCase().includes('session missing') ||
+                  (error as { name?: string })?.name === 'AuthSessionMissingError';
+                if (error && !isSessionMissing) {
+                  console.error('Error signing out:', error);
+                  alert('Failed to sign out. Please try again.');
+                  return;
+                }
+                window.location.href = window.location.origin + window.location.pathname;
+              }}
+              className="w-full py-3.5 rounded-2xl text-[15px] font-medium text-[#c94a3a] active:bg-[#c94a3a]/10 transition-colors"
+              style={{ 
+                background: 'rgba(201, 74, 58, 0.08)',
+              }}
+            >
               Sign Out
-            </span>
-          </button>
+            </button>
+          </section>
         </div>
       </div>
 
