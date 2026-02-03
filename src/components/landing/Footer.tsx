@@ -106,7 +106,10 @@ export const Footer = memo(() => {
 
         {/* Bottom bar */}
         <div className="pt-8 border-t border-neutral-200 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-[#787771] font-normal tracking-[-0.01em]">
-          <p>© {currentYear} Quad. All rights reserved.</p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p>© {currentYear} Quad. All rights reserved.</p>
+            <p className="text-[#9b8f7f]">Edu gated — .edu email required to join.</p>
+          </div>
           <div className="flex gap-6">
             {LEGAL_LINKS.map((link) => (
               <a

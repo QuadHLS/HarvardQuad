@@ -32,7 +32,7 @@ const TESTIMONIALS: readonly Testimonial[] = [
     author: '1L at Harvard',
   },
   {
-    avatar: '/textimonials/croodles-1770003842839.svg',
+    avatar: '/textimonials/bigSmile-1769994049042.svg',
     quote: "Quad has been a game changer for setting up my calendar at the beginning of the year. One of my least favorite things about a new semester was having to set up my courses on Google Calendar—Quad automates that and makes it so easy to start the semester strong.",
     author: '3L at Harvard',
   },

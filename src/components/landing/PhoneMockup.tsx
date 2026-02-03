@@ -17,34 +17,75 @@ const AVATARS = {
   jake: '/textimonials/croodles-1770003842839.svg',
   sarah: '/textimonials/notionists-1770003533958.svg',
   maya: '/textimonials/bigSmile-1769994049042.svg',
-  profile: '/textimonials/micah-1769993798472.svg',
+  profile: '/textimonials/bigSmile-1769994073599.svg',
 } as const;
 
-const CHAT_MESSAGES = [
-  { text: "Hey everyone! When's PS3 due again?", time: "1:45", isOwn: false, sender: "Sarah", avatar: AVATARS.sarah },
-  { text: "Friday 11:59pm", time: "1:46", isOwn: true },
-  { text: "Thanks! Anyone else stuck on the recursion part?", time: "1:47", isOwn: false, sender: "Sarah", avatar: AVATARS.sarah },
-  { text: "The base case was confusing me at first", time: "1:52", isOwn: false, sender: "Maya", avatar: AVATARS.maya },
-  { text: "Same here. I kept getting stack overflow errors 😅", time: "1:53", isOwn: true },
-  { text: "Oh that happened to me too! Make sure you're decrementing n", time: "1:54", isOwn: false, sender: "Jake", avatar: AVATARS.jake },
-  { text: "That fixed it! Thanks Jake", time: "1:55", isOwn: true },
-  { text: "np! Want to do a study session before the deadline?", time: "1:56", isOwn: false, sender: "Jake", avatar: AVATARS.jake },
-  { text: "I'm down! Library at 7?", time: "1:57", isOwn: false, sender: "Maya", avatar: AVATARS.maya },
-  { text: "Works for me 👍", time: "1:58", isOwn: true },
-  { text: "Perfect, see you all there!", time: "1:59", isOwn: false, sender: "Sarah", avatar: AVATARS.sarah },
+/**
+ * Format a Date to 12-hour time string (e.g., "2:45")
+ */
+function formatTime(date: Date): string {
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 becomes 12
+  const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+  return `${hours}:${minutesStr}`;
+}
+
+/**
+ * Generate timestamps for messages, ending with current time.
+ * Each message is 1-3 minutes apart going backwards.
+ */
+function generateMessageTimes(count: number): string[] {
+  const now = new Date();
+  const times: string[] = [];
+  let currentTime = new Date(now);
+  
+  // Generate times from last to first (last message = now)
+  for (let i = count - 1; i >= 0; i--) {
+    times[i] = formatTime(currentTime);
+    // Go back 1-2 minutes for variety
+    const minutesBack = i % 3 === 0 ? 2 : 1;
+    currentTime = new Date(currentTime.getTime() - minutesBack * 60 * 1000);
+  }
+  
+  return times;
+}
+
+// Base message data without times (times generated dynamically)
+const CHAT_MESSAGE_DATA = [
+  { text: "Hey everyone! When's PS3 due again?", isOwn: false, sender: "Sarah", avatar: AVATARS.sarah },
+  { text: "Friday 11:59pm", isOwn: true },
+  { text: "Thanks! Anyone else stuck on the recursion part?", isOwn: false, sender: "Sarah", avatar: AVATARS.sarah },
+  { text: "The base case was confusing me at first", isOwn: false, sender: "Maya", avatar: AVATARS.maya },
+  { text: "Same here. I kept getting stack overflow errors 😅", isOwn: true },
+  { text: "Oh that happened to me too! Make sure you're decrementing n", isOwn: false, sender: "Jake", avatar: AVATARS.jake },
+  { text: "That fixed it! Thanks Jake", isOwn: true },
+  { text: "np! Want to do a study session before the deadline?", isOwn: false, sender: "Jake", avatar: AVATARS.jake },
+  { text: "I'm down! Library at 7?", isOwn: false, sender: "Maya", avatar: AVATARS.maya },
+  { text: "Works for me 👍", isOwn: true },
+  { text: "Perfect, see you all there!", isOwn: false, sender: "Sarah", avatar: AVATARS.sarah },
 ] as const;
 
-const FRIENDS_MESSAGES = [
-  { text: "Guys!! Spring break plans??", time: "3:12", isOwn: false, sender: "Emma", avatar: AVATARS.sarah },
-  { text: "Miami is calling my name 🌴", time: "3:13", isOwn: false, sender: "Liam", avatar: AVATARS.jake },
-  { text: "Ooh I'm down for Miami!", time: "3:14", isOwn: true },
-  { text: "Same! Let's book an airbnb", time: "3:15", isOwn: false, sender: "Olivia", avatar: AVATARS.maya },
-  { text: "I found one near South Beach for $180/night", time: "3:17", isOwn: false, sender: "Emma", avatar: AVATARS.sarah },
-  { text: "That's so cheap split 4 ways", time: "3:18", isOwn: true },
-  { text: "I'm in!! Send the link", time: "3:19", isOwn: false, sender: "Liam", avatar: AVATARS.jake },
-  { text: "This is gonna be so fun 🎉", time: "3:20", isOwn: false, sender: "Olivia", avatar: AVATARS.maya },
-  { text: "Best spring break ever incoming", time: "3:21", isOwn: true },
+const FRIENDS_MESSAGE_DATA = [
+  { text: "Guys!! Spring break plans??", isOwn: false, sender: "Emma", avatar: AVATARS.sarah },
+  { text: "Miami is calling my name 🌴", isOwn: false, sender: "Liam", avatar: AVATARS.jake },
+  { text: "Ooh I'm down for Miami!", isOwn: true },
+  { text: "Same! Let's book an airbnb", isOwn: false, sender: "Olivia", avatar: AVATARS.maya },
+  { text: "I found one near South Beach for $180/night", isOwn: false, sender: "Emma", avatar: AVATARS.sarah },
+  { text: "That's so cheap split 4 ways", isOwn: true },
+  { text: "I'm in!! Send the link", isOwn: false, sender: "Liam", avatar: AVATARS.jake },
+  { text: "This is gonna be so fun 🎉", isOwn: false, sender: "Olivia", avatar: AVATARS.maya },
+  { text: "Best spring break ever incoming", isOwn: true },
 ] as const;
+
+// Generate dynamic timestamps on load
+const CHAT_TIMES = generateMessageTimes(CHAT_MESSAGE_DATA.length);
+const FRIENDS_TIMES = generateMessageTimes(FRIENDS_MESSAGE_DATA.length);
+
+// Combine message data with dynamic times
+const CHAT_MESSAGES = CHAT_MESSAGE_DATA.map((msg, i) => ({ ...msg, time: CHAT_TIMES[i] }));
+const FRIENDS_MESSAGES = FRIENDS_MESSAGE_DATA.map((msg, i) => ({ ...msg, time: FRIENDS_TIMES[i] }));
 
 const PHONE_SHADOW = `
   0 2px 4px rgba(0,0,0,0.04),
@@ -113,33 +154,23 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
         }}
         aria-hidden="true"
       />
-      {/* Screen area */}
+      {/* Screen area - thinner bezel (2px) */}
       <div
         className="absolute bg-white overflow-hidden"
         style={{
-          top: 3 * scale,
-          left: 3 * scale,
-          right: 3 * scale,
-          bottom: 3 * scale,
-          borderRadius: 41 * scale,
+          top: 2 * scale,
+          left: 2 * scale,
+          right: 2 * scale,
+          bottom: 2 * scale,
+          borderRadius: 42 * scale,
         }}
       >
-        {/* Dynamic Island */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2 bg-black rounded-full z-10"
-          style={{
-            top: 10 * scale,
-            width: 72 * scale,
-            height: 22 * scale,
-          }}
-          aria-hidden="true"
-        />
         {/* Screen content - scaled from base size */}
         <div 
           className="absolute overflow-hidden"
           style={{
-            width: baseWidth - 6,
-            height: baseHeight - 6,
+            width: baseWidth - 4,
+            height: baseHeight - 4,
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
           }}
@@ -468,7 +499,26 @@ export const AnimatedChatScreen = memo<{ variant?: 'dm' | 'group' }>(({ variant 
 
       {/* Input */}
       <div className="px-2 pb-6 pt-1.5 bg-[#FBF9F5] border-t border-[#e7ded1]">
-        <div className="flex items-center gap-1.5 bg-white rounded-full px-2.5 py-1.5 border border-[#e7ded1]">
+        <motion.div
+          className="flex items-center gap-1.5 bg-white rounded-full px-2.5 py-1.5 border"
+          animate={animationComplete && isDesktop ? {
+            borderColor: ['#e7ded1', '#d47455', '#e7ded1'],
+            boxShadow: [
+              '0 0 0 0 rgba(212, 116, 85, 0)',
+              '0 0 8px 2px rgba(212, 116, 85, 0.4)',
+              '0 0 4px 1px rgba(212, 116, 85, 0.2)',
+            ],
+          } : {
+            borderColor: '#e7ded1',
+            boxShadow: '0 0 0 0 rgba(212, 116, 85, 0)',
+          }}
+          transition={animationComplete && isDesktop ? {
+            duration: 1.5,
+            repeat: Infinity,
+            repeatType: 'reverse' as const,
+            ease: 'easeInOut',
+          } : { duration: 0.3 }}
+        >
           {animationComplete ? (
             <>
               {isDesktop ? (
@@ -513,7 +563,7 @@ export const AnimatedChatScreen = memo<{ variant?: 'dm' | 'group' }>(({ variant 
               </motion.div>
             </>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
@@ -654,7 +704,31 @@ export const CalendarScreen = memo(() => (
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <div className="flex gap-0.5">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="flex items-center justify-center p-1 rounded-lg bg-white border border-[#e8e4db] shadow-sm hover:bg-[#f5f3eb] transition-colors"
+            aria-label="Google Calendar"
+          >
+            <img
+              src="/Google_Calendar_icon_(2020).svg.png"
+              alt=""
+              className="h-4 w-auto object-contain object-center rounded-none"
+              aria-hidden="true"
+            />
+          </button>
+          <button
+            type="button"
+            className="flex items-center justify-center p-1 rounded-lg bg-white border border-[#e8e4db] shadow-sm hover:bg-[#f5f3eb] transition-colors"
+            aria-label="Canvas"
+          >
+            <img
+              src="/Logo_Canvas_Red_Vertical-768x593.png"
+              alt=""
+              className="h-4 w-auto object-contain object-center rounded-none"
+              aria-hidden="true"
+            />
+          </button>
           <button className="w-5 h-5 flex items-center justify-center rounded-md" aria-label="Previous month">
             <svg className="w-3 h-3 text-[#787771]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1250,68 +1324,136 @@ const ProfileRow = memo<{ icon: string; label: string; value: string; border?: b
 
 ProfileRow.displayName = 'ProfileRow';
 
+// Match new ProfilePage: warm gradient background + glass surfaces
+const PROFILE_MOCKUP_BG = {
+  background: `
+    radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.9), transparent 65%),
+    radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.88), transparent 60%),
+    #fbf2eb
+  `,
+};
+
 export const ProfileScreen = memo(() => (
   <div
-    className="h-full bg-[#FBF9F5] flex flex-col overflow-hidden"
-    style={{
-      background: `
-        radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.5), transparent 65%),
-        radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.5), transparent 60%),
-        #FBF9F5
-      `
-    }}
+    className="h-full flex flex-col overflow-hidden"
+    style={PROFILE_MOCKUP_BG}
   >
-    {/* Edit button */}
-    <div className="pt-9 px-2.5 flex justify-end">
-      <button className="w-6 h-6 rounded-full bg-[#27251f] flex items-center justify-center" aria-label="Edit profile">
-        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-        </svg>
+    {/* Header: Profile | Edit (matches new design) */}
+    <div className="flex items-center justify-between px-3 h-9 pt-7">
+      <span className="text-[10px] font-medium text-[#9b8f7f] tracking-wide uppercase">Profile</span>
+      <button className="text-[11px] font-medium text-[#d47455] min-h-[32px] -my-1" aria-label="Edit profile">
+        Edit
       </button>
     </div>
 
-    {/* Profile card */}
-    <div className="flex flex-col items-center px-3 pb-3">
-      <img src={AVATARS.profile} alt="" className="w-14 h-14 rounded-full object-cover mb-1.5" aria-hidden="true" />
-      <div className="text-[14px] font-semibold text-[#27251f]">Sarah Mitchell</div>
-      <div className="text-[8px] text-[#787771]">Class of 2027 • Computer Science</div>
-    </div>
-
-    {/* Stats */}
-    <div className="px-3 pb-3">
-      <div className="grid grid-cols-3 gap-1.5">
-        {[
-          { label: 'Classes', value: '4' },
-          { label: 'Squads', value: '5' },
-          { label: 'Credits', value: '16' },
-        ].map((stat, i) => (
-          <div key={i} className="bg-white rounded-xl p-2 text-center shadow-sm border border-[#f5f3eb]">
-            <div className="text-[14px] font-semibold text-[#d47455]">{stat.value}</div>
-            <div className="text-[7px] text-[#787771]">{stat.label}</div>
+    {/* Hero card - glass surface, avatar + name + stats inline */}
+    <div className="mx-2.5 mt-4 mb-3">
+      <div
+        className="rounded-[14px] px-3 py-3"
+        style={{
+          background: 'rgba(255, 255, 255, 0.72)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
+      >
+        <div className="flex items-center gap-2.5">
+          <img
+            src={AVATARS.profile}
+            alt=""
+            className="w-11 h-11 rounded-full object-cover flex-shrink-0"
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+            aria-hidden="true"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1">
+              <span className="text-[13px] font-semibold text-[#27251f] truncate">Sarah Mitchell</span>
+              <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-3 w-auto flex-shrink-0 rounded-none" aria-hidden="true" />
+              <img src="/LI-In-Bug.png" alt="" className="h-3 w-auto flex-shrink-0 rounded-none" aria-hidden="true" />
+            </div>
+            <p className="text-[9px] text-[#9b8f7f] mt-0.5">Class of 2027</p>
+            <p className="text-[8px] text-[#787771] truncate">Computer Science</p>
           </div>
-        ))}
+        </div>
+        {/* Stats inline with dot separators */}
+        <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-[#27251f]/[0.06]">
+          <span className="text-[10px] font-semibold text-[#27251f]">4</span>
+          <span className="text-[8px] text-[#9b8f7f]">Classes</span>
+          <span className="w-1 h-1 rounded-full bg-[#d4cfc4]" aria-hidden="true" />
+          <span className="text-[10px] font-semibold text-[#27251f]">5</span>
+          <span className="text-[8px] text-[#9b8f7f]">Squads</span>
+          <span className="w-1 h-1 rounded-full bg-[#d4cfc4]" aria-hidden="true" />
+          <span className="text-[10px] font-semibold text-[#27251f]">16</span>
+          <span className="text-[8px] text-[#9b8f7f]">Credits</span>
+        </div>
       </div>
     </div>
 
-    {/* Contact */}
-    <div className="px-3 pb-2">
-      <div className="text-[10px] font-semibold text-[#27251f] mb-1.5">Contact</div>
-      <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#f5f3eb]">
+    {/* Contact section */}
+    <div className="px-3 space-y-3">
+      <h2 className="text-[8px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-1 px-0.5">
+        Contact
+      </h2>
+      <div
+        className="rounded-xl divide-y divide-[#27251f]/[0.06]"
+        style={{
+          background: 'rgba(255, 255, 255, 0.65)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+        }}
+      >
         <ProfileRow icon="mail" label="Email" value="sarah@college.edu" />
         <ProfileRow icon="phone" label="Phone" value="(555) 123-4567" border />
         <ProfileRow icon="location" label="Location" value="Cambridge, MA" border />
       </div>
     </div>
 
-    {/* Sign out */}
-    <div className="px-3 mt-auto pb-6">
-      <button className="bg-white rounded-xl p-2 flex items-center gap-2 shadow-sm border border-[#f5f3eb] w-full">
-        <div className="w-6 h-6 rounded-lg bg-[#fef3ef] flex items-center justify-center">
-          <svg className="w-3 h-3 text-[#d47455]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
+    {/* Academic section (compact) */}
+    <div className="px-3 mt-3">
+      <h2 className="text-[8px] font-semibold text-[#9b8f7f] uppercase tracking-wider mb-1 px-0.5">
+        Academic
+      </h2>
+      <div
+        className="rounded-xl divide-y divide-[#27251f]/[0.06]"
+        style={{
+          background: 'rgba(255, 255, 255, 0.65)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+        }}
+      >
+        <div className="flex items-center gap-2 px-2.5 py-2">
+          <div className="w-4 h-4 rounded flex items-center justify-center bg-[#f5f3eb] flex-shrink-0">
+            <svg className="w-2.5 h-2.5 text-[#b8b2a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[7px] text-[#787771]">Major</div>
+            <div className="text-[9px] text-[#27251f] truncate">Computer Science</div>
+          </div>
         </div>
-        <span className="text-[9px] font-semibold text-[#d47455]">Sign Out</span>
+        <div className="flex items-center gap-2 px-2.5 py-2">
+          <div className="w-4 h-4 rounded flex items-center justify-center bg-[#f5f3eb] flex-shrink-0">
+            <svg className="w-2.5 h-2.5 text-[#b8b2a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[7px] text-[#787771]">Graduation</div>
+            <div className="text-[9px] text-[#27251f]">2027</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Sign out - minimal destructive (matches new design) */}
+    <div className="px-3 mt-auto pb-6 pt-4">
+      <button
+        type="button"
+        className="w-full py-2.5 rounded-xl text-[10px] font-medium text-[#c94a3a] min-h-[36px]"
+        style={{ background: 'rgba(201, 74, 58, 0.08)' }}
+        aria-label="Sign out"
+      >
+        Sign Out
       </button>
     </div>
   </div>
