@@ -14,7 +14,7 @@
 
 import React, { memo, useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, useSpring, useMotionValue, animate, AnimatePresence, useInView, MotionValue } from 'framer-motion';
-import { usePrefersReducedMotion, carouselSlide } from './animations';
+import { usePrefersReducedMotion } from './animations';
 import {
   PhoneFrame,
   ChatScreen,
@@ -533,6 +533,8 @@ interface MobileCarouselProps {
 
 const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  // Track swipe direction: 1 = forward (swipe left), -1 = backward (swipe right)
+  const [direction, setDirection] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
@@ -553,8 +555,13 @@ const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
     return () => unsubscribe();
   }, [glowIntensity]);
 
-  const goTo = (index: number) => {
-    setCurrentIndex(Math.max(0, Math.min(index, MOBILE_SCREENS.length - 1)));
+  const goTo = (index: number, dir?: number) => {
+    const clampedIndex = Math.max(0, Math.min(index, MOBILE_SCREENS.length - 1));
+    if (clampedIndex !== currentIndex) {
+      // If direction not specified, infer from index change
+      setDirection(dir ?? (clampedIndex > currentIndex ? 1 : -1));
+      setCurrentIndex(clampedIndex);
+    }
   };
 
   // Auto-swipe to the last slide (messaging) when carousel comes into view
@@ -568,6 +575,7 @@ const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
     const advance = () => {
       step += 1;
       if (step <= lastIndex) {
+        setDirection(1); // Auto-advance always goes forward
         setCurrentIndex(step);
         if (step < lastIndex) {
           setTimeout(advance, AUTO_ADVANCE_DELAY_MS);
@@ -590,9 +598,16 @@ const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
   const handleTouchEnd = () => {
     const diff = touchStartX.current - touchEndX.current;
     if (Math.abs(diff) > SWIPE_THRESHOLD) {
-      if (diff > 0) goTo(currentIndex + 1);
-      else goTo(currentIndex - 1);
+      if (diff > 0) goTo(currentIndex + 1, 1);   // Swipe left = go forward
+      else goTo(currentIndex - 1, -1);           // Swipe right = go backward
     }
+  };
+
+  // Dynamic variants based on swipe direction
+  const slideVariants = {
+    enter: (dir: number) => ({ opacity: 0, x: dir * 50 }),
+    center: { opacity: 1, x: 0 },
+    exit: (dir: number) => ({ opacity: 0, x: dir * -50 }),
   };
 
   const currentScreen = MOBILE_SCREENS[currentIndex];
@@ -600,19 +615,32 @@ const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
   return (
     <div ref={containerRef} className="flex flex-col items-center">
       <div
-        className="relative touch-pan-y"
+        className="relative touch-pan-y overflow-hidden"
+        style={{ 
+          // Add padding to allow for animation movement without clipping the phone,
+          // but clip any artifacts that appear outside
+          padding: '20px 60px',
+          margin: '-20px -60px',
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentScreen.id}
-            variants={carouselSlide}
+            custom={direction}
+            variants={slideVariants}
             initial="enter"
             animate="center"
             exit="exit"
             transition={CAROUSEL_TRANSITION}
+            style={{
+              // Force GPU acceleration to fix Safari rendering artifacts
+              WebkitBackfaceVisibility: 'hidden',
+              backfaceVisibility: 'hidden',
+              willChange: 'transform, opacity',
+            }}
           >
             <PhoneFrame scale={0.85} glowIntensity={currentGlow}>
               {currentScreen.id === 'chat' ? (
@@ -654,7 +682,7 @@ MobileCarousel.displayName = 'MobileCarousel';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const OverviewStatic = memo(() => (
-  <section id="overview" className="pt-12 pb-24 md:pt-16 md:pb-32">
+  <section id="overview" className="pt-12 pb-16 md:pt-16 md:pb-20">
     <div className="max-w-6xl mx-auto px-6">
       <div className="text-center mb-16">
         <h2 className="text-5xl md:text-6xl font-normal text-[#27251f] mb-4 leading-[1.05] tracking-[-0.02em]">
@@ -794,23 +822,19 @@ export const Overview = memo(() => {
     SCROLL_RANGES.header.y
   );
 
-  // Text color transition: dark → light as background darkens
-  // This maintains readability without abrupt color changes
-  // Thresholds match the background transition for cohesion
-  const headingColor = useTransform(
+  // Opacity crossfade: black ↔ white (no grey intermediate)
+  // Black text visible at start and end, white in the middle (dark section)
+  // Perfectly symmetrical: IN mirrors OUT around center
+  const blackOpacity = useTransform(
     scrollYProgress,
-    [0.08, 0.25, 0.75, 0.92],
-    ['#27251f', '#f5f4f2', '#f5f4f2', '#27251f']
+    [0.08, 0.14, 0.86, 0.92],
+    [1, 0, 0, 1]
   );
-  const subtitleColor = useTransform(
+  const whiteOpacity = useTransform(
     scrollYProgress,
-    [0.08, 0.25, 0.75, 0.92],
-    ['#787771', '#a8a49c', '#a8a49c', '#787771']
+    [0.12, 0.18, 0.82, 0.88],
+    [0, 1, 1, 0]
   );
-
-  // For reduced motion: static colors based on section visibility
-  const staticHeadingColor = '#27251f';
-  const staticSubtitleColor = '#787771';
 
   // Return static version for reduced motion preference
   if (prefersReduced) {
@@ -829,27 +853,48 @@ export const Overview = memo(() => {
       <section
         ref={sectionRef}
         id="overview"
-        className="relative pt-12 pb-24 md:pt-16 md:pb-48 overflow-hidden"
+        className="relative pt-12 pb-16 md:pt-16 md:pb-20 overflow-hidden"
         style={{ zIndex: 1 }}
       >
         <div className="max-w-7xl mx-auto px-6">
-          {/* Header with dynamic text colors */}
+          {/* Header with crossfade text colors (no grey intermediate) */}
           <motion.div
             className="text-center mb-8 md:mb-12"
             style={{ opacity: headerOpacity, y: headerY }}
           >
-            <motion.h2
-              className="text-4xl md:text-6xl font-normal mb-3 leading-[1.05] tracking-[-0.02em]"
-              style={{ color: headingColor }}
-            >
-              Your campus hub
-            </motion.h2>
-            <motion.p
-              className="text-lg md:text-xl"
-              style={{ color: subtitleColor }}
-            >
-              Everything you need. One place.
-            </motion.p>
+            {/* Heading with crossfade */}
+            <div className="relative mb-3">
+              <motion.h2
+                className="text-4xl md:text-6xl font-normal leading-[1.05] tracking-[-0.02em] text-[#1a1a1a]"
+                style={{ opacity: blackOpacity }}
+              >
+                Your campus hub
+              </motion.h2>
+              <motion.h2
+                className="absolute inset-0 text-4xl md:text-6xl font-normal leading-[1.05] tracking-[-0.02em] text-white"
+                style={{ opacity: whiteOpacity }}
+                aria-hidden="true"
+              >
+                Your campus hub
+              </motion.h2>
+            </div>
+            
+            {/* Subtitle with crossfade */}
+            <div className="relative">
+              <motion.p
+                className="text-lg md:text-xl text-[#5a5a5a]"
+                style={{ opacity: blackOpacity }}
+              >
+                Everything you need. One place.
+              </motion.p>
+              <motion.p
+                className="absolute inset-0 text-lg md:text-xl text-[#d0d0d0]"
+                style={{ opacity: whiteOpacity }}
+                aria-hidden="true"
+              >
+                Everything you need. One place.
+              </motion.p>
+            </div>
           </motion.div>
 
           {/* Mobile: Swipe carousel */}

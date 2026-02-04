@@ -87,7 +87,7 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
             </button>
           </div>
 
-          <p className="text-sm text-[#9b8f7f] font-medium">
+          <p className="text-sm text-[#27251f] font-medium">
             Edu gated — sign in with your .edu email.
           </p>
         </div>

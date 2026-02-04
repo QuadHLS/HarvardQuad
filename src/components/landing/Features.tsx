@@ -80,21 +80,47 @@ const SectionHeader = memo(() => {
   const opacity = useTransform(scrollYProgress, SCROLL_RANGES.header.input, SCROLL_RANGES.header.opacity);
   const y = useTransform(scrollYProgress, SCROLL_RANGES.header.input, SCROLL_RANGES.header.y);
   const subtitleY = useTransform(scrollYProgress, SCROLL_RANGES.header.input, SCROLL_RANGES.header.subtitleY);
+  
+  // Opacity crossfade: white fades out, black fades in (no grey intermediate)
+  // White stays solid until 80%, then quickly fades; black appears after
+  const whiteOpacity = useTransform(scrollYProgress, [0.8, 0.92], [1, 0]);
+  const blackOpacity = useTransform(scrollYProgress, [0.85, 0.97], [0, 1]);
 
   return (
     <div ref={ref} className="relative text-center mb-20 md:mb-28 px-6">
-      <motion.h2
-        className="text-4xl md:text-6xl font-normal text-[#27251f] mb-4 leading-[1.05] tracking-[-0.02em]"
-        style={{ opacity, y }}
-      >
-        Everything you need
-      </motion.h2>
-      <motion.p
-        className="text-xl md:text-2xl text-[#787771]"
-        style={{ opacity, y: subtitleY }}
-      >
-        Nothing you don't
-      </motion.p>
+      {/* Heading with crossfade */}
+      <motion.div className="relative mb-4" style={{ opacity, y }}>
+        <motion.h2
+          className="text-4xl md:text-6xl font-normal leading-[1.05] tracking-[-0.02em] text-white"
+          style={{ opacity: whiteOpacity }}
+        >
+          Everything you need
+        </motion.h2>
+        <motion.h2
+          className="absolute inset-0 text-4xl md:text-6xl font-normal leading-[1.05] tracking-[-0.02em] text-[#27251f]"
+          style={{ opacity: blackOpacity }}
+          aria-hidden="true"
+        >
+          Everything you need
+        </motion.h2>
+      </motion.div>
+      
+      {/* Subtitle with crossfade */}
+      <motion.div className="relative" style={{ opacity, y: subtitleY }}>
+        <motion.p
+          className="text-xl md:text-2xl text-[#d0d0d0]"
+          style={{ opacity: whiteOpacity }}
+        >
+          Nothing you don't
+        </motion.p>
+        <motion.p
+          className="absolute inset-0 text-xl md:text-2xl text-[#787771]"
+          style={{ opacity: blackOpacity }}
+          aria-hidden="true"
+        >
+          Nothing you don't
+        </motion.p>
+      </motion.div>
     </div>
   );
 });
@@ -163,7 +189,7 @@ FeatureRow.displayName = 'FeatureRow';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FeaturesStatic = memo(() => (
-  <section id="features" className="py-24">
+  <section id="features" className="pt-16 pb-24 md:pt-20">
     <div className="max-w-5xl mx-auto px-6">
       <div className="text-center mb-20">
         <h2 className="text-5xl font-normal text-[#27251f] mb-4 leading-[1.05] tracking-[-0.02em]">
@@ -206,7 +232,7 @@ export const Features = memo(() => {
   }
 
   return (
-    <section id="features" className="relative py-24 md:py-32">
+    <section id="features" className="relative pt-16 pb-24 md:pt-20 md:pb-32">
       <SectionHeader />
 
       <div className="max-w-5xl mx-auto px-6 space-y-24 md:space-y-32">
