@@ -615,13 +615,7 @@ const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
   return (
     <div ref={containerRef} className="flex flex-col items-center">
       <div
-        className="relative touch-pan-y overflow-hidden"
-        style={{ 
-          // Add padding to allow for animation movement without clipping the phone,
-          // but clip any artifacts that appear outside
-          padding: '20px 60px',
-          margin: '-20px -60px',
-        }}
+        className="relative touch-pan-y overflow-visible"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -853,7 +847,7 @@ export const Overview = memo(() => {
       <section
         ref={sectionRef}
         id="overview"
-        className="relative pt-12 pb-16 md:pt-16 md:pb-20 overflow-hidden"
+        className="relative pt-12 pb-16 md:pt-16 md:pb-20 overflow-x-hidden"
         style={{ zIndex: 1 }}
       >
         <div className="max-w-7xl mx-auto px-6">
