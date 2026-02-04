@@ -30,19 +30,22 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Dark palette — NOT pure black. Deep charcoal with subtle warmth.
- * These colors create a focused, immersive environment without feeling flat.
+ * Dark palette — warm undertones matching the text black (#27251f).
+ * These colors create a focused, immersive environment that feels
+ * cohesive with the brand's warm aesthetic.
  *
- * Base: #0f0f11 — near-black with hint of blue-gray
- * Mid:  #121214 — slightly lighter charcoal
- * Edge: #1a1918 — warm charcoal for subtle vignette edges
+ * Base: #0d0c0a — deepest warm black (darkest)
+ * Mid:  #161410 — warm dark brown (center glow)
+ * Edge: #1e1c17 — warm charcoal, slightly lighter (vignette edges)
+ *
+ * All derived from the text black (#27251f) warm brown undertone.
  */
 const DARK_COLORS = {
-  base: '#0f0f11',
-  mid: '#121214',
-  edge: '#1a1918',
-  // Subtle warm accent for radial variation
-  warmAccent: 'rgba(30, 26, 24, 0.6)',
+  base: '#0d0c0a',
+  mid: '#161410',
+  edge: '#1e1c17',
+  // Warm accent for radial variation — same family as text black
+  warmAccent: 'rgba(39, 37, 31, 0.5)',
 } as const;
 
 /**
@@ -171,6 +174,7 @@ interface OrbitalPhoneProps {
   phone: typeof ORBITAL_PHONES[number];
   baseAngle: number;
   rotationOffset: MotionValue<number>;
+  glowIntensity: number;
 }
 
 /**
@@ -179,7 +183,7 @@ interface OrbitalPhoneProps {
  * 
  * z-index is applied to the outer positioned element for correct stacking.
  */
-const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, baseAngle, rotationOffset }) => {
+const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, baseAngle, rotationOffset, glowIntensity }) => {
   // Combine base angle with scroll-driven rotation
   const angle = useTransform(rotationOffset, (rotation) => baseAngle + rotation);
   
@@ -216,7 +220,7 @@ const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, baseAngle, rotationOffset
         willChange: 'transform, opacity, z-index',
       }}
     >
-      <PhoneFrame scale={1}>
+      <PhoneFrame scale={1} glowIntensity={glowIntensity}>
         {id === 'chat' ? (
           <Screen {...(props as { variant: 'group'; onConversationComplete?: () => void })} />
         ) : (
@@ -259,7 +263,11 @@ function getSnapTarget(currentRotation: number): number {
   return bestTarget;
 }
 
-const OrbitalCarousel = memo(() => {
+interface OrbitalCarouselProps {
+  scrollProgress: MotionValue<number>;
+}
+
+const OrbitalCarousel = memo<OrbitalCarouselProps>(({ scrollProgress }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
   const lastRotationRef = useRef<number>(0);
@@ -270,6 +278,19 @@ const OrbitalCarousel = memo(() => {
   const dragStartX = useRef<number>(0);
   const dragStartValue = useRef<number>(0);
   const isDraggingRef = useRef(false);
+  
+  // Calculate glow intensity from scroll progress (matches background transition)
+  const glowIntensity = useTransform(
+    scrollProgress,
+    BG_SCROLL_THRESHOLDS.input,
+    BG_SCROLL_THRESHOLDS.output
+  );
+  const [currentGlow, setCurrentGlow] = useState(0);
+  
+  useEffect(() => {
+    const unsubscribe = glowIntensity.on('change', setCurrentGlow);
+    return () => unsubscribe();
+  }, [glowIntensity]);
   const lastMoveX = useRef<number>(0);
   const lastMoveTime = useRef<number>(0);
   const moveHistoryRef = useRef<{ x: number; t: number }[]>([]);
@@ -319,32 +340,45 @@ const OrbitalCarousel = memo(() => {
 
   // When section comes into view: pause spin, ease to message page; when leaving: resume spin after delay (avoids flicker)
   const RESUME_SPIN_DELAY_MS = 200;
+  // Track if we've already settled (prevents re-settling on isInView flicker)
+  const hasSettledRef = useRef(false);
+  
   useEffect(() => {
-    if (isInView && !chatComplete) {
+    // Always clear pending resume when in view
+    if (isInView) {
       if (resumeSpinTimeoutRef.current) {
         clearTimeout(resumeSpinTimeoutRef.current);
         resumeSpinTimeoutRef.current = null;
       }
+      // Always stop spin when in view
       shouldSpinRef.current = false;
+      
+      // Only animate settle once (before chat completes)
+      if (!chatComplete && !hasSettledRef.current) {
+        hasSettledRef.current = true;
+        const currentRotation = rotationValue.get();
+        const fullRotations = Math.ceil(currentRotation / TWO_PI);
+        const targetRotation = fullRotations * TWO_PI;
+        lastRotationRef.current = targetRotation;
 
-      const currentRotation = rotationValue.get();
-      const fullRotations = Math.ceil(currentRotation / TWO_PI);
-      const targetRotation = fullRotations * TWO_PI;
-      lastRotationRef.current = targetRotation;
-
-      animate(rotationValue, targetRotation, {
-        type: 'tween',
-        duration: settleDuration,
-        ease: [0.22, 0.61, 0.36, 1],
-      });
-    } else if (!isInView) {
+        animate(rotationValue, targetRotation, {
+          type: 'tween',
+          duration: settleDuration,
+          ease: [0.22, 0.61, 0.36, 1],
+        });
+      }
+    } else if (!isInView && !chatComplete) {
+      // Only resume spin if chat hasn't completed yet
       resumeSpinTimeoutRef.current = setTimeout(() => {
         resumeSpinTimeoutRef.current = null;
+        hasSettledRef.current = false; // Allow re-settling if user scrolls back
         shouldSpinRef.current = true;
         lastRotationRef.current = rotationValue.get();
         lastTimeRef.current = Date.now();
       }, RESUME_SPIN_DELAY_MS);
     }
+    // If !isInView && chatComplete: do nothing, keep carousel stopped
+    
     return () => {
       if (resumeSpinTimeoutRef.current) {
         clearTimeout(resumeSpinTimeoutRef.current);
@@ -461,6 +495,7 @@ const OrbitalCarousel = memo(() => {
             phone={phone}
             baseAngle={index * ANGLE_STEP}
             rotationOffset={totalRotation}
+            glowIntensity={currentGlow}
           />
         ))}
       </div>
@@ -492,7 +527,11 @@ const SWIPE_THRESHOLD = 50;
 const AUTO_ADVANCE_DELAY_MS = 1200;
 const INITIAL_DELAY_MS = 800;
 
-const MobileCarousel = memo(() => {
+interface MobileCarouselProps {
+  scrollProgress: MotionValue<number>;
+}
+
+const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
@@ -500,6 +539,19 @@ const MobileCarousel = memo(() => {
   const hasAutoAdvanced = useRef(false);
 
   const isInView = useInView(containerRef, { once: true, amount: 0.4 });
+  
+  // Calculate glow intensity from scroll progress (matches background transition)
+  const glowIntensity = useTransform(
+    scrollProgress,
+    BG_SCROLL_THRESHOLDS.input,
+    BG_SCROLL_THRESHOLDS.output
+  );
+  const [currentGlow, setCurrentGlow] = useState(0);
+  
+  useEffect(() => {
+    const unsubscribe = glowIntensity.on('change', setCurrentGlow);
+    return () => unsubscribe();
+  }, [glowIntensity]);
 
   const goTo = (index: number) => {
     setCurrentIndex(Math.max(0, Math.min(index, MOBILE_SCREENS.length - 1)));
@@ -562,7 +614,7 @@ const MobileCarousel = memo(() => {
             exit="exit"
             transition={CAROUSEL_TRANSITION}
           >
-            <PhoneFrame scale={0.85}>
+            <PhoneFrame scale={0.85} glowIntensity={currentGlow}>
               {currentScreen.id === 'chat' ? (
                 <currentScreen.Screen variant="group" />
               ) : (
@@ -802,12 +854,12 @@ export const Overview = memo(() => {
 
           {/* Mobile: Swipe carousel */}
           <div className="md:hidden">
-            <MobileCarousel />
+            <MobileCarousel scrollProgress={scrollYProgress} />
           </div>
 
           {/* Desktop: Auto-spin orbital carousel */}
           <div className="hidden md:block">
-            <OrbitalCarousel />
+            <OrbitalCarousel scrollProgress={scrollYProgress} />
           </div>
         </div>
       </section>

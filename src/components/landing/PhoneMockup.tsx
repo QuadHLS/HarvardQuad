@@ -106,6 +106,8 @@ interface PhoneFrameProps extends MotionProps {
   children: React.ReactNode;
   className?: string;
   scale?: number;
+  /** 0-1 intensity for ambient glow effect (for dark mode) */
+  glowIntensity?: number;
 }
 
 interface Message {
@@ -130,11 +132,17 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
   children,
   className = '',
   scale = 1,
+  glowIntensity = 0,
   ...motionProps
 }) => {
   // Base dimensions at scale 1
   const baseWidth = 280;
   const baseHeight = 572;
+  
+  // Build box-shadow: base shadow + optional glow (subtle, not overpowering)
+  const glowShadow = glowIntensity > 0
+    ? `, 0 0 ${25 * glowIntensity}px ${8 * glowIntensity}px rgba(255, 252, 245, ${0.12 * glowIntensity}), 0 0 ${50 * glowIntensity}px ${18 * glowIntensity}px rgba(255, 250, 240, ${0.06 * glowIntensity})`
+    : '';
   
   return (
     <motion.div
@@ -149,8 +157,9 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
       <div
         className="absolute inset-0 rounded-[44px] bg-[#1a1a1a]"
         style={{ 
-          boxShadow: PHONE_SHADOW,
+          boxShadow: PHONE_SHADOW + glowShadow,
           borderRadius: 44 * scale,
+          transition: 'box-shadow 0.3s ease-out',
         }}
         aria-hidden="true"
       />
