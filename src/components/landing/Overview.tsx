@@ -7,7 +7,7 @@
  */
 
 import React, { memo, useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, useMotionValue, animate, AnimatePresence, useInView } from 'framer-motion';
 import { usePrefersReducedMotion, carouselSlide } from './animations';
 import {
   PhoneFrame,
@@ -160,7 +160,7 @@ const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, baseAngle, rotationOffset
     >
       <PhoneFrame scale={1}>
         {id === 'chat' ? (
-          <Screen {...(props as { variant: 'group' })} />
+          <Screen {...(props as { variant: 'group'; onConversationComplete?: () => void })} />
         ) : (
           <Screen />
         )}
@@ -175,78 +175,234 @@ OrbitalPhone.displayName = 'OrbitalPhone';
 // DESKTOP ORBITAL CAROUSEL
 // ─────────────────────────────────────────────────────────────────────────────
 
+const DRAG_SENSITIVITY = (2 * Math.PI) / 750; // ~750px horizontal drag = one full rotation
+const SNAP_DURATION = 0.4;
+const TWO_PI = 2 * Math.PI;
+// Roulette-style coast: friction per frame (~60fps), min velocity to stop, gentle snap duration
+const INERTIA_FRICTION = 0.985;
+const INERTIA_VELOCITY_THRESHOLD = 0.08;
+const INERTIA_SNAP_DURATION = 0.5;
+
+/** Return rotation that puts the phone closest to current rotation at center (angle 0). */
+function getSnapTarget(currentRotation: number): number {
+  let bestTarget = currentRotation;
+  let bestDist = Infinity;
+  for (let i = 0; i < PHONE_COUNT; i++) {
+    const baseAngle = i * ANGLE_STEP;
+    const k = Math.round((currentRotation + baseAngle) / TWO_PI);
+    const target = -baseAngle + k * TWO_PI;
+    const d = ((currentRotation - target) % TWO_PI + TWO_PI) % TWO_PI;
+    const dist = d > Math.PI ? TWO_PI - d : d;
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestTarget = target;
+    }
+  }
+  return bestTarget;
+}
+
 const OrbitalCarousel = memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
   const lastRotationRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(Date.now());
-  
-  // Track if carousel is in view (not once - so we can detect leaving)
-  const isInView = useInView(containerRef, { amount: 0.4 });
-  
-  // Rotation motion value for continuous spinning
+  const shouldSpinRef = useRef<boolean>(true); // true = spin, false = paused (in view / settling)
+  const [chatComplete, setChatComplete] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX = useRef<number>(0);
+  const dragStartValue = useRef<number>(0);
+  const isDraggingRef = useRef(false);
+  const lastMoveX = useRef<number>(0);
+  const lastMoveTime = useRef<number>(0);
+  const moveHistoryRef = useRef<{ x: number; t: number }[]>([]);
+  const inertiaRef = useRef<number | null>(null);
+  const resumeSpinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track if carousel is in view; use 0.25 so we're solidly "in view" when on the page (avoids flicker)
+  const isInView = useInView(containerRef, { amount: 0.25 });
+
+  // Rotation motion value for continuous spinning and settle
   const rotationValue = useMotionValue(0);
-  
-  // Spring for smooth stopping/starting
+  // Spring for smooth stopping/starting (only used before conversation ends)
   const rotationOffset = useSpring(rotationValue, ORBITAL_CONFIG.springConfig);
-  
-  // Handle spinning and stopping based on visibility
+  // Drag offset (added to rotation when user drags after conversation ends)
+  const dragValue = useMotionValue(0);
+  // When chat complete: use rotationValue + drag so release has no snap; otherwise use spring
+  const totalFromSpring = useTransform(
+    [rotationOffset, dragValue],
+    ([r, d]: number[]) => r + d
+  );
+  const totalFromDirect = useTransform(
+    [rotationValue, dragValue],
+    ([r, d]: number[]) => r + d
+  );
+  const totalRotation = chatComplete ? totalFromDirect : totalFromSpring;
+
+  const fastRadiansPerSecond = 2.4;
+  const settleDuration = 1.1;
+
+  // Spin loop: starts on mount so carousel is already spinning before user scrolls to section
   useEffect(() => {
-    // Speed: radians per second (slower = more elegant)
-    const radiansPerSecond = 0.8;
-    
-    if (isInView) {
-      // Stop spinning - settle to nearest position with chat in front
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
-      }
-      
-      // Get current rotation and calculate nearest position where chat (index 0) is in front
-      const currentRotation = rotationValue.get();
-      const fullRotations = Math.ceil(currentRotation / (2 * Math.PI));
-      const targetRotation = fullRotations * 2 * Math.PI;
-      
-      // Save this as our last rotation for when we resume
-      lastRotationRef.current = targetRotation;
-      
-      // Animate to the target (spring will handle smooth deceleration)
-      rotationValue.set(targetRotation);
-    } else {
-      // Resume spinning from where we left off
-      lastTimeRef.current = Date.now();
-      
-      const animate = () => {
+    const spin = () => {
+      if (shouldSpinRef.current) {
         const elapsed = (Date.now() - lastTimeRef.current) / 1000;
-        const currentRotation = lastRotationRef.current + elapsed * radiansPerSecond;
-        rotationValue.set(currentRotation);
-        animationRef.current = requestAnimationFrame(animate);
-      };
-      
-      // Start continuous animation
-      animationRef.current = requestAnimationFrame(animate);
-    }
-    
+        lastTimeRef.current = Date.now();
+        lastRotationRef.current += elapsed * fastRadiansPerSecond;
+        rotationValue.set(lastRotationRef.current);
+      }
+      animationRef.current = requestAnimationFrame(spin);
+    };
+    lastTimeRef.current = Date.now();
+    animationRef.current = requestAnimationFrame(spin);
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [rotationValue]);
+
+  // When section comes into view: pause spin, ease to message page; when leaving: resume spin after delay (avoids flicker)
+  const RESUME_SPIN_DELAY_MS = 200;
+  useEffect(() => {
+    if (isInView && !chatComplete) {
+      if (resumeSpinTimeoutRef.current) {
+        clearTimeout(resumeSpinTimeoutRef.current);
+        resumeSpinTimeoutRef.current = null;
+      }
+      shouldSpinRef.current = false;
+
+      const currentRotation = rotationValue.get();
+      const fullRotations = Math.ceil(currentRotation / TWO_PI);
+      const targetRotation = fullRotations * TWO_PI;
+      lastRotationRef.current = targetRotation;
+
+      animate(rotationValue, targetRotation, {
+        type: 'tween',
+        duration: settleDuration,
+        ease: [0.22, 0.61, 0.36, 1],
+      });
+    } else if (!isInView) {
+      resumeSpinTimeoutRef.current = setTimeout(() => {
+        resumeSpinTimeoutRef.current = null;
+        shouldSpinRef.current = true;
+        lastRotationRef.current = rotationValue.get();
+        lastTimeRef.current = Date.now();
+      }, RESUME_SPIN_DELAY_MS);
+    }
+    return () => {
+      if (resumeSpinTimeoutRef.current) {
+        clearTimeout(resumeSpinTimeoutRef.current);
+        resumeSpinTimeoutRef.current = null;
       }
     };
-  }, [isInView, rotationValue]);
-  
+  }, [isInView, chatComplete, rotationValue]);
+
+  // Cursor drag to spin (only after conversation ends and carousel in view)
+  const canDrag = chatComplete && isInView;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!canDrag || e.button !== 0) return;
+    e.preventDefault();
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    dragStartX.current = e.clientX;
+    dragStartValue.current = dragValue.get();
+    lastMoveX.current = e.clientX;
+    lastMoveTime.current = Date.now();
+    moveHistoryRef.current = [{ x: e.clientX, t: Date.now() }];
+  };
+
+  useEffect(() => {
+    if (!canDrag) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const t = Date.now();
+      const history = moveHistoryRef.current;
+      history.push({ x: e.clientX, t });
+      if (history.length > 12) history.shift();
+      const delta = (e.clientX - dragStartX.current) * DRAG_SENSITIVITY;
+      dragValue.set(dragStartValue.current + delta);
+      lastMoveX.current = e.clientX;
+      lastMoveTime.current = t;
+    };
+
+    const handleMouseUp = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      const committed = rotationValue.get() + dragValue.get();
+      rotationValue.set(committed);
+      dragValue.set(0);
+
+      const history = moveHistoryRef.current;
+      let velocity = 0;
+      if (history.length >= 2) {
+        const a = history[history.length - 2];
+        const b = history[history.length - 1];
+        const dt = (b.t - a.t) / 1000;
+        if (dt > 0) velocity = ((b.x - a.x) * DRAG_SENSITIVITY) / dt;
+      }
+
+      if (inertiaRef.current) cancelAnimationFrame(inertiaRef.current);
+
+      let v = velocity;
+      let lastTime = performance.now();
+      const tick = (now: number) => {
+        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+        const r = rotationValue.get();
+        rotationValue.set(r + v * dt);
+        v *= INERTIA_FRICTION;
+        if (Math.abs(v) < INERTIA_VELOCITY_THRESHOLD) {
+          const snapTarget = getSnapTarget(rotationValue.get());
+          lastRotationRef.current = snapTarget;
+          animate(rotationValue, snapTarget, {
+            type: 'tween',
+            duration: INERTIA_SNAP_DURATION,
+            ease: [0.25, 0.1, 0.25, 1],
+          });
+          inertiaRef.current = null;
+          return;
+        }
+        inertiaRef.current = requestAnimationFrame(tick);
+      };
+      inertiaRef.current = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (inertiaRef.current) cancelAnimationFrame(inertiaRef.current);
+    };
+  }, [canDrag, rotationOffset, rotationValue, dragValue]);
+
+  const chatPhoneWithCallback = {
+    ...ORBITAL_PHONES[0],
+    props: {
+      ...ORBITAL_PHONES[0].props,
+      onConversationComplete: () => setChatComplete(true),
+    },
+  };
+
+  const phonesWithCallback = [chatPhoneWithCallback, ...ORBITAL_PHONES.slice(1)];
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[580px] lg:h-[620px]"
+      className="relative w-full h-[580px] lg:h-[620px] select-none"
+      style={{
+        cursor: canDrag ? (isDragging ? 'grabbing' : 'grab') : undefined,
+      }}
+      onMouseDown={handleMouseDown}
     >
-      {/* Orbital container - phones are absolutely positioned relative to this */}
       <div className="relative w-full h-full">
-        {ORBITAL_PHONES.map((phone, index) => (
+        {phonesWithCallback.map((phone, index) => (
           <OrbitalPhone
             key={phone.id}
             phone={phone}
             baseAngle={index * ANGLE_STEP}
-            rotationOffset={rotationOffset}
+            rotationOffset={totalRotation}
           />
         ))}
       </div>

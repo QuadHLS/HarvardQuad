@@ -17,8 +17,6 @@ interface HeroProps {
 const HERO_TEXT = 'One platform.\nEvery tool you need.';
 const TYPING_MS = 55;
 
-const REPLACED_TOOLS = ['Canvas', 'Reddit', 'Slack', 'WhatsApp', 'Google Calendar'] as const;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,16 +90,6 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
           <p className="text-sm text-[#9b8f7f] font-medium">
             Edu gated — sign in with your .edu email.
           </p>
-
-          {/* Replaced tools */}
-          <div className="pt-14 flex flex-wrap justify-center gap-4 text-sm text-[#787771] font-medium tracking-[-0.01em]">
-            {REPLACED_TOOLS.map((tool) => (
-              <span key={tool} className="line-through">
-                {tool}
-              </span>
-            ))}
-            <span className="text-[#27251f] font-normal">→ Quad</span>
-          </div>
         </div>
       </div>
     </section>

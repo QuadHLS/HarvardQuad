@@ -319,7 +319,10 @@ export const ChatScreen = memo<{ variant?: 'dm' | 'group' | 'friends' }>(({ vari
 
 ChatScreen.displayName = 'ChatScreen';
 
-export const AnimatedChatScreen = memo<{ variant?: 'dm' | 'group' }>(({ variant = 'group' }) => {
+export const AnimatedChatScreen = memo<{
+  variant?: 'dm' | 'group';
+  onConversationComplete?: () => void;
+}>(({ variant = 'group', onConversationComplete }) => {
   const [visibleMessages, setVisibleMessages] = useState(0);
   const [showTyping, setShowTyping] = useState(false);
   const [typingInfo, setTypingInfo] = useState<{ avatar?: string; sender?: string }>({});
@@ -348,6 +351,7 @@ export const AnimatedChatScreen = memo<{ variant?: 'dm' | 'group' }>(({ variant 
     const showNextMessage = (): void => {
       if (currentIndexRef.current >= CHAT_MESSAGES.length) {
         setAnimationComplete(true);
+        onConversationComplete?.();
         return;
       }
 
@@ -1339,7 +1343,7 @@ export const ProfileScreen = memo(() => (
     style={PROFILE_MOCKUP_BG}
   >
     {/* Header: Profile | Edit (matches new design) */}
-    <div className="flex items-center justify-between px-3 h-9 pt-7">
+    <div className="flex items-center justify-between px-3 h-9 pt-9">
       <span className="text-[10px] font-medium text-[#9b8f7f] tracking-wide uppercase">Profile</span>
       <button className="text-[11px] font-medium text-[#d47455] min-h-[32px] -my-1" aria-label="Edit profile">
         Edit
