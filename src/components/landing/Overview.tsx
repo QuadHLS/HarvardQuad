@@ -4,10 +4,16 @@
  * SCROLL-DRIVEN ORBITAL CAROUSEL
  * All 5 phones rotate around a central axis with depth simulation.
  * Premium, cinematic motion tied directly to scroll position.
+ *
+ * BACKGROUND TRANSITION
+ * As this section scrolls into view, the page background transitions
+ * from warm orange to deep charcoal — a cinematic "mood shift" moment.
+ * The transition is smooth, uses no opacity flashes, and respects
+ * prefers-reduced-motion.
  */
 
 import React, { memo, useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, useSpring, useMotionValue, animate, AnimatePresence, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, useMotionValue, animate, AnimatePresence, useInView, MotionValue } from 'framer-motion';
 import { usePrefersReducedMotion, carouselSlide } from './animations';
 import {
   PhoneFrame,
@@ -18,6 +24,58 @@ import {
   GroupsScreen,
   ProfileScreen,
 } from './PhoneMockup';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BACKGROUND TRANSITION CONFIGURATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Dark palette — NOT pure black. Deep charcoal with subtle warmth.
+ * These colors create a focused, immersive environment without feeling flat.
+ *
+ * Base: #0f0f11 — near-black with hint of blue-gray
+ * Mid:  #121214 — slightly lighter charcoal
+ * Edge: #1a1918 — warm charcoal for subtle vignette edges
+ */
+const DARK_COLORS = {
+  base: '#0f0f11',
+  mid: '#121214',
+  edge: '#1a1918',
+  // Subtle warm accent for radial variation
+  warmAccent: 'rgba(30, 26, 24, 0.6)',
+} as const;
+
+/**
+ * The full dark background gradient — organic, not flat.
+ * Radial gradients create a subtle vignette effect that feels natural.
+ */
+const DARK_BACKGROUND = `
+  radial-gradient(ellipse 120% 80% at 50% 40%, ${DARK_COLORS.mid}, transparent 70%),
+  radial-gradient(ellipse 100% 100% at 20% 80%, ${DARK_COLORS.warmAccent}, transparent 50%),
+  radial-gradient(ellipse 100% 100% at 80% 80%, ${DARK_COLORS.warmAccent}, transparent 50%),
+  ${DARK_COLORS.base}
+`;
+
+/**
+ * Scroll thresholds for background transition.
+ *
+ * input:  [0.08, 0.25, 0.75, 0.92]
+ *         0.08 = section just entering viewport (bottom edge visible)
+ *         0.25 = section ~25% scrolled in — transition complete
+ *         0.75 = section ~75% scrolled through — still dark
+ *         0.92 = section almost exiting — begin fade out
+ *
+ * output: [0, 1, 1, 0]
+ *         0 = fully transparent (warm orange shows through)
+ *         1 = fully visible dark background
+ *
+ * This creates a smooth fade-in as you enter, hold while viewing,
+ * and smooth fade-out as you leave.
+ */
+const BG_SCROLL_THRESHOLDS = {
+  input: [0.08, 0.25, 0.75, 0.92],
+  output: [0, 1, 1, 0],
+} as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ORBITAL CAROUSEL CONFIGURATION
@@ -595,6 +653,67 @@ const OverviewStatic = memo(() => (
 OverviewStatic.displayName = 'OverviewStatic';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// IMMERSIVE BACKGROUND LAYER
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ImmersiveBackgroundProps {
+  /** Scroll progress through the section (0 = entering, 1 = exiting) */
+  scrollProgress: MotionValue<number>;
+  /** Whether user prefers reduced motion */
+  prefersReducedMotion: boolean;
+}
+
+/**
+ * Full-viewport background layer that transitions from transparent to deep charcoal.
+ * Uses fixed positioning so it covers the entire viewport regardless of section height.
+ * The opacity is driven by scroll position for smooth, cinematic transitions.
+ *
+ * Key details:
+ * - pointer-events: none so it doesn't block interactions
+ * - z-index: 0 so content sits above it
+ * - willChange: opacity for GPU acceleration
+ * - No layout impact (position: fixed, inset: 0)
+ */
+const ImmersiveBackground = memo<ImmersiveBackgroundProps>(({
+  scrollProgress,
+  prefersReducedMotion,
+}) => {
+  // Transform scroll progress to background opacity
+  // Smooth interpolation: fade in as section enters, hold, fade out as section exits
+  const backgroundOpacity = useTransform(
+    scrollProgress,
+    BG_SCROLL_THRESHOLDS.input,
+    BG_SCROLL_THRESHOLDS.output
+  );
+
+  // For reduced motion: use a stepped transition instead of continuous interpolation
+  // This provides the same visual result without motion
+  const reducedMotionOpacity = useTransform(
+    scrollProgress,
+    [0.15, 0.85],
+    [1, 1] // Instant on when in range, handled by conditional below
+  );
+
+  // Determine which opacity to use
+  const opacity = prefersReducedMotion ? reducedMotionOpacity : backgroundOpacity;
+
+  return (
+    <motion.div
+      className="fixed inset-0 pointer-events-none"
+      style={{
+        background: DARK_BACKGROUND,
+        opacity,
+        zIndex: 0,
+        willChange: 'opacity',
+      }}
+      aria-hidden="true"
+    />
+  );
+});
+
+ImmersiveBackground.displayName = 'ImmersiveBackground';
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -603,13 +722,15 @@ export const Overview = memo(() => {
   const prefersReduced = usePrefersReducedMotion();
 
   // Track scroll progress through the section
-  // Using a longer scroll range for smoother orbital motion
+  // offset: ['start end', 'end start'] means:
+  //   0 = section top reaches viewport bottom (entering)
+  //   1 = section bottom reaches viewport top (exiting)
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start end', 'end start'],
   });
 
-  // Header animations
+  // Header animations — text fades in early as section enters
   const headerOpacity = useTransform(
     scrollYProgress,
     SCROLL_RANGES.header.input,
@@ -621,42 +742,76 @@ export const Overview = memo(() => {
     SCROLL_RANGES.header.y
   );
 
+  // Text color transition: dark → light as background darkens
+  // This maintains readability without abrupt color changes
+  // Thresholds match the background transition for cohesion
+  const headingColor = useTransform(
+    scrollYProgress,
+    [0.08, 0.25, 0.75, 0.92],
+    ['#27251f', '#f5f4f2', '#f5f4f2', '#27251f']
+  );
+  const subtitleColor = useTransform(
+    scrollYProgress,
+    [0.08, 0.25, 0.75, 0.92],
+    ['#787771', '#a8a49c', '#a8a49c', '#787771']
+  );
+
+  // For reduced motion: static colors based on section visibility
+  const staticHeadingColor = '#27251f';
+  const staticSubtitleColor = '#787771';
+
   // Return static version for reduced motion preference
   if (prefersReduced) {
     return <OverviewStatic />;
   }
 
   return (
-    <section
-      ref={sectionRef}
-      id="overview"
-      className="relative pt-12 pb-24 md:pt-16 md:pb-48 overflow-hidden"
-    >
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
-        <motion.div
-          className="text-center mb-8 md:mb-12"
-          style={{ opacity: headerOpacity, y: headerY }}
-        >
-          <h2 className="text-4xl md:text-6xl font-normal text-[#27251f] mb-3 leading-[1.05] tracking-[-0.02em]">
-            Your campus hub
-          </h2>
-          <p className="text-lg md:text-xl text-[#787771]">
-            Everything you need. One place.
-          </p>
-        </motion.div>
+    <>
+      {/* Immersive dark background layer — fixed, full viewport */}
+      <ImmersiveBackground
+        scrollProgress={scrollYProgress}
+        prefersReducedMotion={prefersReduced}
+      />
 
-        {/* Mobile: Swipe carousel */}
-        <div className="md:hidden">
-          <MobileCarousel />
-        </div>
+      {/* Section content — positioned above background */}
+      <section
+        ref={sectionRef}
+        id="overview"
+        className="relative pt-12 pb-24 md:pt-16 md:pb-48 overflow-hidden"
+        style={{ zIndex: 1 }}
+      >
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Header with dynamic text colors */}
+          <motion.div
+            className="text-center mb-8 md:mb-12"
+            style={{ opacity: headerOpacity, y: headerY }}
+          >
+            <motion.h2
+              className="text-4xl md:text-6xl font-normal mb-3 leading-[1.05] tracking-[-0.02em]"
+              style={{ color: headingColor }}
+            >
+              Your campus hub
+            </motion.h2>
+            <motion.p
+              className="text-lg md:text-xl"
+              style={{ color: subtitleColor }}
+            >
+              Everything you need. One place.
+            </motion.p>
+          </motion.div>
 
-        {/* Desktop: Auto-spin orbital carousel */}
-        <div className="hidden md:block">
-          <OrbitalCarousel />
+          {/* Mobile: Swipe carousel */}
+          <div className="md:hidden">
+            <MobileCarousel />
+          </div>
+
+          {/* Desktop: Auto-spin orbital carousel */}
+          <div className="hidden md:block">
+            <OrbitalCarousel />
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 });
 
