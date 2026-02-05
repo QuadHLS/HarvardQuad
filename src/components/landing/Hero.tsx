@@ -33,19 +33,6 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
 
   const visibleText = HERO_TEXT.slice(0, visibleLength);
 
-  const scrollToProcess = () => {
-    const element = document.getElementById('process');
-    if (element) {
-      const offset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.scrollY - offset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
-
   return (
     <section id="home" className="min-h-screen flex items-center justify-center pt-20">
       <div className="max-w-4xl mx-auto px-6 py-36 text-center">
@@ -69,21 +56,14 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
             operating system. Everything you need for academic and social success in one place.
           </p>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+          {/* CTA */}
+          <div className="flex justify-center pt-8">
             <button
               onClick={onSignIn}
               className="font-normal bg-[#27251f] text-[#f7f8f3] px-8 py-4 hover:bg-[#27251f]/90 transition-colors rounded-lg"
               aria-label="Get started for free"
             >
               Get started for free
-            </button>
-            <button
-              onClick={scrollToProcess}
-              className="font-normal border border-neutral-300 text-[#27251f] px-8 py-4 hover:border-neutral-700 hover:bg-neutral-50 transition-colors rounded-lg"
-              aria-label="See how it works"
-            >
-              See How It Works
             </button>
           </div>
 

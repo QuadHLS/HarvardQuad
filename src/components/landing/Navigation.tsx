@@ -112,9 +112,9 @@ export const Navigation = memo<NavigationProps>(({ activeSection, onSignIn }) =>
 
   // Color palette transitions based on dark intensity (0 = light, 1 = dark)
   const colors = {
-    // Nav background when scrolled — warm dark to match Overview background
+    // Nav background when scrolled — matches Overview campus hub (#27251f)
     navBg: darkIntensity > 0.3
-      ? `rgba(13, 12, 10, ${0.95 * darkIntensity})`
+      ? `rgba(39, 37, 31, ${0.95 * darkIntensity})`
       : scrolled
         ? 'rgba(250, 246, 241, 0.95)'
         : 'transparent',

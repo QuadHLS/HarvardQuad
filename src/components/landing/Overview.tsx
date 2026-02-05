@@ -30,32 +30,23 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Dark palette — warm undertones matching the text black (#27251f).
- * These colors create a focused, immersive environment that feels
- * cohesive with the brand's warm aesthetic.
- *
- * Base: #0d0c0a — deepest warm black (darkest)
- * Mid:  #161410 — warm dark brown (center glow)
- * Edge: #1e1c17 — warm charcoal, slightly lighter (vignette edges)
- *
- * All derived from the text black (#27251f) warm brown undertone.
+ * Dark palette — uses the brand text black (#27251f) as the campus hub background.
+ * Radial gradients add subtle depth while staying in the same warm dark family.
  */
 const DARK_COLORS = {
-  base: '#0d0c0a',
-  mid: '#161410',
-  edge: '#1e1c17',
-  // Warm accent for radial variation — same family as text black
+  base: '#27251f', // brand dark black (quad-primary)
+  mid: '#2e2c26',  // slightly lighter for center glow
+  edge: '#36342e', // vignette edges
   warmAccent: 'rgba(39, 37, 31, 0.5)',
 } as const;
 
 /**
- * The full dark background gradient — organic, not flat.
- * Radial gradients create a subtle vignette effect that feels natural.
+ * The full dark background — mostly base (#27251f), with a small center glow and subtle edge vignettes.
  */
 const DARK_BACKGROUND = `
-  radial-gradient(ellipse 120% 80% at 50% 40%, ${DARK_COLORS.mid}, transparent 70%),
-  radial-gradient(ellipse 100% 100% at 20% 80%, ${DARK_COLORS.warmAccent}, transparent 50%),
-  radial-gradient(ellipse 100% 100% at 80% 80%, ${DARK_COLORS.warmAccent}, transparent 50%),
+  radial-gradient(ellipse 80% 50% at 50% 40%, ${DARK_COLORS.mid}, transparent 45%),
+  radial-gradient(ellipse 80% 80% at 20% 85%, ${DARK_COLORS.warmAccent}, transparent 35%),
+  radial-gradient(ellipse 80% 80% at 80% 85%, ${DARK_COLORS.warmAccent}, transparent 35%),
   ${DARK_COLORS.base}
 `;
 
@@ -172,6 +163,7 @@ function getOrbitalTransforms(angle: number) {
 
 interface OrbitalPhoneProps {
   phone: typeof ORBITAL_PHONES[number];
+  index: number;
   baseAngle: number;
   rotationOffset: MotionValue<number>;
   glowIntensity: number;
@@ -183,7 +175,7 @@ interface OrbitalPhoneProps {
  * 
  * z-index is applied to the outer positioned element for correct stacking.
  */
-const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, baseAngle, rotationOffset, glowIntensity }) => {
+const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, index, baseAngle, rotationOffset, glowIntensity }) => {
   // Combine base angle with scroll-driven rotation
   const angle = useTransform(rotationOffset, (rotation) => baseAngle + rotation);
   
@@ -203,7 +195,8 @@ const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, baseAngle, rotationOffset
   return (
     // Motion wrapper with absolute positioning - z-index works on positioned elements
     <motion.div
-      className="absolute"
+      className="absolute cursor-pointer"
+      data-phone-index={index}
       style={{
         left: '50%',
         top: '50%',
@@ -263,6 +256,13 @@ function getSnapTarget(currentRotation: number): number {
   return bestTarget;
 }
 
+/** Return rotation that centers the phone at the given index (shortest path from current). */
+function getRotationToCenterPhone(phoneIndex: number, currentRotation: number): number {
+  const baseAngle = phoneIndex * ANGLE_STEP;
+  const k = Math.round((currentRotation + baseAngle) / TWO_PI);
+  return -baseAngle + k * TWO_PI;
+}
+
 interface OrbitalCarouselProps {
   scrollProgress: MotionValue<number>;
 }
@@ -296,6 +296,8 @@ const OrbitalCarousel = memo<OrbitalCarouselProps>(({ scrollProgress }) => {
   const moveHistoryRef = useRef<{ x: number; t: number }[]>([]);
   const inertiaRef = useRef<number | null>(null);
   const resumeSpinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clickTargetPhoneRef = useRef<number | null>(null);
+  const CLICK_DRAG_THRESHOLD_PX = 8;
 
   // Track if carousel is in view; use 0.25 so we're solidly "in view" when on the page (avoids flicker)
   const isInView = useInView(containerRef, { amount: 0.25 });
@@ -393,6 +395,9 @@ const OrbitalCarousel = memo<OrbitalCarouselProps>(({ scrollProgress }) => {
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!canDrag || e.button !== 0) return;
     e.preventDefault();
+    const el = (e.target as HTMLElement).closest('[data-phone-index]');
+    const idx = el ? parseInt(el.getAttribute('data-phone-index') ?? '-1', 10) : -1;
+    clickTargetPhoneRef.current = idx >= 0 ? idx : null;
     isDraggingRef.current = true;
     setIsDragging(true);
     dragStartX.current = e.clientX;
@@ -417,13 +422,34 @@ const OrbitalCarousel = memo<OrbitalCarouselProps>(({ scrollProgress }) => {
       lastMoveTime.current = t;
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
+      const committed = rotationValue.get() + dragValue.get();
+      const movePx = Math.abs(e.clientX - dragStartX.current);
+      const clickedPhone = clickTargetPhoneRef.current;
+      clickTargetPhoneRef.current = null;
+
       isDraggingRef.current = false;
       setIsDragging(false);
-      const committed = rotationValue.get() + dragValue.get();
       rotationValue.set(committed);
       dragValue.set(0);
+
+      // Click-to-center: if user barely moved and clicked on a phone, center that phone (if not already)
+      if (movePx <= CLICK_DRAG_THRESHOLD_PX && clickedPhone !== null) {
+        const targetRotation = getRotationToCenterPhone(clickedPhone, committed);
+        const diff = Math.abs(((targetRotation - committed) % TWO_PI + TWO_PI) % TWO_PI);
+        const dist = diff > Math.PI ? TWO_PI - diff : diff;
+        if (dist > 0.02) {
+          lastRotationRef.current = targetRotation;
+          if (inertiaRef.current) cancelAnimationFrame(inertiaRef.current);
+          animate(rotationValue, targetRotation, {
+            type: 'tween',
+            duration: settleDuration,
+            ease: [0.22, 0.61, 0.36, 1],
+          });
+          return;
+        }
+      }
 
       const history = moveHistoryRef.current;
       let velocity = 0;
@@ -493,6 +519,7 @@ const OrbitalCarousel = memo<OrbitalCarouselProps>(({ scrollProgress }) => {
           <OrbitalPhone
             key={phone.id}
             phone={phone}
+            index={index}
             baseAngle={index * ANGLE_STEP}
             rotationOffset={totalRotation}
             glowIntensity={currentGlow}

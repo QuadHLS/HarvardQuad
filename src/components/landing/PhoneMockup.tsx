@@ -139,9 +139,9 @@ export const PhoneFrame = memo<PhoneFrameProps>(({
   const baseWidth = 280;
   const baseHeight = 572;
   
-  // Build box-shadow: base shadow + glow effect
+  // Build box-shadow: base shadow + tight glow (stays close to device)
   const glowShadow = glowIntensity > 0
-    ? `, 0 0 ${28 * glowIntensity}px ${9 * glowIntensity}px rgba(255, 252, 245, ${0.18 * glowIntensity}), 0 0 ${55 * glowIntensity}px ${20 * glowIntensity}px rgba(255, 250, 240, ${0.10 * glowIntensity})`
+    ? `, 0 0 ${16 * glowIntensity}px ${4 * glowIntensity}px rgba(255, 252, 245, ${0.2 * glowIntensity}), 0 0 ${28 * glowIntensity}px ${8 * glowIntensity}px rgba(255, 250, 240, ${0.08 * glowIntensity})`
     : '';
   
   return (
