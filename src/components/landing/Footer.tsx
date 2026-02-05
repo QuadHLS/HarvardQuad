@@ -21,8 +21,8 @@ const COMPANY_LINKS = [
 ] as const;
 
 const LEGAL_LINKS = [
-  { label: 'Privacy', href: '/QUADPRIVACYPOLICY.html' },
-  { label: 'Terms', href: '/QUADTERMSOFSERVICE.html' },
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Terms', href: '/terms' },
 ] as const;
 
 const SCROLL_OFFSET = 80;
@@ -115,8 +115,6 @@ export const Footer = memo(() => {
               <a
                 key={link.label}
                 href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="hover:text-[#27251f] transition-colors"
               >
                 {link.label}

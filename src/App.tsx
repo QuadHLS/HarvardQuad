@@ -971,6 +971,7 @@ export default function App() {
                 userName={profileLoading || !profile?.full_name ? '...' : profile.full_name.split(' ')[0]}
                 userId={user?.id}
                 publicName={profile?.public_name?.trim() || profile?.full_name?.trim() || user?.email?.split('@')[0] || 'You'}
+                userAvatarUrl={profile?.avatar_url?.trim() || null}
               />
             </div>
           )}

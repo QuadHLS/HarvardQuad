@@ -442,24 +442,18 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
         </div>
 
         {/* Footer Links */}
-        <div className="mt-4 pt-6 pb-4 relative">
-          <div className="flex items-center justify-center">
+        <div className="mt-4 pt-6 pb-4">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <a
-              href="/QUADPRIVACYPOLICY.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm hover:underline absolute"
-              style={{ color: '#27251f', right: '50%', transform: 'translateX(-24px)' }}
+              href="/privacy"
+              className="text-sm hover:underline text-[#27251f]"
             >
               Privacy Policy
             </a>
-            <span className="text-[#787771] absolute left-1/2 transform -translate-x-1/2">|</span>
+            <span className="text-[#787771]">|</span>
             <a
-              href="/QUADTERMSOFSERVICE.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm hover:underline absolute"
-              style={{ color: '#27251f', left: '50%', transform: 'translateX(24px)' }}
+              href="/terms"
+              className="text-sm hover:underline text-[#27251f]"
             >
               Terms of Service
             </a>

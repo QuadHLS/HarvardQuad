@@ -173,11 +173,11 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         <div className="px-6 pt-2 pb-6 flex-shrink-0 bg-transparent">
           <p className="text-xs text-[#787771] text-center w-full" >
             By continuing, you agree to our{' '}
-            <a href="/QUADTERMSOFSERVICE.html" className="text-[#d47455] hover:underline" target="_blank" rel="noopener noreferrer">
+            <a href="/terms" className="text-[#d47455] hover:underline">
               Terms of Service
             </a>
             {' '}and{' '}
-            <a href="/QUADPRIVACYPOLICY.html" className="text-[#d47455] hover:underline" target="_blank" rel="noopener noreferrer">
+            <a href="/privacy" className="text-[#d47455] hover:underline">
               Privacy Policy
             </a>
           </p>
@@ -611,7 +611,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
               <label className="flex items-center gap-2">
                 <input 
                   type="checkbox" 
-                  className="w-4 h-4 rounded border-[#e8e4db] text-[#d47455] focus:ring-[#d47455]"
+                  className="w-4 h-4 rounded border-[#e8e4db] accent-[#d47455] focus:ring-[#d47455]"
                 />
                 <span className="text-sm text-[#787771]" >
                   Remember me
@@ -765,14 +765,18 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             </p>
           </div>
 
-          <div className="flex items-start gap-2 pt-4">
-            <input 
-              type="checkbox" 
+          <div className="flex items-center gap-2 pt-4">
+            <input
+              id="signup-agree-tos-pp"
+              type="checkbox"
               required
-              className="w-4 h-4 mt-0.5 rounded border-[#e8e4db] text-[#d47455] focus:ring-[#d47455]"
+              className="w-4 h-4 flex-shrink-0 rounded border-[#e8e4db] accent-[#d47455] focus:ring-[#d47455]"
             />
-            <label className="text-xs text-[#787771]" >
-              I agree to the Terms of Service and Privacy Policy
+            <label htmlFor="signup-agree-tos-pp" className="text-xs text-[#787771] cursor-pointer select-none">
+              I agree to the{' '}
+              <a href="/terms" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Terms of Service</a>
+              {' '}and{' '}
+              <a href="/privacy" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
             </label>
           </div>
 

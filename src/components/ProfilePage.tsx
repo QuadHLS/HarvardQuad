@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Mail, Phone, MapPin, Calendar, Book, Edit2, ChevronRight, LogOut, Save, X, Trash2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Book, Edit2, ChevronRight, LogOut, Save, X, Trash2, Dices } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { isValidSocialUrl, normalizeSocialUrl } from '../lib/urlUtils';
@@ -69,10 +69,8 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [deletingAvatar, setDeletingAvatar] = useState(false);
+  const [rerollingAvatar, setRerollingAvatar] = useState(false);
   const [socialNotification, setSocialNotification] = useState<'instagram' | 'linkedin' | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editValues, setEditValues] = useState({
     public_name: '',
     phone: '',
@@ -235,194 +233,37 @@ export function ProfilePage() {
     }
   };
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
+  const DICEBEAR_STYLES = [
+    'adventurer', 'avataaars', 'croodles', 'adventurer-neutral', 'big-smile',
+    'lorelei', 'miniavs', 'pixel-art', 'pixel-art-neutral',
+  ];
+  const generateAvatarSeed = () => Math.random().toString(36).substring(2, 12);
+  const pickRandomStyle = () => DICEBEAR_STYLES[Math.floor(Math.random() * DICEBEAR_STYLES.length)];
 
-  const handleDeleteAvatar = async () => {
-    if (!user || !profile?.avatar_url) return;
-
-    // Confirm deletion
-    if (!confirm('Are you sure you want to delete your avatar? This action cannot be undone.')) {
-      return;
-    }
-
-    setDeletingAvatar(true);
+  const handleRerollAvatar = async () => {
+    if (!user || !profile) return;
+    setRerollingAvatar(true);
     try {
-      // Find and delete the avatar file from storage
-      const { data: existingFiles, error: listError } = await supabase.storage
-        .from('avatars')
-        .list('', {
-          limit: 100,
-          sortBy: { column: 'created_at', order: 'desc' },
-        });
-
-      if (listError) {
-        console.error('Error listing avatars for deletion:', listError);
-      } else if (existingFiles && existingFiles.length > 0) {
-        // Filter files that belong to this user
-        const filesToDelete = existingFiles
-          .filter(file => file.name.startsWith(`${user.id}-`))
-          .map(file => file.name);
-
-        if (filesToDelete.length > 0) {
-          const { error: deleteError } = await supabase.storage
-            .from('avatars')
-            .remove(filesToDelete);
-
-          if (deleteError) {
-            console.error('Error deleting avatar from storage:', deleteError);
-            // Continue with profile update even if storage delete fails
-          }
-        }
-      }
-
-      // Update profile to remove avatar_url
-      const { error: updateError } = await supabase
+      const style = pickRandomStyle();
+      const seed = generateAvatarSeed();
+      const avatarUrl = `https://api.dicebear.com/9.x/${style}/svg?seed=${seed}`;
+      const { error } = await supabase
         .from('profiles')
-        .update({ 
-          avatar_url: null, 
-          updated_at: new Date().toISOString() 
-        })
+        .update({ avatar_url: avatarUrl })
         .eq('id', user.id);
-
-      if (updateError) {
-        console.error('Error removing avatar URL from profile:', updateError);
-        alert('Failed to delete avatar. Please try again.');
-        setDeletingAvatar(false);
-        return;
-      }
-
-      // Update local profile state to show default image
-      if (profile) {
-        setProfile({
-          ...profile,
-          avatar_url: null,
-        });
-      }
-
-      // Dispatch event to notify other components of profile update
-      window.dispatchEvent(new CustomEvent('profileUpdated'));
-    } catch (err) {
-      console.error('Error deleting avatar:', err);
-      alert('An unexpected error occurred. Please try again.');
-    } finally {
-      setDeletingAvatar(false);
-    }
-  };
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB.');
-      return;
-    }
-
-    setUploadingAvatar(true);
-    try {
-      // First, find and delete any existing avatar files for this user
-      const { data: existingFiles, error: listError } = await supabase.storage
-        .from('avatars')
-        .list('', {
-          limit: 100,
-          sortBy: { column: 'created_at', order: 'desc' },
-        });
-
-      if (listError) {
-        console.error('Error listing existing avatars:', listError);
-      } else if (existingFiles && existingFiles.length > 0) {
-        // Filter files that belong to this user (filename starts with user ID)
-        const filesToDelete = existingFiles
-          .filter(file => file.name.startsWith(`${user.id}-`))
-          .map(file => file.name);
-
-        if (filesToDelete.length > 0) {
-          const { error: deleteError } = await supabase.storage
-            .from('avatars')
-            .remove(filesToDelete);
-
-          if (deleteError) {
-            console.error('Error deleting old avatars:', deleteError);
-            // Continue with upload even if delete fails
-          }
-        }
-      }
-
-      // Create a unique filename for the new avatar
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = fileName;
-
-      // Upload to Supabase Storage bucket
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false, // We're deleting old files, so no need for upsert
-        });
-
-      if (uploadError) {
-        console.error('Error uploading avatar:', uploadError);
-        console.error('Upload error details:', {
-          message: uploadError.message,
-          name: uploadError.name,
-        });
-        alert(`Failed to upload avatar: ${uploadError.message || 'Unknown error'}. Please check the browser console for details.`);
-        setUploadingAvatar(false);
-        return;
-      }
-
-      // Get public URL for the uploaded file
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      // Update profile with new avatar URL in the profiles table
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          avatar_url: publicUrl, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', user.id);
-
-      if (updateError) {
-        console.error('Error updating avatar URL:', updateError);
+      if (error) {
         alert('Failed to update avatar. Please try again.');
-        setUploadingAvatar(false);
         return;
       }
-
-      // Update local profile state to reflect the new avatar
-      if (profile) {
-        setProfile({
-          ...profile,
-          avatar_url: publicUrl,
-        });
-      }
-
-      // Dispatch event to notify other components of profile update
+      setProfile({ ...profile, avatar_url: avatarUrl });
       window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (err) {
-      console.error('Error uploading avatar:', err);
       alert('An unexpected error occurred. Please try again.');
     } finally {
-      setUploadingAvatar(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setRerollingAvatar(false);
     }
   };
+
 
   // Memoized computed values
   const stats = useMemo(() => {
@@ -473,14 +314,6 @@ export function ProfilePage() {
 
   return (
     <div className="h-full min-h-full w-full" style={PROFILE_PAGE_BACKGROUND}>
-      {/* Hidden file input for avatar upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleAvatarChange}
-        className="hidden"
-      />
       {/* Mobile View - v2 iOS-native premium redesign */}
       <div
         className="md:hidden min-h-full overflow-y-auto"
@@ -533,46 +366,48 @@ export function ProfilePage() {
             style={GLASS_SURFACE_STRONG}
           >
             <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt={`${displayName}'s profile picture`}
-                    className="w-[72px] h-[72px] rounded-full object-cover"
-                    style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const fallback = target.nextElementSibling as HTMLElement;
-                      if (fallback) fallback.style.display = 'flex';
+              {/* Avatar + Roll again (same UI as onboarding step 3) */}
+              <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                <div className="relative">
+                  {profile?.avatar_url && profile.avatar_url.trim() !== '' ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt={`${displayName}'s profile picture`}
+                      className="w-[72px] h-[72px] rounded-full object-cover"
+                      style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-white text-xl font-semibold"
+                    style={{ 
+                      backgroundColor: avatarColor,
+                      display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                     }}
-                  />
-                ) : null}
-                <div
-                  className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-white text-xl font-semibold"
-                  style={{ 
-                    backgroundColor: avatarColor,
-                    display: (profile?.avatar_url && profile.avatar_url.trim() !== '') ? 'none' : 'flex',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                  }}
-                  aria-label={`${displayName}'s avatar`}
-                >
-                  {avatarInitials}
+                    aria-label={`${displayName}'s avatar`}
+                  >
+                    {avatarInitials}
+                  </div>
                 </div>
                 {isEditing && (
-                  <button 
-                    onClick={handleAvatarClick}
-                    disabled={uploadingAvatar || deletingAvatar}
-                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#27251f] flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
-                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-                    aria-label={uploadingAvatar ? 'Uploading avatar' : 'Change avatar'}
+                  <button
+                    type="button"
+                    onClick={handleRerollAvatar}
+                    disabled={rerollingAvatar}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
+                      rerollingAvatar
+                        ? 'border-[#e8e4db] bg-[#f5f4f2] text-[#787771] cursor-not-allowed'
+                        : 'border-[#d47455] bg-white text-[#d47455] hover:bg-[#fef9f5] active:scale-95'
+                    }`}
                   >
-                    {uploadingAvatar ? (
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Edit2 className="w-3.5 h-3.5 text-white" aria-hidden="true" />
-                    )}
+                    <Dices className={`w-4 h-4 ${rerollingAvatar ? 'animate-spin' : ''}`} />
+                    {rerollingAvatar ? 'Rolling...' : 'Roll again'}
                   </button>
                 )}
               </div>
@@ -689,18 +524,6 @@ export function ProfilePage() {
                   />
                 </div>
               </div>
-            )}
-
-            {/* Avatar delete when editing */}
-            {isEditing && profile?.avatar_url && profile.avatar_url.trim() !== '' && (
-              <button 
-                onClick={handleDeleteAvatar}
-                disabled={uploadingAvatar || deletingAvatar}
-                className="mt-3 text-[13px] text-[#d47455] font-medium active:opacity-60 transition-opacity disabled:opacity-40 min-h-[44px]"
-                aria-label={deletingAvatar ? 'Removing profile photo' : 'Remove profile photo'}
-              >
-                {deletingAvatar ? 'Removing photo...' : 'Remove photo'}
-              </button>
             )}
 
             {/* Stats Row - Inline pill style */}
@@ -1005,48 +828,19 @@ export function ProfilePage() {
                     {avatarInitials}
                   </div>
                   {isEditing && (
-                    <>
-                      <button 
-                        onClick={handleAvatarClick}
-                        disabled={uploadingAvatar || deletingAvatar}
-                        className="mb-2 px-3 py-1.5 bg-[#f5f3eb] text-[#27251f] rounded-lg text-xs flex items-center gap-1.5 hover:bg-[#ebe8df] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ fontWeight: 500 }}
-                        aria-label={uploadingAvatar ? 'Uploading avatar' : 'Change avatar'}
-                      >
-                        {uploadingAvatar ? (
-                          <>
-                            <div className="w-3 h-3 border-2 border-[#27251f] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Edit2 className="w-3 h-3" aria-hidden="true" />
-                            Change Avatar
-                          </>
-                        )}
-                      </button>
-                      {profile?.avatar_url && profile.avatar_url.trim() !== '' && (
-                        <button 
-                          onClick={handleDeleteAvatar}
-                          disabled={uploadingAvatar || deletingAvatar}
-                          className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ fontWeight: 500, backgroundColor: 'rgba(232, 59, 59, 1)', color: 'rgba(255, 255, 255, 1)' }}
-                          aria-label={deletingAvatar ? 'Deleting avatar' : 'Delete avatar'}
-                        >
-                          {deletingAvatar ? (
-                            <>
-                              <div className="w-3 h-3 border-2 border-red-700 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                              Deleting...
-                            </>
-                          ) : (
-                            <>
-                              <Trash2 className="w-3 h-3" aria-hidden="true" />
-                              Delete Avatar
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </>
+                    <button
+                      type="button"
+                      onClick={handleRerollAvatar}
+                      disabled={rerollingAvatar}
+                      className={`mt-2 flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
+                        rerollingAvatar
+                          ? 'border-[#e8e4db] bg-[#f5f4f2] text-[#787771] cursor-not-allowed'
+                          : 'border-[#d47455] bg-white text-[#d47455] hover:bg-[#fef9f5] active:scale-95'
+                      }`}
+                    >
+                      <Dices className={`w-4 h-4 ${rerollingAvatar ? 'animate-spin' : ''}`} />
+                      {rerollingAvatar ? 'Rolling...' : 'Roll again'}
+                    </button>
                   )}
                 </div>
                 <div className="flex-1">

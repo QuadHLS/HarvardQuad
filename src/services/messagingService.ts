@@ -583,11 +583,11 @@ export class MessagingService {
   }
 
   // Search users by email or name
-  static async searchUsers(query: string): Promise<{ data: Array<{ id: string; email: string; full_name: string | null }> | null; error: Error | null }> {
+  static async searchUsers(query: string): Promise<{ data: Array<{ id: string; email: string; full_name: string | null; avatar_url: string | null }> | null; error: Error | null }> {
     const searchTerm = `%${query}%`;
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name')
+      .select('id, email, full_name, avatar_url')
       .or(`email.ilike.${searchTerm},full_name.ilike.${searchTerm}`)
       .limit(10);
 

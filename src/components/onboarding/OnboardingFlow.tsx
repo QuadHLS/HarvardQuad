@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Search } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronRight, ChevronLeft, ChevronDown, Search, Dices } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
@@ -7,17 +7,46 @@ interface OnboardingData {
   fullName: string;
   publicName: string;
   classYear: string;
+  phone: string;
+  location: string;
   courses: string[];
   squads: string[];
   interests: string[];
+  avatarSeed: string;
+  avatarStyle: string;
 }
 
 interface OnboardingFlowProps {
   onComplete: (data: OnboardingData) => void;
 }
 
-// Steps shown in the flow (step 3 squads/interests UI exists but is excluded for now)
-const TOTAL_STEPS = 2;
+// Steps shown in the flow
+const TOTAL_STEPS = 3;
+
+/** DiceBear 9.x style names (API kebab-case). One is chosen at random when rolling. */
+const DICEBEAR_STYLES = [
+  'adventurer',
+  'avataaars',
+  'croodles',
+  'adventurer-neutral',
+  'big-smile',
+  'lorelei',
+  'miniavs',
+  'pixel-art',
+  'pixel-art-neutral',
+] as const;
+
+function generateAvatarSeed(): string {
+  return Math.random().toString(36).substring(2, 12);
+}
+
+function pickRandomAvatarStyle(): string {
+  return DICEBEAR_STYLES[Math.floor(Math.random() * DICEBEAR_STYLES.length)];
+}
+
+function buildDiceBearUrl(style: string, seed: string): string {
+  return `https://api.dicebear.com/9.x/${style}/svg?seed=${seed}`;
+}
 
 export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
   const { user } = useAuth();
@@ -26,12 +55,27 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
     fullName: '',
     publicName: '',
     classYear: '',
+    phone: '',
+    location: '',
     courses: [],
     squads: [],
-    interests: []
+    interests: [],
+    avatarSeed: generateAvatarSeed(),
+    avatarStyle: pickRandomAvatarStyle(),
   });
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // When user reaches step 3, ensure a random avatar (style + seed) is showing
+  useEffect(() => {
+    if (currentStep === 3) {
+      setFormData((prev) => ({
+        ...prev,
+        avatarSeed: generateAvatarSeed(),
+        avatarStyle: pickRandomAvatarStyle(),
+      }));
+    }
+  }, [currentStep]);
 
   const getGraduationYearFromClassYear = (classYear: string): number | null => {
     const now = new Date();
@@ -59,9 +103,10 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
         .from('profiles')
         .update({
           full_name: formData.fullName.trim() || null,
-          public_name: formData.publicName.trim() || null,
           class_year: formData.classYear || null,
           graduation_year: graduationYear != null ? String(graduationYear) : null,
+          phone: formData.phone.trim() || null,
+          location: formData.location.trim() || null,
         })
         .eq('id', user.id);
       setSaving(false);
@@ -108,6 +153,24 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
       }
     }
 
+    if (currentStep === 3 && user?.id) {
+      setSaveError('');
+      setSaving(true);
+      const avatarUrl = buildDiceBearUrl(formData.avatarStyle, formData.avatarSeed);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          public_name: formData.publicName.trim() || null,
+          avatar_url: avatarUrl,
+        })
+        .eq('id', user.id);
+      setSaving(false);
+      if (error) {
+        setSaveError(error.message || 'Failed to save. Please try again.');
+        return;
+      }
+    }
+
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -123,12 +186,15 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
 
   const canProceed = () => {
     if (currentStep === 1) {
-      return formData.fullName && formData.publicName && formData.classYear;
+      return formData.fullName && formData.classYear;
     }
     if (currentStep === 2) {
       return formData.courses.length > 0;
     }
-    // Step 3 (squads/interests) skipped for now
+    if (currentStep === 3) {
+      // Require public name and avatar seed
+      return !!formData.avatarSeed && !!formData.publicName;
+    }
     return false;
   };
 
@@ -170,7 +236,7 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
         </p>
       )}
 
-      {/* Content - step 2: only list scrolls; steps 1 & 3: whole content scrolls */}
+      {/* Content - step 2: only list scrolls; steps 1, 3: whole content scrolls */}
       <div
         className={`flex-1 px-6 py-4 min-h-0 ${
           currentStep === 2 ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'
@@ -190,12 +256,18 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
             progressBar={progressBar}
           />
         )}
-        {/* Step 3 (squads/interests) excluded from flow for now - UI kept in Step3 below */}
+        {currentStep === 3 && (
+          <Step3Avatar
+            formData={formData}
+            setFormData={setFormData}
+            progressBar={progressBar}
+          />
+        )}
       </div>
 
       {/* Navigation Footer */}
       <div className="px-6 py-4 flex-shrink-0">
-        <div className="flex gap-3">
+        <div className="flex gap-3 max-w-sm mx-auto w-full">
           {currentStep > 1 && (
             <button
               onClick={handleBack}
@@ -245,7 +317,26 @@ function Step1({ formData, setFormData, progressBar }: {
   setFormData: React.Dispatch<React.SetStateAction<OnboardingData>>;
   progressBar: React.ReactNode;
 }) {
-  const classYears = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
+  const classYearOptions: { value: string; label: string; hint?: string }[] = [
+    { value: 'Freshman', label: 'Freshman' },
+    { value: 'Sophomore', label: 'Sophomore' },
+    { value: 'Junior', label: 'Junior' },
+    { value: 'Senior', label: 'Senior' },
+    { value: 'Graduate', label: 'Graduate student', hint: 'Master\'s, PhD, or other grad program' },
+  ];
+  const [classYearOpen, setClassYearOpen] = useState(false);
+  const classYearRef = useRef<HTMLDivElement>(null);
+  const selectedOption = classYearOptions.find((o) => o.value === formData.classYear);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (classYearRef.current && !classYearRef.current.contains(e.target as Node)) {
+        setClassYearOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div className="max-w-sm mx-auto w-full space-y-8">
@@ -278,40 +369,83 @@ function Step1({ formData, setFormData, progressBar }: {
           />
         </div>
 
+        <div ref={classYearRef} className="relative">
+          <label className="block text-sm mb-2 text-[#27251f]" style={{ fontWeight: 500 }}>
+            Class year
+          </label>
+          <button
+            type="button"
+            onClick={() => setClassYearOpen((o) => !o)}
+            className={`w-full px-4 py-3 rounded-xl border bg-white text-left flex items-center justify-between gap-2 transition-colors ${
+              classYearOpen
+                ? 'border-[#d47455] ring-2 ring-[#d47455] ring-opacity-30'
+                : 'border-[#e8e4db] hover:border-[#d47455]/50'
+            }`}
+            aria-haspopup="listbox"
+            aria-expanded={classYearOpen}
+            aria-label="Class year"
+          >
+            <span className={formData.classYear ? 'text-[#27251f]' : 'text-[#787771]'}>
+              {selectedOption ? selectedOption.label : 'Select class year'}
+            </span>
+            <ChevronDown
+              className={`w-5 h-5 text-[#787771] flex-shrink-0 transition-transform ${classYearOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {classYearOpen && (
+            <ul
+              className="absolute z-10 w-full mt-1 py-1 rounded-xl border border-[#e8e4db] bg-white shadow-lg max-h-52 overflow-y-auto"
+              role="listbox"
+            >
+              {classYearOptions.map((opt) => (
+                <li key={opt.value} role="option" aria-selected={formData.classYear === opt.value}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, classYear: opt.value });
+                      setClassYearOpen(false);
+                    }}
+                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                      formData.classYear === opt.value
+                        ? 'bg-[#fef9f5] text-[#d47455] font-medium'
+                        : 'text-[#27251f] hover:bg-[#faf9f7]'
+                    }`}
+                  >
+                    <span className="block">{opt.label}</span>
+                    {opt.hint && (
+                      <span className="block text-xs text-[#787771] mt-0.5 font-normal">{opt.hint}</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div>
           <label className="block text-sm mb-2 text-[#27251f]" style={{ fontWeight: 500 }}>
-            Public name
+            Phone number
           </label>
-          <p className="text-xs text-[#787771] mb-2">Shown to other students</p>
           <input
-            type="text"
-            value={formData.publicName}
-            onChange={(e) => setFormData({ ...formData, publicName: e.target.value })}
-            placeholder="e.g. First name or nickname"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="Add phone"
             className="w-full px-4 py-3 rounded-xl border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
           />
         </div>
 
         <div>
           <label className="block text-sm mb-2 text-[#27251f]" style={{ fontWeight: 500 }}>
-            Class year
+            Location / Hometown
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {classYears.map((year) => (
-              <button
-                key={year}
-                type="button"
-                onClick={() => setFormData({ ...formData, classYear: year })}
-                className={`px-4 py-3 rounded-xl border transition-colors text-sm ${
-                  formData.classYear === year
-                    ? 'border-[#d47455] bg-[#d47455] text-white'
-                    : 'border-[#e8e4db] bg-white text-[#27251f] hover:border-[#d47455] hover:bg-[#fef9f5]'
-                }`}
-              >
-                {year}
-              </button>
-            ))}
-          </div>
+          <input
+            type="text"
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            placeholder="Add location"
+            className="w-full px-4 py-3 rounded-xl border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent"
+          />
         </div>
       </div>
     </div>
@@ -459,8 +593,89 @@ function Step2({ formData, setFormData, progressBar }: {
   );
 }
 
-// Step 3: Squads and Interests
-function Step3({ formData, setFormData }: { 
+// Step 3: Avatar Selection
+function Step3Avatar({ formData, setFormData, progressBar }: {
+  formData: OnboardingData;
+  setFormData: React.Dispatch<React.SetStateAction<OnboardingData>>;
+  progressBar: React.ReactNode;
+}) {
+  const [isRolling, setIsRolling] = useState(false);
+
+  const rollAvatar = () => {
+    setIsRolling(true);
+    setTimeout(() => {
+      setFormData(prev => ({
+        ...prev,
+        avatarSeed: generateAvatarSeed(),
+        avatarStyle: pickRandomAvatarStyle(),
+      }));
+      setIsRolling(false);
+    }, 300);
+  };
+
+  const avatarUrl = buildDiceBearUrl(formData.avatarStyle, formData.avatarSeed);
+
+  return (
+    <div className="max-w-sm mx-auto w-full space-y-8">
+      {progressBar}
+      <div className="text-center">
+        <h2 className="text-2xl sm:text-3xl text-[#27251f] mb-2" style={{ fontWeight: 600 }}>
+          Pick your avatar
+        </h2>
+        <p className="text-sm text-[#787771] max-w-xs mx-auto">
+          Roll the dice to find the perfect look
+        </p>
+      </div>
+
+      <div className="flex flex-col items-center gap-6">
+        {/* Avatar frame */}
+        <div 
+          className={`relative w-60 h-60 sm:w-72 sm:h-72 rounded-full bg-white border-4 border-[#e8e4db] shadow-lg overflow-hidden transition-transform duration-300 ${
+            isRolling ? 'scale-95 opacity-50' : 'scale-100 opacity-100'
+          }`}
+        >
+          <img
+            src={avatarUrl}
+            alt="Your avatar"
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Dice roll button */}
+        <button
+          onClick={rollAvatar}
+          disabled={isRolling}
+          className={`flex items-center gap-3 px-6 py-3 rounded-xl border-2 transition-all ${
+            isRolling
+              ? 'border-[#e8e4db] bg-[#f5f4f2] text-[#787771] cursor-not-allowed'
+              : 'border-[#d47455] bg-white text-[#d47455] hover:bg-[#fef9f5] active:scale-95'
+          }`}
+        >
+          <Dices className={`w-5 h-5 ${isRolling ? 'animate-spin' : ''}`} />
+          <span className="font-medium">{isRolling ? 'Rolling...' : 'Roll again'}</span>
+        </button>
+
+        {/* Public name input */}
+        <div className="w-full max-w-xs">
+          <label className="block text-sm mb-2 text-[#27251f] text-center" style={{ fontWeight: 500 }}>
+            Public name
+          </label>
+          <p className="text-xs text-[#787771] mb-2 text-center">Shown to other students</p>
+          <input
+            type="text"
+            value={formData.publicName}
+            onChange={(e) => setFormData({ ...formData, publicName: e.target.value })}
+            placeholder="e.g. First name or nickname"
+            className="w-full px-4 py-3 rounded-xl border border-[#e8e4db] bg-white focus:outline-none focus:ring-2 focus:ring-[#d47455] focus:border-transparent text-center"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Step for Squads and Interests (currently unused in flow)
+function StepSquadsInterests({ formData, setFormData }: { 
   formData: OnboardingData; 
   setFormData: React.Dispatch<React.SetStateAction<OnboardingData>>;
 }) {

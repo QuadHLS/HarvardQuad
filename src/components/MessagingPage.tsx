@@ -635,10 +635,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupSearchQuery, setNewGroupSearchQuery] = useState('');
-  const [newGroupSearchResults, setNewGroupSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
-  const [selectedGroupMembers, setSelectedGroupMembers] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
+  const [newGroupSearchResults, setNewGroupSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null; avatar_url?: string | null }>>([]);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<Array<{ id: string; email: string; full_name: string | null; avatar_url?: string | null }>>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [userSearchResults, setUserSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
+  const [userSearchResults, setUserSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null; avatar_url?: string | null }>>([]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [mobileTab, setMobileTab] = useState<'friends' | 'groups' | 'squads'>('friends');
   const [isConversationBlocked, setIsConversationBlocked] = useState(false);
@@ -662,7 +662,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentParticipants, setCurrentParticipants] = useState<Participant[]>([]);
   const [editMembersSearchQuery, setEditMembersSearchQuery] = useState('');
-  const [editMembersSearchResults, setEditMembersSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null }>>([]);
+  const [editMembersSearchResults, setEditMembersSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null; avatar_url?: string | null }>>([]);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   
   // Check if there's a conversation ID from navigation (e.g., from squad detail page)
@@ -1306,7 +1306,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     return () => clearTimeout(timer);
   }, [newGroupSearchQuery, user]);
 
-  const handleAddGroupMember = (userToAdd: { id: string; email: string; full_name: string | null }) => {
+  const handleAddGroupMember = (userToAdd: { id: string; email: string; full_name: string | null; avatar_url?: string | null }) => {
     // Prevent adding yourself - you're automatically added as creator
     if (userToAdd.id === user?.id) {
       return;
@@ -1589,21 +1589,33 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         .slice(0, 2);
                       const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                       const avatarColor = colors[(userResult.full_name || userResult.email || '?').charCodeAt(0) % colors.length];
-                      
+                      const hasAvatar = userResult.avatar_url?.trim();
                       return (
                         <div
                           key={userResult.id}
                           onClick={() => handleCreateDM(userResult.id)}
                           className="px-4 py-3 flex items-center gap-3 hover:bg-[#f5f3eb] cursor-pointer transition-colors"
                         >
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm"
-                            style={{ 
-                              fontWeight: 600,
-                              backgroundColor: avatarColor
-                            }}
-                          >
-                            {avatar}
+                          <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden relative flex items-center justify-center">
+                            {hasAvatar ? (
+                              <img
+                                src={userResult.avatar_url!}
+                                alt=""
+                                className="w-full h-full rounded-full object-cover"
+                                onError={(e) => {
+                                  const t = e.target as HTMLImageElement;
+                                  t.style.display = 'none';
+                                  const fb = t.nextElementSibling as HTMLElement;
+                                  if (fb) fb.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
+                              style={{ fontWeight: 600, backgroundColor: avatarColor, display: hasAvatar ? 'none' : 'flex' }}
+                            >
+                              {avatar}
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p 
@@ -2586,6 +2598,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       .slice(0, 2);
                     const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                     const avatarColor = colors[(u.full_name || u.email || '?').charCodeAt(0) % colors.length];
+                    const uHasAvatar = u.avatar_url?.trim();
                       return (
                         <button
                           type="button"
@@ -2593,11 +2606,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           onClick={() => handleAddGroupMember(u)}
                           className="w-full px-3 py-2 flex items-center gap-2 hover:bg-[#f5f3eb] text-left"
                         >
-                          <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                            style={{ backgroundColor: avatarColor, fontWeight: 600 }}
-                          >
-                            {avatar}
+                          <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden relative flex items-center justify-center">
+                            {uHasAvatar ? (
+                              <img src={u.avatar_url!} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
+                            ) : null}
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ backgroundColor: avatarColor, fontWeight: 600, display: uHasAvatar ? 'none' : 'flex' }}>
+                              {avatar}
+                            </div>
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-[#27251f] truncate">{u.full_name || u.email?.split('@')[0] || 'Unknown'}</p>
@@ -2620,13 +2635,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                       .slice(0, 2);
                     const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                     const avatarColor = colors[(m.full_name || m.email || '?').charCodeAt(0) % colors.length];
+                    const mHasAvatar = m.avatar_url?.trim();
                     return (
                       <div key={m.id} className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5f3eb] border border-[#e7ded1]">
-                        <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px]"
-                          style={{ backgroundColor: avatarColor, fontWeight: 600 }}
-                        >
-                          {avatar}
+                        <div className="w-6 h-6 rounded-full flex-shrink-0 overflow-hidden relative flex items-center justify-center">
+                          {mHasAvatar ? (
+                            <img src={m.avatar_url!} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
+                          ) : null}
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px]" style={{ backgroundColor: avatarColor, fontWeight: 600, display: mHasAvatar ? 'none' : 'flex' }}>
+                            {avatar}
+                          </div>
                         </div>
                         <span className="text-sm text-[#27251f]">{m.full_name || m.email?.split('@')[0] || 'Unknown'}</span>
                         <button
@@ -2855,6 +2873,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                         .slice(0, 2);
                       const colors = ['#6ec9c4', '#e87461', '#d47455', '#9b8f7f', '#787771'];
                       const avatarColor = colors[(u.full_name || u.email || '?').charCodeAt(0) % colors.length];
+                      const uHasAvatar = u.avatar_url?.trim();
                       return (
                         <button
                           type="button"
@@ -2862,11 +2881,13 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                           onClick={() => handleAddMemberToGroup(u.id)}
                           className="w-full px-3 py-2 flex items-center gap-2 hover:bg-[#f5f3eb] text-left"
                         >
-                          <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                            style={{ backgroundColor: avatarColor, fontWeight: 600 }}
-                          >
-                            {avatar}
+                          <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden relative flex items-center justify-center">
+                            {uHasAvatar ? (
+                              <img src={u.avatar_url!} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
+                            ) : null}
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ backgroundColor: avatarColor, fontWeight: 600, display: uHasAvatar ? 'none' : 'flex' }}>
+                              {avatar}
+                            </div>
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-[#27251f] truncate">

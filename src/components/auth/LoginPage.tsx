@@ -321,9 +321,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <div className="mt-4 pt-6 pb-4 relative">
               <div className="flex items-center justify-center">
                 <a
-                  href="/QUADPRIVACYPOLICY.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/privacy"
                   className="text-sm hover:underline absolute"
                   style={{ color: '#27251f', right: '50%', transform: 'translateX(-24px)' }}
                 >
@@ -331,9 +329,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </a>
                 <span className="text-[#787771] absolute left-1/2 transform -translate-x-1/2">|</span>
                 <a
-                  href="/QUADTERMSOFSERVICE.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/terms"
                   className="text-sm hover:underline absolute"
                   style={{ color: '#27251f', left: '50%', transform: 'translateX(24px)' }}
                 >

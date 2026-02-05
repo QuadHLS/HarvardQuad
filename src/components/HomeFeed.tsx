@@ -11,11 +11,85 @@ import {
   ChevronLeft,
   Plus,
 } from 'lucide-react';
-import { FeedService, type FeedPostWithAuthor, type FeedReplyWithAuthor } from '../services/feedService';
+import { FeedService, type FeedPostWithAuthor, type FeedReplyWithAuthor, type ProfileRow } from '../services/feedService';
 import { getEmbedInfo } from '../lib/embedUrl';
 import { ScrollArea } from './ui/scroll-area';
 import { NewPostModal } from './NewPostModal';
 import { UserProfileView } from './UserProfileView';
+
+/** Renders avatar image when profile has avatar_url, otherwise colored circle with initials. */
+function AuthorAvatar({
+  profile,
+  color,
+  initials,
+  sizeClass = 'w-9 h-9',
+  className = '',
+  asButton = false,
+  onClick,
+  onPointerDown,
+  onKeyDown,
+  'aria-label': ariaLabel,
+  ...rest
+}: {
+  profile: ProfileRow | null | undefined;
+  color: string;
+  initials: string;
+  sizeClass?: string;
+  className?: string;
+  asButton?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  'aria-label'?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const avatarUrl = profile?.avatar_url?.trim();
+  const showImg = !!avatarUrl && !imgError;
+  const baseClass = `${sizeClass} rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative ${className}`.trim();
+  const content = (
+    <>
+      {showImg ? (
+        <img
+          src={avatarUrl!}
+          alt=""
+          className="absolute inset-0 w-full h-full rounded-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : null}
+      <div
+        className="absolute inset-0 rounded-full flex items-center justify-center text-white text-xs"
+        style={{
+          backgroundColor: color,
+          fontWeight: 600,
+          display: showImg ? 'none' : 'flex',
+        }}
+        aria-hidden={showImg}
+      >
+        {initials}
+      </div>
+    </>
+  );
+  if (asButton) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        onPointerDown={onPointerDown}
+        onKeyDown={onKeyDown}
+        className={`${baseClass} active:scale-95 transition-transform cursor-pointer`}
+        aria-label={ariaLabel}
+        {...rest}
+      >
+        {content}
+      </button>
+    );
+  }
+  return (
+    <div className={baseClass} {...rest}>
+      {content}
+    </div>
+  );
+}
 
 function EmbedBlock({ url, className = '', compact = false }: { url: string; className?: string; compact?: boolean }) {
   const embed = getEmbedInfo(url);
@@ -64,11 +138,12 @@ interface PostDetailViewProps {
   post: FeedPostWithAuthor;
   userId: string | undefined;
   userDisplayName?: string;
+  userAvatarUrl?: string | null;
   onBack: () => void;
   onOpenUserProfile?: (userId: string) => void;
 }
 
-function PostDetailView({ post, userId, userDisplayName, onBack, onOpenUserProfile }: PostDetailViewProps) {
+function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, onOpenUserProfile }: PostDetailViewProps) {
   const [detailPost, setDetailPost] = useState<FeedPostWithAuthor | null>(post);
   const [replies, setReplies] = useState<FeedReplyWithAuthor[]>([]);
   const [replyInput, setReplyInput] = useState('');
@@ -179,9 +254,12 @@ function PostDetailView({ post, userId, userDisplayName, onBack, onOpenUserProfi
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
               {detailPost.author_id !== userId ? (
-                <button
-                  type="button"
-                  data-profile-button
+                <AuthorAvatar
+                  profile={detailPost.author}
+                  color={authorColor}
+                  initials={authorInitials}
+                  sizeClass="min-w-[44px] min-h-[44px] w-10 h-10"
+                  asButton
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -192,20 +270,15 @@ function PostDetailView({ post, userId, userDisplayName, onBack, onOpenUserProfi
                     e.stopPropagation();
                     onOpenUserProfile?.(detailPost.author_id);
                   }}
-                  className="min-w-[44px] min-h-[44px] w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
-                  style={{ backgroundColor: authorColor, fontWeight: 600 }}
                   aria-label={`View ${authorName}'s profile`}
-                >
-                  {authorInitials}
-                </button>
+                />
               ) : (
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
-                  style={{ backgroundColor: authorColor, fontWeight: 600 }}
-                  aria-hidden
-                >
-                  {authorInitials}
-                </div>
+                <AuthorAvatar
+                  profile={detailPost.author}
+                  color={authorColor}
+                  initials={authorInitials}
+                  sizeClass="w-10 h-10"
+                />
               )}
               <div>
                 <div className="flex items-center gap-2">
@@ -304,16 +377,12 @@ function PostDetailView({ post, userId, userDisplayName, onBack, onOpenUserProfi
           {!replyingTo && (
             <div className="pt-4 mt-2 border-t border-[#f5f3eb]">
               <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                  style={{ backgroundColor: userId ? FeedService.avatarColor(userId) : '#787771', fontWeight: 600 }}
-                >
-                  {userId && userDisplayName
-                    ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as Parameters<typeof FeedService.initials>[0])
-                    : userId
-                      ? 'You'.slice(0, 2)
-                      : '?'}
-                </div>
+                <AuthorAvatar
+                  profile={userId ? { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null } as ProfileRow : null}
+                  color={userId ? FeedService.avatarColor(userId) : '#787771'}
+                  initials={userId && userDisplayName ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as ProfileRow) : userId ? 'You'.slice(0, 2) : '?'}
+                  sizeClass="w-9 h-9"
+                />
                 <textarea
                   value={replyInput}
                   onChange={(e) => setReplyInput(e.target.value)}
@@ -378,6 +447,7 @@ function PostDetailView({ post, userId, userDisplayName, onBack, onOpenUserProfi
                 onSubmitReply={handleSubmitReply}
                 submitting={submitting}
                 userDisplayName={userDisplayName}
+                userAvatarUrl={userAvatarUrl}
                 onReplyInputFocusChange={setIsReplyInputFocused}
                 onOpenUserProfile={onOpenUserProfile}
               />
@@ -406,6 +476,7 @@ interface ReplyBlockProps {
   onSubmitReply?: () => void;
   submitting?: boolean;
   userDisplayName?: string;
+  userAvatarUrl?: string | null;
   /** 0 = top-level, 1 = first reply, 2 = second, 3+ = flat with "replying to name" */
   depth?: number;
   /** When set, show "replying to [name]" next to author (for depth > 4 only) */
@@ -424,6 +495,7 @@ function InlineReplyForm({
   onSubmitReply,
   submitting,
   userDisplayName,
+  userAvatarUrl,
   onReplyInputFocusChange,
 }: {
   userId: string | undefined;
@@ -433,18 +505,20 @@ function InlineReplyForm({
   onSubmitReply: () => void;
   submitting: boolean;
   userDisplayName?: string;
+  userAvatarUrl?: string | null;
   onReplyInputFocusChange?: (focused: boolean) => void;
 }) {
+  const currentUserProfile: ProfileRow | null = userId
+    ? { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null }
+    : null;
   return (
     <div className="flex items-center gap-2 mt-2 min-w-0 max-w-full">
-      <div
-        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-        style={{ backgroundColor: userId ? FeedService.avatarColor(userId) : '#787771', fontWeight: 600 }}
-      >
-        {userId && userDisplayName
-          ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as Parameters<typeof FeedService.initials>[0])
-          : 'Yo'}
-      </div>
+      <AuthorAvatar
+        profile={currentUserProfile}
+        color={userId ? FeedService.avatarColor(userId) : '#787771'}
+        initials={userId && userDisplayName ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as ProfileRow) : 'Yo'}
+        sizeClass="w-8 h-8"
+      />
       <textarea
         value={replyInput}
         onChange={(e) => setReplyInput(e.target.value)}
@@ -502,6 +576,7 @@ function ReplyBlock({
   onSubmitReply,
   submitting = false,
   userDisplayName,
+  userAvatarUrl,
   depth = 0,
   parentReply,
   onReplyInputFocusChange,
@@ -543,10 +618,12 @@ function ReplyBlock({
       <div className={isTopLevel ? 'bg-white rounded-2xl p-4 shadow-sm' : 'bg-[#fefefc] rounded-2xl p-4'}>
         <div className="flex items-start gap-3">
           {onOpenUserProfile && !isOwnReply ? (
-            <div
-              role="button"
-              tabIndex={0}
-              data-profile-button
+            <AuthorAvatar
+              profile={reply.author}
+              color={color}
+              initials={initials}
+              sizeClass={`min-w-[44px] min-h-[44px] ${size}`}
+              asButton
               onClick={handleAvatarClick}
               onPointerDown={handleAvatarPointerDown}
               onKeyDown={(e) => {
@@ -555,16 +632,16 @@ function ReplyBlock({
                   onOpenUserProfile(reply.author_id);
                 }
               }}
-              className={`relative z-10 flex-shrink-0 min-w-[44px] min-h-[44px] ${size} rounded-full flex items-center justify-center text-white cursor-pointer active:scale-95 transition-transform`}
-              style={{ backgroundColor: color, fontWeight: 600 }}
               aria-label={`View ${name}'s profile`}
-            >
-              {initials}
-            </div>
+              className="relative z-10 cursor-pointer"
+            />
           ) : (
-            <div className={avatarClass} style={{ backgroundColor: color, fontWeight: 600 }}>
-              {initials}
-            </div>
+            <AuthorAvatar
+              profile={reply.author}
+              color={color}
+              initials={initials}
+              sizeClass={size}
+            />
           )}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
@@ -597,6 +674,7 @@ function ReplyBlock({
             onSubmitReply={onSubmitReply}
             submitting={submitting}
             userDisplayName={userDisplayName}
+            userAvatarUrl={userAvatarUrl}
             onReplyInputFocusChange={onReplyInputFocusChange}
           />
         );
@@ -627,6 +705,7 @@ function ReplyBlock({
               onSubmitReply={onSubmitReply}
               submitting={submitting}
               userDisplayName={userDisplayName}
+              userAvatarUrl={userAvatarUrl}
               depth={depth + 1}
               parentReply={reply}
               onReplyInputFocusChange={onReplyInputFocusChange}
@@ -646,6 +725,7 @@ export interface HomeFeedProps {
   userName?: string;
   userId?: string;
   publicName?: string;
+  userAvatarUrl?: string | null;
 }
 
 export function HomeFeed({
@@ -653,6 +733,7 @@ export function HomeFeed({
   userName = 'Justin',
   userId,
   publicName = 'You',
+  userAvatarUrl = null,
 }: HomeFeedProps) {
   const [posts, setPosts] = useState<FeedPostWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -717,11 +798,12 @@ export function HomeFeed({
         post={selectedPost}
         userId={userId}
         userDisplayName={publicName}
+        userAvatarUrl={userAvatarUrl}
         onBack={() => {
           setSelectedPost(null);
           loadPosts();
         }}
-        onOpenUserProfile={setViewingUserId}
+        onOpenUserProfile={(id) => id !== userId && setViewingUserId(id)}
       />
     );
   }
@@ -733,7 +815,7 @@ export function HomeFeed({
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <header className="flex-shrink-0 border-b border-[#e7ded1] bg-[#FBF9F5] px-5 py-4 flex items-center justify-between gap-4">
         <h1 className="text-2xl md:text-3xl flex-1 min-w-0 font-medium text-[#27251f]" >
-          {greeting}, {userName}
+          {greeting}, {publicName}
         </h1>
         {userId && (
           <button
@@ -784,8 +866,12 @@ export function HomeFeed({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         {post.author_id !== userId ? (
-                          <button
-                            type="button"
+                          <AuthorAvatar
+                            profile={post.author}
+                            color={authorColor}
+                            initials={authorInitials}
+                            sizeClass="min-w-[44px] min-h-[44px] w-9 h-9"
+                            asButton
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -796,20 +882,16 @@ export function HomeFeed({
                               e.stopPropagation();
                               setViewingUserId(post.author_id);
                             }}
-                            className="relative z-10 min-w-[44px] min-h-[44px] w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
-                            style={{ backgroundColor: authorColor, fontWeight: 600 }}
                             aria-label={`View ${authorName}'s profile`}
-                          >
-                            {authorInitials}
-                          </button>
+                            className="relative z-10 cursor-pointer"
+                          />
                         ) : (
-                          <div
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                            style={{ backgroundColor: authorColor, fontWeight: 600 }}
-                            aria-hidden
-                          >
-                            {authorInitials}
-                          </div>
+                          <AuthorAvatar
+                            profile={post.author}
+                            color={authorColor}
+                            initials={authorInitials}
+                            sizeClass="w-9 h-9"
+                          />
                         )}
                         <div
                           role="button"
