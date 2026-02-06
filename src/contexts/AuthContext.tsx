@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { openInAppBrowser, closeInAppBrowser } from '../lib/nativeBrowser';
 
 interface AuthContextType {
   user: User | null;
@@ -28,13 +29,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes (and close in-app browser after OAuth on native)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (event === 'SIGNED_IN' && session) {
+        closeInAppBrowser().catch(() => {});
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -95,14 +99,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    // Use VITE_APP_PUBLIC_URL for native so Supabase redirect URL is https (dashboard rejects capacitor://).
+    const baseUrl = import.meta.env.VITE_APP_PUBLIC_URL
+      ? String(import.meta.env.VITE_APP_PUBLIC_URL).replace(/\/$/, '')
+      : window.location.origin;
+    const isNativeRedirect = Boolean(import.meta.env.VITE_APP_PUBLIC_URL);
+    const redirectTo = `${baseUrl}/auth/callback${isNativeRedirect ? '?native=1' : ''}`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
+        skipBrowserRedirect: true,
       },
     });
-    
-    return { error };
+
+    if (error) return { error };
+    if (data?.url) {
+      await openInAppBrowser(data.url);
+    }
+    return { error: null };
   };
 
   const resetPassword = async (email: string) => {

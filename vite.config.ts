@@ -5,6 +5,7 @@
 
   export default defineConfig({
     root: __dirname,
+    base: './',
     publicDir: path.join(__dirname, 'public'),
     plugins: [tailwindcss(), react()],
     resolve: {

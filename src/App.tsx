@@ -17,6 +17,7 @@ import { LandingPage } from './components/LandingPage';
 import { HomeFeed } from './components/HomeFeed';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
+import { closeInAppBrowser } from './lib/nativeBrowser';
 
 type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
 
@@ -114,6 +115,35 @@ export default function App() {
       document.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('focusout', onFocusOut);
     };
+  }, []);
+
+  // When app is opened from in-app browser OAuth redirect: load callback URL and close the browser
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { App } = await import('@capacitor/app');
+        const handler = (data: { url: string }) => {
+          const url = data?.url;
+          if (url && url.includes('/auth/callback') && (url.includes('#') || url.includes('access_token'))) {
+            // Close the in-app browser after a brief delay so the app finishes opening
+            setTimeout(() => closeInAppBrowser().catch(() => {}), 300);
+            const origin = window.location.origin;
+            const hash = url.includes('#') ? url.slice(url.indexOf('#')) : '';
+            window.location.href = `${origin}/auth/callback${hash}`;
+          }
+        };
+        const listener = await App.addListener('appUrlOpen', handler);
+        unsubscribe = () => listener.remove();
+        const { url } = await App.getLaunchUrl().catch(() => ({ url: undefined }));
+        if (url && url.includes('/auth/callback')) handler({ url });
+      } catch {
+        // not native or App plugin unavailable
+      }
+    })();
+    return () => unsubscribe?.();
   }, []);
 
   // Update URL and sessionStorage when view changes

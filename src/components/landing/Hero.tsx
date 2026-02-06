@@ -34,11 +34,11 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
   const visibleText = HERO_TEXT.slice(0, visibleLength);
 
   return (
-    <section id="home" className="min-h-screen flex items-center justify-center pt-20">
-      <div className="max-w-4xl mx-auto px-6 py-36 text-center">
-        <div className="space-y-10">
+    <section id="home" className="h-full min-h-0 flex items-center justify-center overflow-hidden">
+      <div className="max-w-4xl mx-auto px-6 py-8 text-center max-h-full min-h-0 flex flex-col items-center justify-center">
+        <div className="space-y-8 md:space-y-10">
           {/* Animated heading */}
-          <h1 className="text-6xl md:text-7xl font-sans font-medium text-[#27251f] leading-[1.1] tracking-[-0.01em]">
+          <h1 className="text-5xl sm:text-6xl md:text-6xl lg:text-7xl font-sans font-medium text-[#27251f] leading-[1.1] tracking-[-0.01em] -mt-6">
             {visibleText.split('\n').map((line, i) => (
               <span key={i}>
                 {i > 0 && <br />}
@@ -50,20 +50,14 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
             )}
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-xl text-[#787771] max-w-2xl mx-auto leading-7 font-medium tracking-[-0.01em]">
-            Quad replaces Canvas, Reddit, Slack, WhatsApp, and your calendar with a unified student
-            operating system. Everything you need for academic and social success in one place.
-          </p>
-
           {/* CTA */}
-          <div className="flex justify-center pt-8">
+          <div className="flex justify-center pt-28">
             <button
               onClick={onSignIn}
               className="font-normal bg-[#27251f] text-[#f7f8f3] px-8 py-4 hover:bg-[#27251f]/90 transition-colors rounded-lg"
-              aria-label="Get started for free"
+              aria-label="Enter Quad"
             >
-              Get started for free
+              Enter Quad
             </button>
           </div>
 
