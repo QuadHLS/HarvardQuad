@@ -28,13 +28,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes (close in-app browser after OAuth on native)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (event === 'SIGNED_IN' && session) {
+        import('@capacitor/browser').then(({ Browser }) => Browser.close()).catch(() => {});
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -95,14 +98,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const baseUrl = import.meta.env.VITE_APP_PUBLIC_URL
+      ? String(import.meta.env.VITE_APP_PUBLIC_URL).replace(/\/$/, '')
+      : window.location.origin;
+    const isNativeRedirect = Boolean(import.meta.env.VITE_APP_PUBLIC_URL);
+    const redirectTo = `${baseUrl}/auth/callback${isNativeRedirect ? '?native=1' : ''}`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
+        skipBrowserRedirect: isNativeRedirect,
       },
     });
-    
-    return { error };
+    if (error) return { error };
+    if (isNativeRedirect && data?.url) {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: data.url, presentationStyle: 'popover' });
+        } else {
+          window.location.href = data.url;
+        }
+      } catch {
+        window.location.href = data.url;
+      }
+    }
+    return { error: null };
   };
 
   const resetPassword = async (email: string) => {

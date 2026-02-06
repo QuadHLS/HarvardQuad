@@ -4,11 +4,25 @@ import { supabase } from '../../lib/supabase';
 export const AuthCallback: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nativeReturnUrl, setNativeReturnUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      // Check for OAuth errors in URL parameters
       const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('native') === '1' && window.location.hash) {
+        const returnUrl = `harvardquad://auth/callback${window.location.hash}`;
+        try {
+          window.location.href = returnUrl;
+          window.close();
+        } catch {
+          // ignore
+        }
+        setTimeout(() => {
+          setNativeReturnUrl(returnUrl);
+          setLoading(false);
+        }, 1500);
+        return;
+      }
       const errorParam = urlParams.get('error');
       const errorDescription = urlParams.get('error_description');
       
@@ -89,6 +103,22 @@ export const AuthCallback: React.FC = () => {
     );
   }
 
+  if (nativeReturnUrl) {
+    return (
+      <div className="landing-bg fixed inset-0 flex flex-col items-center justify-center p-6">
+        <img src="/QUAD.svg" alt="Quad" className="w-20 h-20 mb-6" />
+        <p className="text-[#27251f] font-medium text-center mb-8">
+          You’re signed in. Tap below to return to the app.
+        </p>
+        <a
+          href={nativeReturnUrl}
+          className="inline-block bg-[#27251f] text-[#f7f8f3] font-medium px-8 py-4 rounded-lg no-underline hover:bg-[#27251f]/90"
+        >
+          Open Harvard Quad
+        </a>
+      </div>
+    );
+  }
 
   return null;
 };
