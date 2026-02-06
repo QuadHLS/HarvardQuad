@@ -9,35 +9,15 @@ export const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      // When opened in-app browser from native: try to open app automatically, no screen if possible
+      // Native app OAuth: show "Open Harvard Quad" button quickly.
+      // iOS SFSafariViewController blocks JS-initiated custom scheme redirects,
+      // so a real user tap on <a href="harvardquad://..."> is the only reliable way.
       if (urlParams.get('native') === '1' && window.location.hash) {
         const returnUrl = `harvardquad://auth/callback${window.location.hash}`;
-        const tryOpenApp = () => {
-          try {
-            window.location.href = returnUrl;
-            window.close();
-          } catch {
-            // ignore
-          }
-        };
-        tryOpenApp();
-        setTimeout(tryOpenApp, 100);
-        setTimeout(tryOpenApp, 400);
-        // Hidden iframe sometimes triggers scheme open in in-app browsers
-        try {
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = returnUrl;
-          document.body.appendChild(iframe);
-          setTimeout(() => document.body.removeChild(iframe), 500);
-        } catch {
-          // ignore
-        }
-        // Only show "Open Harvard Quad" button if still here after 2.5s (redirect was blocked)
         setTimeout(() => {
           setNativeReturnUrl(returnUrl);
           setLoading(false);
-        }, 2500);
+        }, 800);
         return;
       }
       const errorParam = urlParams.get('error');
@@ -120,20 +100,18 @@ export const AuthCallback: React.FC = () => {
     );
   }
 
-  // Fallback: redirect was blocked, show tappable control so tap opens app
+  // Native app: user taps this link to open the app via harvardquad:// scheme.
+  // IMPORTANT: Do NOT add onClick/preventDefault — iOS SFSafariViewController only
+  // allows custom scheme navigation from a real native <a> tap, not JS.
   if (nativeReturnUrl) {
     return (
       <div className="landing-bg fixed inset-0 flex flex-col items-center justify-center p-6">
         <img src="/QUAD.svg" alt="Quad" className="w-20 h-20 mb-6" />
         <p className="text-[#27251f] font-medium text-center mb-8">
-          You’re signed in. Tap below to return to the app.
+          You're signed in. Tap below to return to the app.
         </p>
         <a
           href={nativeReturnUrl}
-          onClick={(e) => {
-            e.preventDefault();
-            window.location.href = nativeReturnUrl;
-          }}
           className="inline-block bg-[#27251f] text-[#f7f8f3] font-medium px-8 py-4 rounded-lg no-underline hover:bg-[#27251f]/90 cursor-pointer"
         >
           Open Harvard Quad
