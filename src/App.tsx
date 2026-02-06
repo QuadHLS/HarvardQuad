@@ -17,7 +17,7 @@ import { LandingPage } from './components/LandingPage';
 import { HomeFeed } from './components/HomeFeed';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
-import { closeInAppBrowser } from './lib/nativeBrowser';
+// nativeBrowser is dynamically imported in the appUrlOpen handler below
 
 type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
 
@@ -117,33 +117,46 @@ export default function App() {
     };
   }, []);
 
-  // When app is opened from in-app browser OAuth redirect: load callback URL and close the browser
+  // Handle OAuth callback: when Supabase 302-redirects to harvardquad://auth/callback?code=xxx,
+  // iOS opens the app via the URL scheme. We catch it here, close the browser, and exchange the code.
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
+    let cleanup: (() => void) | undefined;
     (async () => {
       try {
         const { Capacitor } = await import('@capacitor/core');
         if (!Capacitor.isNativePlatform()) return;
         const { App } = await import('@capacitor/app');
-        const handler = (data: { url: string }) => {
+        const { closeInAppBrowser } = await import('./lib/nativeBrowser');
+        const listener = await App.addListener('appUrlOpen', async (data: { url: string }) => {
           const url = data?.url;
-          if (url && url.includes('/auth/callback') && (url.includes('#') || url.includes('access_token'))) {
-            // Close the in-app browser after a brief delay so the app finishes opening
-            setTimeout(() => closeInAppBrowser().catch(() => {}), 300);
-            const origin = window.location.origin;
-            const hash = url.includes('#') ? url.slice(url.indexOf('#')) : '';
-            window.location.href = `${origin}/auth/callback${hash}`;
+          if (!url || !url.includes('auth/callback')) return;
+          // Close the SFSafariViewController
+          setTimeout(() => closeInAppBrowser().catch(() => {}), 300);
+          // Extract the PKCE code or tokens
+          try {
+            const parsedUrl = new URL(url);
+            const code = parsedUrl.searchParams.get('code');
+            if (code) {
+              await supabase.auth.exchangeCodeForSession(code);
+            } else if (url.includes('#')) {
+              const hashPart = url.slice(url.indexOf('#') + 1);
+              const params = new URLSearchParams(hashPart);
+              const accessToken = params.get('access_token');
+              const refreshToken = params.get('refresh_token');
+              if (accessToken && refreshToken) {
+                await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+              }
+            }
+          } catch (e) {
+            console.error('Failed to process auth callback:', e);
           }
-        };
-        const listener = await App.addListener('appUrlOpen', handler);
-        unsubscribe = () => listener.remove();
-        const { url } = await App.getLaunchUrl().catch(() => ({ url: undefined }));
-        if (url && url.includes('/auth/callback')) handler({ url });
+        });
+        cleanup = () => listener.remove();
       } catch {
-        // not native or App plugin unavailable
+        // not native
       }
     })();
-    return () => unsubscribe?.();
+    return () => cleanup?.();
   }, []);
 
   // Update URL and sessionStorage when view changes

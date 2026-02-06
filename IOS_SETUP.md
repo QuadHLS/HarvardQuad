@@ -42,3 +42,18 @@
    - On the iPhone: **Settings → General → VPN & Device Management** → trust your developer certificate.
 
 After code changes, run `npm run sync:ios` again, then build/run in Xcode.
+
+## If you see a white screen after closing the in-app browser
+
+The WebView may be loading from local assets. You can make the app load from your live site so the main screen and OAuth callback stay in sync:
+
+1. In `capacitor.config.json` add (use your real domain):
+   ```json
+   "server": {
+     "url": "https://harvardquad.com",
+     "cleartext": false
+   }
+   ```
+2. Run `npx cap sync ios` and run again from Xcode.
+
+Remove the `server` block to go back to loading from built files.

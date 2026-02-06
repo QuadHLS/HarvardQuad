@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { openInAppBrowser, closeInAppBrowser } from '../lib/nativeBrowser';
+import { openInAppBrowser } from '../lib/nativeBrowser';
 
 interface AuthContextType {
   user: User | null;
@@ -29,16 +29,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     });
 
-    // Listen for auth changes (and close in-app browser after OAuth on native)
+    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (event === 'SIGNED_IN' && session) {
-        closeInAppBrowser().catch(() => {});
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -99,12 +96,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signInWithGoogle = async () => {
-    // Use VITE_APP_PUBLIC_URL for native so Supabase redirect URL is https (dashboard rejects capacitor://).
-    const baseUrl = import.meta.env.VITE_APP_PUBLIC_URL
-      ? String(import.meta.env.VITE_APP_PUBLIC_URL).replace(/\/$/, '')
-      : window.location.origin;
-    const isNativeRedirect = Boolean(import.meta.env.VITE_APP_PUBLIC_URL);
-    const redirectTo = `${baseUrl}/auth/callback${isNativeRedirect ? '?native=1' : ''}`;
+    // Check if native
+    let isNativePlatform = false;
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      isNativePlatform = Capacitor.isNativePlatform();
+    } catch {
+      // not native
+    }
+
+    // Native: redirect directly to harvardquad:// scheme.
+    // Supabase does HTTP 302 → harvardquad://auth/callback?code=xxx
+    // iOS intercepts this and fires appUrlOpen (handled in App.tsx).
+    // Web: redirect to the web callback page.
+    const redirectTo = isNativePlatform
+      ? 'harvardquad://auth/callback'
+      : `${window.location.origin}/auth/callback`;
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -115,7 +123,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (error) return { error };
     if (data?.url) {
-      await openInAppBrowser(data.url);
+      if (isNativePlatform) {
+        // Open in SFSafariViewController — it will be closed from App.tsx appUrlOpen handler
+        await openInAppBrowser(data.url);
+      } else {
+        window.location.href = data.url;
+      }
     }
     return { error: null };
   };
