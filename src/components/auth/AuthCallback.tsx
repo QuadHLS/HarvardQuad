@@ -9,12 +9,22 @@ export const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      // Native app OAuth callback: redirect to custom scheme so the app can capture the tokens.
-      // ASWebAuthenticationSession intercepts JS-initiated scheme redirects automatically.
-      // If opened in SFSafariViewController or regular browser, the button is a fallback.
-      if (urlParams.get('native') === '1' && window.location.hash) {
-        const returnUrl = `harvardquad://auth/callback${window.location.hash}`;
-        // Immediately try the custom scheme redirect (captured by ASWebAuthenticationSession)
+      // Native app OAuth callback: redirect to custom scheme so the app can capture the tokens/code.
+      // Supabase v2 uses PKCE by default → code is in ?code= query param (not #access_token hash).
+      // ASWebAuthenticationSession intercepts the harvardquad:// redirect automatically.
+      const isNative = urlParams.get('native') === '1';
+      const authCode = urlParams.get('code');
+      const hasHash = Boolean(window.location.hash);
+      if (isNative && (authCode || hasHash)) {
+        let returnUrl: string;
+        if (authCode) {
+          // PKCE flow: pass the code as a query parameter
+          returnUrl = `harvardquad://auth/callback?code=${encodeURIComponent(authCode)}`;
+        } else {
+          // Implicit flow: pass the hash fragment
+          returnUrl = `harvardquad://auth/callback${window.location.hash}`;
+        }
+        // Immediately redirect — ASWebAuthenticationSession captures this
         window.location.href = returnUrl;
         // If still here after 1s (e.g. opened in regular browser), show manual button
         setTimeout(() => {
