@@ -21,23 +21,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes (close in-app browser after OAuth on native)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (event === 'SIGNED_IN' && session) {
-        import('@capacitor/browser').then(({ Browser }) => Browser.close()).catch(() => {});
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -98,33 +93,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signInWithGoogle = async () => {
-    const baseUrl = import.meta.env.VITE_APP_PUBLIC_URL
-      ? String(import.meta.env.VITE_APP_PUBLIC_URL).replace(/\/$/, '')
-      : window.location.origin;
-    const isNativeRedirect = Boolean(import.meta.env.VITE_APP_PUBLIC_URL);
-    const redirectTo = `${baseUrl}/auth/callback${isNativeRedirect ? '?native=1' : ''}`;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
-        skipBrowserRedirect: isNativeRedirect,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-    if (error) return { error };
-    if (isNativeRedirect && data?.url) {
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (Capacitor.isNativePlatform()) {
-          const { Browser } = await import('@capacitor/browser');
-          await Browser.open({ url: data.url, presentationStyle: 'popover' });
-        } else {
-          window.location.href = data.url;
-        }
-      } catch {
-        window.location.href = data.url;
-      }
-    }
-    return { error: null };
+    return { error: error ?? null };
   };
 
   const resetPassword = async (email: string) => {

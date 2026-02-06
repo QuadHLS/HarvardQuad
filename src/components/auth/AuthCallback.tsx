@@ -4,42 +4,16 @@ import { supabase } from '../../lib/supabase';
 export const AuthCallback: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nativeReturnUrl, setNativeReturnUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      // Native app OAuth callback: redirect to custom scheme so the app can capture the tokens/code.
-      // Supabase v2 uses PKCE by default → code is in ?code= query param (not #access_token hash).
-      // ASWebAuthenticationSession intercepts the harvardquad:// redirect automatically.
-      const isNative = urlParams.get('native') === '1';
-      const authCode = urlParams.get('code');
-      const hasHash = Boolean(window.location.hash);
-      if (isNative && (authCode || hasHash)) {
-        let returnUrl: string;
-        if (authCode) {
-          // PKCE flow: pass the code as a query parameter
-          returnUrl = `harvardquad://auth/callback?code=${encodeURIComponent(authCode)}`;
-        } else {
-          // Implicit flow: pass the hash fragment
-          returnUrl = `harvardquad://auth/callback${window.location.hash}`;
-        }
-        // Immediately redirect — ASWebAuthenticationSession captures this
-        window.location.href = returnUrl;
-        // If still here after 1s (e.g. opened in regular browser), show manual button
-        setTimeout(() => {
-          setNativeReturnUrl(returnUrl);
-          setLoading(false);
-        }, 1000);
-        return;
-      }
       const errorParam = urlParams.get('error');
       const errorDescription = urlParams.get('error_description');
       
       if (errorParam) {
         let errorMessage = 'OAuth authentication failed.';
         
-        // Provide specific error messages based on OAuth error codes
         switch (errorParam) {
           case 'access_denied':
             errorMessage = 'Google login was cancelled or denied. Please try again.';
@@ -54,7 +28,6 @@ export const AuthCallback: React.FC = () => {
             errorMessage = errorDescription || 'Google login failed. Please try again.';
         }
         
-        // Redirect to login page with error message
         const encodedError = encodeURIComponent(errorMessage);
         window.history.pushState({}, '', `/auth?error=${encodedError}`);
         window.dispatchEvent(new PopStateEvent('popstate'));
@@ -70,20 +43,16 @@ export const AuthCallback: React.FC = () => {
         }
 
         if (data.session) {
-          // Check if user is a club account
           const userMetadata = data.session.user?.app_metadata;
           const isClubAccount = userMetadata?.user_type === 'club_account';
           
-          // Redirect club accounts to their dedicated page
           if (isClubAccount) {
             window.history.pushState({}, '', '/club-account');
           } else {
-            // Regular users go to main app
-          window.history.pushState({}, '', '/');
+            window.history.pushState({}, '', '/');
           }
           window.dispatchEvent(new PopStateEvent('popstate'));
         } else {
-          // No session, redirect to login
           window.history.pushState({}, '', '/');
           window.dispatchEvent(new PopStateEvent('popstate'));
         }
@@ -109,26 +78,6 @@ export const AuthCallback: React.FC = () => {
           />
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#27251f] mx-auto mt-4"></div>
         </div>
-      </div>
-    );
-  }
-
-  // Native app: user taps this link to open the app via harvardquad:// scheme.
-  // IMPORTANT: Do NOT add onClick/preventDefault — iOS SFSafariViewController only
-  // allows custom scheme navigation from a real native <a> tap, not JS.
-  if (nativeReturnUrl) {
-    return (
-      <div className="landing-bg fixed inset-0 flex flex-col items-center justify-center p-6">
-        <img src="/QUAD.svg" alt="Quad" className="w-20 h-20 mb-6" />
-        <p className="text-[#27251f] font-medium text-center mb-8">
-          You're signed in. Tap below to return to the app.
-        </p>
-        <a
-          href={nativeReturnUrl}
-          className="inline-block bg-[#27251f] text-[#f7f8f3] font-medium px-8 py-4 rounded-lg no-underline hover:bg-[#27251f]/90 cursor-pointer"
-        >
-          Open Harvard Quad
-        </a>
       </div>
     );
   }
