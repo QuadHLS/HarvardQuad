@@ -9,15 +9,18 @@ export const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      // Native app OAuth: show "Open Harvard Quad" button quickly.
-      // iOS SFSafariViewController blocks JS-initiated custom scheme redirects,
-      // so a real user tap on <a href="harvardquad://..."> is the only reliable way.
+      // Native app OAuth callback: redirect to custom scheme so the app can capture the tokens.
+      // ASWebAuthenticationSession intercepts JS-initiated scheme redirects automatically.
+      // If opened in SFSafariViewController or regular browser, the button is a fallback.
       if (urlParams.get('native') === '1' && window.location.hash) {
         const returnUrl = `harvardquad://auth/callback${window.location.hash}`;
+        // Immediately try the custom scheme redirect (captured by ASWebAuthenticationSession)
+        window.location.href = returnUrl;
+        // If still here after 1s (e.g. opened in regular browser), show manual button
         setTimeout(() => {
           setNativeReturnUrl(returnUrl);
           setLoading(false);
-        }, 800);
+        }, 1000);
         return;
       }
       const errorParam = urlParams.get('error');
