@@ -9,18 +9,35 @@ export const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
+      // When opened in-app browser from native: try to open app automatically, no screen if possible
       if (urlParams.get('native') === '1' && window.location.hash) {
         const returnUrl = `harvardquad://auth/callback${window.location.hash}`;
+        const tryOpenApp = () => {
+          try {
+            window.location.href = returnUrl;
+            window.close();
+          } catch {
+            // ignore
+          }
+        };
+        tryOpenApp();
+        setTimeout(tryOpenApp, 100);
+        setTimeout(tryOpenApp, 400);
+        // Hidden iframe sometimes triggers scheme open in in-app browsers
         try {
-          window.location.href = returnUrl;
-          window.close();
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = returnUrl;
+          document.body.appendChild(iframe);
+          setTimeout(() => document.body.removeChild(iframe), 500);
         } catch {
           // ignore
         }
+        // Only show "Open Harvard Quad" button if still here after 2.5s (redirect was blocked)
         setTimeout(() => {
           setNativeReturnUrl(returnUrl);
           setLoading(false);
-        }, 1500);
+        }, 2500);
         return;
       }
       const errorParam = urlParams.get('error');
@@ -103,6 +120,7 @@ export const AuthCallback: React.FC = () => {
     );
   }
 
+  // Fallback: redirect was blocked, show tappable control so tap opens app
   if (nativeReturnUrl) {
     return (
       <div className="landing-bg fixed inset-0 flex flex-col items-center justify-center p-6">
@@ -112,7 +130,11 @@ export const AuthCallback: React.FC = () => {
         </p>
         <a
           href={nativeReturnUrl}
-          className="inline-block bg-[#27251f] text-[#f7f8f3] font-medium px-8 py-4 rounded-lg no-underline hover:bg-[#27251f]/90"
+          onClick={(e) => {
+            e.preventDefault();
+            window.location.href = nativeReturnUrl;
+          }}
+          className="inline-block bg-[#27251f] text-[#f7f8f3] font-medium px-8 py-4 rounded-lg no-underline hover:bg-[#27251f]/90 cursor-pointer"
         >
           Open Harvard Quad
         </a>
