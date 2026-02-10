@@ -3,7 +3,7 @@
  * Same UI, format, and dependencies as the create-squad flow in SquadsPage.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Users,
@@ -15,6 +15,7 @@ import {
   BookOpen,
   Gamepad2,
   Check,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   Dialog,
@@ -48,6 +49,8 @@ export interface CreateSquadPayload {
   type: 'public' | 'private';
   category: string;
   members: string[];
+  /** Optional squad avatar image (uploaded after squad is created). */
+  avatarFile?: File | null;
 }
 
 // --- Sample data (same as SquadsPage) ---
@@ -77,11 +80,14 @@ export function SquadMakingModal({
   const [newSquadDescription, setNewSquadDescription] = useState('');
   const [newSquadType, setNewSquadType] = useState<'public' | 'private'>('public');
   const [newSquadCategory, setNewSquadCategory] = useState('');
+  const [newSquadAvatarFile, setNewSquadAvatarFile] = useState<File | null>(null);
+  const [newSquadAvatarPreview, setNewSquadAvatarPreview] = useState<string | null>(null);
   const [inviteSearch, setInviteSearch] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [selectedPeopleDetails, setSelectedPeopleDetails] = useState<InviteSearchResult[]>([]);
   const [inviteSearchResults, setInviteSearchResults] = useState<InviteSearchResult[]>([]);
   const [inviteSearchLoading, setInviteSearchLoading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -103,6 +109,16 @@ export function SquadMakingModal({
     return () => clearTimeout(timer);
   }, [inviteSearch, user?.id]);
 
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    setNewSquadAvatarPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file && file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    });
+    setNewSquadAvatarFile(file && file.type.startsWith('image/') ? file : null);
+  };
+
   const handleCreateSquad = () => {
     const payload: CreateSquadPayload = {
       name: newSquadName,
@@ -110,6 +126,7 @@ export function SquadMakingModal({
       type: newSquadType,
       category: newSquadCategory,
       members: selectedMembers,
+      avatarFile: newSquadAvatarFile || undefined,
     };
     onCreate?.(payload);
     onOpenChange(false);
@@ -117,6 +134,11 @@ export function SquadMakingModal({
     setNewSquadDescription('');
     setNewSquadType('public');
     setNewSquadCategory('');
+    setNewSquadAvatarPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setNewSquadAvatarFile(null);
     setSelectedMembers([]);
     setSelectedPeopleDetails([]);
     setInviteSearch('');
@@ -176,6 +198,40 @@ export function SquadMakingModal({
               style={{ color: '#27251f' }}
               placeholder="e.g., Run Club, Coffee Lovers"
             />
+          </div>
+
+          {/* Squad Photo */}
+          <div className="space-y-2">
+            <label
+              className="text-sm block"
+              style={{ fontWeight: 600, color: '#27251f' }}
+            >
+              Squad Photo
+            </label>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarFileSelect}
+              className="hidden"
+              aria-hidden
+            />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#e7ded1] bg-[#f5f3eb] hover:border-[#d9d2c5] transition-colors shrink-0"
+              >
+                {newSquadAvatarPreview ? (
+                  <img src={newSquadAvatarPreview} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="w-7 h-7 text-[#787771]" />
+                )}
+              </button>
+              <p className="text-sm" style={{ color: '#787771' }}>
+                {newSquadAvatarFile ? 'Photo selected. Click the circle to change.' : 'Add a photo for your squad (optional).'}
+              </p>
+            </div>
           </div>
 
           {/* Description */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Mail, Phone, MapPin, Calendar, Book, Edit2, ChevronRight, LogOut, Save, X, Trash2, Dices } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { navigateWithoutReload } from '../lib/navigation';
 import { supabase } from '../lib/supabase';
 import { isValidSocialUrl, normalizeSocialUrl } from '../lib/urlUtils';
 
@@ -730,7 +731,7 @@ export function ProfilePage() {
                   alert('Failed to sign out. Please try again.');
                   return;
                 }
-                window.location.href = window.location.origin + window.location.pathname;
+                navigateWithoutReload('/');
               }}
               className="w-full py-3.5 rounded-2xl text-[15px] font-medium text-[#c94a3a] active:bg-[#c94a3a]/10 transition-colors min-h-[44px]"
               style={{ 
@@ -1112,7 +1113,7 @@ export function ProfilePage() {
                     alert('Failed to sign out. Please try again.');
                     return;
                   }
-                  window.location.href = window.location.origin + window.location.pathname;
+                  navigateWithoutReload('/');
                 }}
                 className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border-[#f5f3eb] hover:bg-[#fef3ef] transition-colors"
                 aria-label="Sign out of your account"

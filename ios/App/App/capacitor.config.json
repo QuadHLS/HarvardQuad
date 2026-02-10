@@ -1,0 +1,9 @@
+{
+	"appId": "com.harvardquad.dev",
+	"appName": "Harvard Quad",
+	"webDir": "dist",
+	"packageClassList": [
+		"AppPlugin",
+		"CAPBrowserPlugin"
+	]
+}

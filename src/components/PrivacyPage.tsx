@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { navigateWithoutReload } from '../lib/navigation';
 import { LegalContent } from './LegalContent';
 
 const PRIVACY_TEXT = `Last Updated: February 3, 2026
@@ -54,7 +55,7 @@ export function PrivacyPage() {
               if (window.history.length > 1) {
                 window.history.back();
               } else {
-                window.location.href = '/';
+                navigateWithoutReload('/');
               }
             }}
             className="flex items-center gap-2 text-[#787771] hover:text-[#27251f] transition-colors appearance-none bg-transparent border-0 p-0 cursor-pointer"

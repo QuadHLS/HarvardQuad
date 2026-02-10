@@ -16,6 +16,7 @@ import { useIsMobile } from './components/ui/use-mobile';
 import { LandingPage } from './components/LandingPage';
 import { HomeFeed } from './components/HomeFeed';
 import { useAuth } from './contexts/AuthContext';
+import { navigateWithoutReload } from './lib/navigation';
 import { supabase } from './lib/supabase';
 
 type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
@@ -29,35 +30,74 @@ interface ProfileData {
   phone: string | null;
   location: string | null;
   avatar_url: string | null;
+  onboarding_completed?: boolean | null;
 }
 
 export default function App() {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
   
+  // Subpage state keys for sessionStorage (remember which subpage per view)
+  const SUBPAGE_KEYS = {
+    conversation: 'subpageConversation',
+    post: 'subpagePost',
+    classesTab: 'subpageClassesTab',
+    squadPost: 'subpageSquadPost',
+    calendarMonth: 'subpageCalendarMonth',
+    calendarDate: 'subpageCalendarDate',
+  } as const;
+
   // Parse URL to get initial state (memoized to only calculate once)
   const initialState = useMemo(() => {
     if (typeof window === 'undefined') {
-      return { view: 'dashboard' as ViewState, course: '', squad: '', previous: 'dashboard' as ViewState };
+      return {
+        view: 'dashboard' as ViewState,
+        course: '',
+        squad: '',
+        previous: 'dashboard' as ViewState,
+        conversation: '',
+        post: '',
+        classesTab: 'overview',
+        squadPost: '',
+        calendarMonth: '',
+        calendarDate: '',
+      };
     }
-    
     const params = new URLSearchParams(window.location.search);
     const view = params.get('view') || sessionStorage.getItem('currentView') || 'dashboard';
     const course = params.get('course') || sessionStorage.getItem('selectedCourse') || '';
     const squad = params.get('squad') || sessionStorage.getItem('selectedSquad') || '';
     const previous = params.get('previous') || sessionStorage.getItem('previousView') || 'dashboard';
-    
+    const conversation = params.get('conversation') || sessionStorage.getItem(SUBPAGE_KEYS.conversation) || sessionStorage.getItem('selectedConversationId') || '';
+    const post = params.get('post') || sessionStorage.getItem(SUBPAGE_KEYS.post) || '';
+    const classesTab = params.get('classesTab') || sessionStorage.getItem(SUBPAGE_KEYS.classesTab) || 'overview';
+    const squadPost = params.get('squadPost') || sessionStorage.getItem(SUBPAGE_KEYS.squadPost) || '';
+    const calendarMonth = params.get('calendarMonth') || sessionStorage.getItem(SUBPAGE_KEYS.calendarMonth) || '';
+    const calendarDate = params.get('calendarDate') || sessionStorage.getItem(SUBPAGE_KEYS.calendarDate) || '';
     const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
+    const validClassesTabs = ['overview', 'schedule', 'assignments'];
     return {
       view: (validViews.includes(view as ViewState) ? view : 'dashboard') as ViewState,
       course,
       squad,
       previous: (validViews.includes(previous as ViewState) ? previous : 'dashboard') as ViewState,
+      conversation,
+      post,
+      classesTab: validClassesTabs.includes(classesTab) ? classesTab : 'overview',
+      squadPost,
+      calendarMonth,
+      calendarDate,
     };
   }, []); // Only calculate once on mount
   const [currentView, setCurrentView] = useState<ViewState>(initialState.view);
   const [selectedCourse, setSelectedCourse] = useState<string>(initialState.course);
   const [selectedSquad, setSelectedSquad] = useState<string>(initialState.squad);
+  const [subpageConversation, setSubpageConversation] = useState<string>(initialState.conversation);
+  const [subpagePost, setSubpagePost] = useState<string>(initialState.post);
+  const [subpageClassesTab, setSubpageClassesTab] = useState<string>(initialState.classesTab);
+  const [subpageSquadPost, setSubpageSquadPost] = useState<string>(initialState.squadPost);
+  const [subpageCalendarMonth, setSubpageCalendarMonth] = useState<string>(initialState.calendarMonth);
+  const [subpageCalendarDate, setSubpageCalendarDate] = useState<string>(initialState.calendarDate);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [previousView, setPreviousView] = useState<ViewState>(initialState.previous);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -116,31 +156,70 @@ export default function App() {
     };
   }, []);
 
-  // Update URL and sessionStorage when view changes
-  const updateURL = useCallback((view: ViewState, course?: string, squad?: string, previous?: ViewState) => {
+  // Update URL and sessionStorage when view/subpage changes
+  const updateURL = useCallback((
+    view: ViewState,
+    course?: string,
+    squad?: string,
+    previous?: ViewState,
+    subpage?: { conversation?: string; post?: string; classesTab?: string; squadPost?: string; calendarMonth?: string; calendarDate?: string }
+  ) => {
     if (typeof window === 'undefined') return;
-    
     const params = new URLSearchParams();
     params.set('view', view);
     if (course) params.set('course', course);
     if (squad) params.set('squad', squad);
     if (previous) params.set('previous', previous);
-    
+    if (subpage?.conversation) params.set('conversation', subpage.conversation);
+    if (subpage?.post) params.set('post', subpage.post);
+    if (subpage?.classesTab) params.set('classesTab', subpage.classesTab);
+    if (subpage?.squadPost) params.set('squadPost', subpage.squadPost);
+    if (subpage?.calendarMonth) params.set('calendarMonth', subpage.calendarMonth);
+    if (subpage?.calendarDate) params.set('calendarDate', subpage.calendarDate);
+    const state = {
+      view, course: course ?? '', squad: squad ?? '', previous: previous ?? 'dashboard' as ViewState,
+      conversation: subpage?.conversation ?? '', post: subpage?.post ?? '', classesTab: subpage?.classesTab ?? '',
+      squadPost: subpage?.squadPost ?? '', calendarMonth: subpage?.calendarMonth ?? '', calendarDate: subpage?.calendarDate ?? '',
+    };
     const newURL = `${window.location.pathname}?${params.toString()}`;
-    window.history.pushState({ view, course, squad, previous }, '', newURL);
-    
-    // Also save to sessionStorage
+    window.history.pushState(state, '', newURL);
     sessionStorage.setItem('currentView', view);
     if (previous) sessionStorage.setItem('previousView', previous);
-    if (course) {
-      sessionStorage.setItem('selectedCourse', course);
-    } else {
-      sessionStorage.removeItem('selectedCourse');
-    }
-    if (squad) {
-      sessionStorage.setItem('selectedSquad', squad);
-    } else {
-      sessionStorage.removeItem('selectedSquad');
+    if (course) sessionStorage.setItem('selectedCourse', course);
+    else sessionStorage.removeItem('selectedCourse');
+    if (squad) sessionStorage.setItem('selectedSquad', squad);
+    else sessionStorage.removeItem('selectedSquad');
+    // Only update sessionStorage for keys present in subpage (don't clear other views' data)
+    if (subpage) {
+      if ('conversation' in subpage) {
+        if (subpage.conversation) {
+          sessionStorage.setItem(SUBPAGE_KEYS.conversation, subpage.conversation);
+          sessionStorage.setItem('selectedConversationId', subpage.conversation);
+        } else {
+          sessionStorage.removeItem(SUBPAGE_KEYS.conversation);
+          sessionStorage.removeItem('selectedConversationId');
+        }
+      }
+      if ('post' in subpage) {
+        if (subpage.post) sessionStorage.setItem(SUBPAGE_KEYS.post, subpage.post);
+        else sessionStorage.removeItem(SUBPAGE_KEYS.post);
+      }
+      if ('classesTab' in subpage) {
+        if (subpage.classesTab) sessionStorage.setItem(SUBPAGE_KEYS.classesTab, subpage.classesTab);
+        else sessionStorage.removeItem(SUBPAGE_KEYS.classesTab);
+      }
+      if ('squadPost' in subpage) {
+        if (subpage.squadPost) sessionStorage.setItem(SUBPAGE_KEYS.squadPost, subpage.squadPost);
+        else sessionStorage.removeItem(SUBPAGE_KEYS.squadPost);
+      }
+      if ('calendarMonth' in subpage) {
+        if (subpage.calendarMonth) sessionStorage.setItem(SUBPAGE_KEYS.calendarMonth, subpage.calendarMonth);
+        else sessionStorage.removeItem(SUBPAGE_KEYS.calendarMonth);
+      }
+      if ('calendarDate' in subpage) {
+        if (subpage.calendarDate) sessionStorage.setItem(SUBPAGE_KEYS.calendarDate, subpage.calendarDate);
+        else sessionStorage.removeItem(SUBPAGE_KEYS.calendarDate);
+      }
     }
   }, []);
 
@@ -153,32 +232,31 @@ export default function App() {
     if (typeof window === 'undefined') return;
 
     const handlePopState = (event: PopStateEvent) => {
-      if (event.state) {
-        const { view, course, squad, previous } = event.state;
-        if (view) {
-          setCurrentView(view);
-          setSelectedCourse(course || '');
-          setSelectedSquad(squad || '');
-          if (previous) setPreviousView(previous);
-        }
-      } else {
-        // Fallback to URL params if state is not available
-        const params = new URLSearchParams(window.location.search);
-        const view = params.get('view');
-        const course = params.get('course');
-        const squad = params.get('squad');
-        const previous = params.get('previous');
-        
-        if (view) {
-          const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
-          if (validViews.includes(view as ViewState)) {
-            setCurrentView(view as ViewState);
-            setSelectedCourse(course || '');
-            setSelectedSquad(squad || '');
-            if (previous && validViews.includes(previous as ViewState)) {
-              setPreviousView(previous as ViewState);
-            }
-          }
+      const state = event.state;
+      const params = new URLSearchParams(window.location.search);
+      const view = state?.view ?? params.get('view');
+      const course = state?.course ?? params.get('course') ?? '';
+      const squad = state?.squad ?? params.get('squad') ?? '';
+      const previous = state?.previous ?? params.get('previous');
+      const conversation = state?.conversation ?? params.get('conversation') ?? '';
+      const post = state?.post ?? params.get('post') ?? '';
+      const classesTab = state?.classesTab ?? params.get('classesTab') ?? '';
+      const squadPost = state?.squadPost ?? params.get('squadPost') ?? '';
+      const calendarMonth = state?.calendarMonth ?? params.get('calendarMonth') ?? '';
+      const calendarDate = state?.calendarDate ?? params.get('calendarDate') ?? '';
+      if (view) {
+        const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
+        if (validViews.includes(view as ViewState)) {
+          setCurrentView(view as ViewState);
+          setSelectedCourse(course);
+          setSelectedSquad(squad);
+          setSubpageConversation(conversation);
+          setSubpagePost(post);
+          setSubpageClassesTab(classesTab === 'schedule' || classesTab === 'assignments' ? classesTab : 'overview');
+          setSubpageSquadPost(squadPost);
+          setSubpageCalendarMonth(calendarMonth);
+          setSubpageCalendarDate(calendarDate);
+          if (previous && validViews.includes(previous as ViewState)) setPreviousView(previous as ViewState);
         }
       }
     };
@@ -207,17 +285,29 @@ export default function App() {
     
     // Only replace URL if it doesn't match current state
     if (urlView !== currentViewValue) {
-      const state = { 
-        view: currentViewValue, 
-        course: currentCourseValue, 
-        squad: currentSquadValue, 
-        previous: currentPreviousValue 
+      const state = {
+        view: currentViewValue,
+        course: currentCourseValue,
+        squad: currentSquadValue,
+        previous: currentPreviousValue,
+        conversation: initialState.conversation,
+        post: initialState.post,
+        classesTab: initialState.classesTab,
+        squadPost: initialState.squadPost,
+        calendarMonth: initialState.calendarMonth,
+        calendarDate: initialState.calendarDate,
       };
       const newParams = new URLSearchParams();
       newParams.set('view', currentViewValue);
       if (currentCourseValue) newParams.set('course', currentCourseValue);
       if (currentSquadValue) newParams.set('squad', currentSquadValue);
       if (currentPreviousValue) newParams.set('previous', currentPreviousValue);
+      if (initialState.conversation) newParams.set('conversation', initialState.conversation);
+      if (initialState.post) newParams.set('post', initialState.post);
+      if (initialState.classesTab) newParams.set('classesTab', initialState.classesTab);
+      if (initialState.squadPost) newParams.set('squadPost', initialState.squadPost);
+      if (initialState.calendarMonth) newParams.set('calendarMonth', initialState.calendarMonth);
+      if (initialState.calendarDate) newParams.set('calendarDate', initialState.calendarDate);
       window.history.replaceState(state, '', `${window.location.pathname}?${newParams.toString()}`);
     }
     
@@ -225,16 +315,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // Only run when user changes
 
-  // Update URL when state changes (but not on initial mount)
+  // Update URL when state changes (but not on initial mount). Only pass current view's subpage so we don't clear other views' persisted data.
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
     if (user && hasInitializedURL.current) {
-      updateURL(currentView, selectedCourse || undefined, selectedSquad || undefined, previousView);
+      const subpage =
+        currentView === 'messaging' ? { conversation: subpageConversation || undefined } :
+        currentView === 'dashboard' ? { post: subpagePost || undefined } :
+        currentView === 'classes' ? { classesTab: subpageClassesTab } :
+        currentView === 'squad-detail' ? { squadPost: subpageSquadPost || undefined } :
+        currentView === 'calendar' ? { calendarMonth: subpageCalendarMonth || undefined, calendarDate: subpageCalendarDate || undefined } :
+        undefined;
+      updateURL(currentView, selectedCourse || undefined, selectedSquad || undefined, previousView, subpage);
     }
-  }, [currentView, selectedCourse, selectedSquad, previousView, user, updateURL]);
+  }, [currentView, selectedCourse, selectedSquad, previousView, subpageConversation, subpagePost, subpageClassesTab, subpageSquadPost, subpageCalendarMonth, subpageCalendarDate, user, updateURL]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -262,11 +359,12 @@ export default function App() {
         setProfileLoading(false);
         return;
       }
+      setProfileLoading(true);
 
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, public_name, email, class_year, graduation_year, phone, location, avatar_url')
+          .select('full_name, public_name, email, class_year, graduation_year, phone, location, avatar_url, onboarding_completed')
           .eq('id', user.id)
           .single();
 
@@ -284,6 +382,9 @@ export default function App() {
           });
         } else {
           setProfile(data);
+          if (data?.onboarding_completed) {
+            setOnboardingComplete(true);
+          }
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -303,17 +404,34 @@ export default function App() {
     };
 
     fetchProfile();
+  }, [user]);
 
-    // Listen for profile update events
+  // Sync onboardingComplete from profile when profile loads (so returning users skip onboarding)
+  useEffect(() => {
+    if (profile?.onboarding_completed) {
+      setOnboardingComplete(true);
+    }
+  }, [profile?.onboarding_completed]);
+
+  useEffect(() => {
+    if (!user) return;
+
     const handleProfileUpdate = () => {
-      fetchProfile();
+      supabase
+        .from('profiles')
+        .select('full_name, public_name, email, class_year, graduation_year, phone, location, avatar_url, onboarding_completed')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setProfile(data);
+            if (data.onboarding_completed) setOnboardingComplete(true);
+          }
+        });
     };
 
     window.addEventListener('profileUpdated', handleProfileUpdate);
-
-    return () => {
-      window.removeEventListener('profileUpdated', handleProfileUpdate);
-    };
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
   }, [user]);
 
   // Listen for message input focus events to hide/show bottom navigation
@@ -492,9 +610,15 @@ export default function App() {
   };
 
   const handleSquadsClick = () => {
-    setCurrentView('squads');
     setIsSidebarExpanded(false);
-    updateURL('squads', undefined, undefined, previousView);
+    // If we were viewing a squad, return to that squad detail (remember subpage)
+    if (selectedSquad) {
+      setCurrentView('squad-detail');
+      updateURL('squad-detail', undefined, selectedSquad, previousView);
+    } else {
+      setCurrentView('squads');
+      updateURL('squads', undefined, undefined, previousView);
+    }
   };
 
   const handleSquadDetailClick = (squadId: string) => {
@@ -509,6 +633,8 @@ export default function App() {
   const handleBackFromSquadDetail = () => {
     setCurrentView(previousView);
     setSelectedSquad('');
+    setSubpageSquadPost('');
+    sessionStorage.removeItem(SUBPAGE_KEYS.squadPost);
     updateURL(previousView, undefined, undefined, previousView);
   };
 
@@ -724,11 +850,11 @@ export default function App() {
 
   // Handle /login route - show auth screen
   if (window.location.pathname === '/login') {
-    return <AuthScreensStandalone onBack={() => window.location.href = '/'} />;
+    return <AuthScreensStandalone onBack={() => navigateWithoutReload('/')} />;
   }
 
-  // Show loading state
-  if (loading) {
+  // Single loading state: checking auth session or loading profile (for onboarding check)
+  if (loading || (user && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FBF9F5]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
@@ -751,7 +877,7 @@ export default function App() {
     />;
   }
 
-  // After login: show onboarding every time until they complete it (for now, not persisted)
+  // After login: show onboarding only if profile says not completed (never show if already completed)
   if (user && !onboardingComplete) {
     return (
       <OnboardingFlowStandalone
@@ -926,7 +1052,29 @@ export default function App() {
           )}
           {currentView === 'messaging' && (
             <div className="bg-[#fbf8f7] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
-              <MessagingPage onCourseClick={handleCourseClick} />
+              <MessagingPage
+                initialConversationId={subpageConversation || undefined}
+                onConversationChange={(id) => {
+                  setSubpageConversation(id ?? '');
+                  if (id) {
+                    sessionStorage.setItem('selectedConversationId', id);
+                    sessionStorage.setItem(SUBPAGE_KEYS.conversation, id);
+                  } else {
+                    sessionStorage.removeItem('selectedConversationId');
+                    sessionStorage.removeItem(SUBPAGE_KEYS.conversation);
+                  }
+                }}
+                onCourseClick={handleCourseClick}
+                onBackToSquad={() => {
+                  if (typeof window !== 'undefined' && sessionStorage.getItem('messagingReturnTo') === 'squad-detail') {
+                    sessionStorage.removeItem('messagingReturnTo');
+                    setCurrentView('squad-detail');
+                    updateURL('squad-detail', undefined, selectedSquad, 'messaging');
+                    return true;
+                  }
+                  return false;
+                }}
+              />
             </div>
           )}
           {currentView === 'profile' && (
@@ -936,7 +1084,13 @@ export default function App() {
           )}
           {currentView === 'classes' && (
             <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
-              <ClassesPage />
+              <ClassesPage
+                initialTab={subpageClassesTab as 'overview' | 'schedule' | 'assignments'}
+                onTabChange={(tab) => {
+                  setSubpageClassesTab(tab);
+                  sessionStorage.setItem(SUBPAGE_KEYS.classesTab, tab);
+                }}
+              />
             </div>
           )}
           {currentView === 'squads' && (
@@ -949,19 +1103,39 @@ export default function App() {
               <SquadDetailPage 
                 squadId={selectedSquad} 
                 onBack={handleBackFromSquadDetail} 
+                initialFeedPostId={subpageSquadPost || undefined}
+                onFeedPostChange={(postId) => {
+                  setSubpageSquadPost(postId ?? '');
+                  if (postId) sessionStorage.setItem(SUBPAGE_KEYS.squadPost, postId);
+                  else sessionStorage.removeItem(SUBPAGE_KEYS.squadPost);
+                }}
                 onOpenChat={(conversationId) => {
                   if (conversationId) {
-                    // Store conversation ID to select when messaging page loads
+                    setSubpageConversation(conversationId);
                     sessionStorage.setItem('selectedConversationId', conversationId);
                   }
+                  sessionStorage.setItem('messagingReturnTo', 'squad-detail');
                   setCurrentView('messaging');
                 }}
+                userAvatarUrl={profile?.avatar_url?.trim() || null}
+                publicName={profile?.public_name?.trim() || profile?.full_name?.trim() || user?.email?.split('@')[0] || 'You'}
               />
             </div>
           )}
           {currentView === 'calendar' && (
             <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
-              <CalendarPage />
+              <CalendarPage
+                initialMonth={subpageCalendarMonth || undefined}
+                initialDate={subpageCalendarDate || undefined}
+                onCalendarChange={(month, date) => {
+                  setSubpageCalendarMonth(month ?? '');
+                  setSubpageCalendarDate(date ?? '');
+                  if (month) sessionStorage.setItem(SUBPAGE_KEYS.calendarMonth, month);
+                  else sessionStorage.removeItem(SUBPAGE_KEYS.calendarMonth);
+                  if (date) sessionStorage.setItem(SUBPAGE_KEYS.calendarDate, date);
+                  else sessionStorage.removeItem(SUBPAGE_KEYS.calendarDate);
+                }}
+              />
             </div>
           )}
           {currentView === 'dashboard' && (
@@ -972,6 +1146,12 @@ export default function App() {
                 userId={user?.id}
                 publicName={profile?.public_name?.trim() || profile?.full_name?.trim() || user?.email?.split('@')[0] || 'You'}
                 userAvatarUrl={profile?.avatar_url?.trim() || null}
+                initialPostId={subpagePost || undefined}
+                onPostChange={(postId) => {
+                  setSubpagePost(postId ?? '');
+                  if (postId) sessionStorage.setItem(SUBPAGE_KEYS.post, postId);
+                  else sessionStorage.removeItem(SUBPAGE_KEYS.post);
+                }}
               />
             </div>
           )}
