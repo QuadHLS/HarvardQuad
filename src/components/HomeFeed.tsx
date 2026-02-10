@@ -3,7 +3,7 @@
  * Self-contained home feed + post detail view. Uses FeedService and profiles (public_name).
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Heart,
   MessageSquare,
@@ -14,8 +14,11 @@ import {
 import { FeedService, type FeedPostWithAuthor, type FeedReplyWithAuthor, type ProfileRow } from '../services/feedService';
 import { getEmbedInfo } from '../lib/embedUrl';
 import { ScrollArea } from './ui/scroll-area';
-import { NewPostModal } from './NewPostModal';
+import { NewPostModal, type NewPostModalOptimisticData } from './NewPostModal';
 import { UserProfileView } from './UserProfileView';
+
+/** DiceBear thumbs avatar for Quadly (override-author) posts. */
+const QUADLY_AVATAR_URL = 'https://api.dicebear.com/9.x/thumbs/svg?seed=quadly';
 
 /** Renders avatar image when profile has avatar_url, otherwise colored circle with initials. */
 function AuthorAvatar({
@@ -141,9 +144,11 @@ interface PostDetailViewProps {
   userAvatarUrl?: string | null;
   onBack: () => void;
   onOpenUserProfile?: (userId: string) => void;
+  /** When set (e.g. embedded in squad page), used as the header title instead of "Home". */
+  headerTitle?: string;
 }
 
-function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, onOpenUserProfile }: PostDetailViewProps) {
+function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, onOpenUserProfile, headerTitle = 'Home' }: PostDetailViewProps) {
   const [detailPost, setDetailPost] = useState<FeedPostWithAuthor | null>(post);
   const [replies, setReplies] = useState<FeedReplyWithAuthor[]>([]);
   const [replyInput, setReplyInput] = useState('');
@@ -171,28 +176,62 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
     loadDetail();
   }, [loadDetail]);
 
+  // Realtime: replies, throttled hearts, and (for polls) options + throttled votes
+  useEffect(() => {
+    const replyChannel = FeedService.subscribeToFeedReplies(post.id, loadDetail);
+    const { unsubscribe: unsubscribeHearts } = FeedService.subscribeToFeedHearts(post.id, loadDetail, { throttleMs: 4000 });
+    const cleanups: (() => void)[] = [
+      () => FeedService.unsubscribeFromFeedReplies(replyChannel),
+      unsubscribeHearts,
+    ];
+    if (post.post_type === 'poll') {
+      const pollOptsChannel = FeedService.subscribeToFeedPollOptions(post.id, loadDetail);
+      const { unsubscribe: unsubscribePollVotes } = FeedService.subscribeToFeedPollVotes(post.id, loadDetail, { throttleMs: 4000 });
+      cleanups.push(() => FeedService.unsubscribeFromFeedPollOptions(pollOptsChannel), unsubscribePollVotes);
+    }
+    return () => cleanups.forEach((c) => c());
+  }, [post.id, post.post_type, loadDetail]);
+
   const handleHeartPost = async () => {
     if (!userId || !detailPost) return;
+    const nextHearted = !detailPost.current_user_hearted;
+    const nextCount = (detailPost.heart_count ?? 0) + (nextHearted ? 1 : -1);
+    setDetailPost((prev) => prev ? { ...prev, current_user_hearted: nextHearted, heart_count: nextCount } : null);
     try {
       const { hearted } = await FeedService.toggleHeartPost(detailPost.id, userId);
-      setDetailPost((prev) => prev ? { ...prev, current_user_hearted: hearted, heart_count: (prev.heart_count ?? 0) + (hearted ? 1 : -1) } : null);
-    } catch {}
+      setDetailPost((prev) => prev ? { ...prev, current_user_hearted: hearted, heart_count: prev.heart_count ?? 0 } : null);
+    } catch {
+      setDetailPost((prev) => prev ? { ...prev, current_user_hearted: detailPost.current_user_hearted, heart_count: detailPost.heart_count ?? 0 } : null);
+    }
   };
 
   const handleVote = async (optionId: string) => {
-    if (!userId || !detailPost) return;
+    if (!userId || !detailPost?.poll_options) return;
+    const prevOptionId = detailPost.current_user_vote_option_id ?? null;
+    if (prevOptionId === optionId) return;
+    const options = detailPost.poll_options.map((o) => ({
+      ...o,
+      vote_count: o.id === optionId ? (o.vote_count || 0) + 1 : o.id === prevOptionId ? Math.max(0, (o.vote_count || 0) - 1) : o.vote_count || 0,
+    }));
+    setDetailPost((prev) => prev ? { ...prev, current_user_vote_option_id: optionId, poll_options: options } : null);
     try {
       await FeedService.votePoll(detailPost.id, optionId, userId);
       await loadDetail();
-    } catch {}
+    } catch {
+      setDetailPost((prev) => prev ? { ...prev, current_user_vote_option_id: prevOptionId, poll_options: detailPost.poll_options } : null);
+    }
   };
 
   const handlePinPost = async () => {
     if (!userId || !detailPost) return;
+    const nextPinned = !detailPost.current_user_pinned;
+    setDetailPost((prev) => prev ? { ...prev, current_user_pinned: nextPinned } : null);
     try {
       const { pinned } = await FeedService.togglePinPost(detailPost.id, userId);
       setDetailPost((prev) => prev ? { ...prev, current_user_pinned: pinned } : null);
-    } catch {}
+    } catch {
+      setDetailPost((prev) => prev ? { ...prev, current_user_pinned: detailPost.current_user_pinned } : null);
+    }
   };
 
   const countTotalReplies = (replies: FeedReplyWithAuthor[]): number => {
@@ -202,16 +241,46 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
   const handleSubmitReply = async () => {
     const content = replyInput.replace(/^[ \t]+|[ \t]+$/g, '');
     if (!userId || !detailPost || !content || !content.trim()) return;
+    const parentId = replyingTo ?? null;
+    const optimisticReply: FeedReplyWithAuthor = {
+      id: `opt-reply-${Date.now()}`,
+      post_id: detailPost.id,
+      parent_reply_id: parentId,
+      author_id: userId,
+      content: content.trim(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      author: { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null },
+      heart_count: 0,
+      current_user_hearted: false,
+      replies: [],
+    };
+    const addOptimisticReply = (list: FeedReplyWithAuthor[], parent: string | null, reply: FeedReplyWithAuthor): FeedReplyWithAuthor[] => {
+      if (parent == null) return [...list, reply];
+      return list.map((r) =>
+        r.id === parent ? { ...r, replies: [...(r.replies ?? []), reply] } : { ...r, replies: r.replies ? addOptimisticReply(r.replies, parent, reply) : r.replies }
+      );
+    };
+    setReplies((prev) => addOptimisticReply(prev, parentId, optimisticReply));
+    setDetailPost((prev) => prev ? { ...prev, reply_count: (prev.reply_count ?? 0) + 1 } : null);
+    setReplyInput('');
+    setReplyingTo(null);
     setSubmitting(true);
     try {
-      await FeedService.createReply(detailPost.id, userId, content, replyingTo ?? undefined);
-      setReplyInput('');
-      setReplyingTo(null);
+      await FeedService.createReply(detailPost.id, userId, content.trim(), replyingTo ?? undefined);
       const r = await FeedService.listReplies(detailPost.id, userId);
       setReplies(r);
       setDetailPost((prev) => prev ? { ...prev, reply_count: countTotalReplies(r) } : null);
-    } catch {}
-    finally {
+    } catch {
+      setReplies((prev) => {
+        const removeOpt = (list: FeedReplyWithAuthor[]): FeedReplyWithAuthor[] =>
+          list.filter((r) => !r.id.startsWith('opt-reply-')).map((r) => ({ ...r, replies: r.replies ? removeOpt(r.replies) : r.replies }));
+        return removeOpt(prev);
+      });
+      setDetailPost((prev) => prev ? { ...prev, reply_count: Math.max(0, (prev.reply_count ?? 1) - 1) } : null);
+      setReplyInput(content);
+      setReplyingTo(parentId);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -223,18 +292,22 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
           <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
             <ChevronLeft className="w-6 h-6 text-[#27251f]" />
           </button>
-          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >Home</h1>
+          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >{headerTitle}</h1>
         </div>
-        <div className="flex-1 flex items-center justify-center text-[#787771]">Loading...</div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
+        </div>
       </div>
     );
   }
 
-  const authorName = FeedService.displayName(detailPost.author);
-  const authorInitials = FeedService.initials(detailPost.author);
+  const authorName = FeedService.postAuthorName(detailPost);
+  const authorInitials = FeedService.postInitials(detailPost);
   const authorColor = FeedService.avatarColor(detailPost.author_id);
   const timeStr = FeedService.timeAgo(detailPost.created_at);
-  const sourceLabel = detailPost.source_type === 'squad' ? 'Squad' : 'Student';
+  const sourceLabel = detailPost.source_type === 'squad'
+    ? (detailPost.is_squad_admin ? `${detailPost.source_name ?? 'Squad'} Admin` : 'Member')
+    : 'Student';
   const sourceColor = '#d47455';
 
   return (
@@ -244,7 +317,7 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
           <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
             <ChevronLeft className="w-6 h-6 text-[#27251f]" />
           </button>
-          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >Home</h1>
+          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >{headerTitle}</h1>
         </div>
       </div>
 
@@ -253,7 +326,14 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
         <div className="bg-white p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              {detailPost.author_id !== userId ? (
+              {detailPost.override_author_name?.trim() ? (
+                <AuthorAvatar
+                  profile={{ id: '', public_name: authorName, full_name: authorName, avatar_url: QUADLY_AVATAR_URL } as ProfileRow}
+                  color="#d47455"
+                  initials={authorInitials}
+                  sizeClass="min-w-[44px] min-h-[44px] w-10 h-10"
+                />
+              ) : detailPost.author_id !== userId ? (
                 <AuthorAvatar
                   profile={detailPost.author}
                   color={authorColor}
@@ -285,12 +365,14 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
                   <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
                   <span className="text-xs text-[#787771]">• {timeStr}</span>
                 </div>
-                <div
-                  className="text-xs px-2 py-0.5 rounded-full inline-block mt-1"
-                  style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}
-                >
-                  {sourceLabel}
-                </div>
+                {!detailPost.override_author_name?.trim() && (
+                  <div
+                    className="text-xs px-2 py-0.5 rounded-full inline-block mt-1"
+                    style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}
+                  >
+                    {sourceLabel}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-0.5">
@@ -346,8 +428,7 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => !detailPost.current_user_vote_option_id && handleVote(opt.id)}
-                    disabled={!!detailPost.current_user_vote_option_id}
+                    onClick={() => handleVote(opt.id)}
                     className={`w-full text-left rounded-lg border-2 px-3 py-2 transition-colors ${isSelected ? 'border-[#d47455] bg-[#fff3e0]' : 'border-[#e7ded1] hover:border-[#d47455]/50'}`}
                   >
                     <div className="flex justify-between items-center gap-2">
@@ -726,6 +807,27 @@ export interface HomeFeedProps {
   userId?: string;
   publicName?: string;
   userAvatarUrl?: string | null;
+  /** When set, load only posts for this squad (source_type='squad', source_id=squadId). */
+  squadId?: string | null;
+  /** Label for squad feed (e.g. squad name); used in embedded header when squadId is set. */
+  squadName?: string | null;
+  /** When true, omit the main "Good morning" header; use for embedding inside squad page. */
+  embedded?: boolean;
+  /** When provided with onNewPostModalOpenChange, modal is controlled by parent (e.g. squad page shows Post button). */
+  newPostModalOpen?: boolean;
+  onNewPostModalOpenChange?: (open: boolean) => void;
+  /** Called when user opens or closes a post (for hiding parent header when embedded). */
+  onPostDetailChange?: (isOpen: boolean) => void;
+  /** When embedded, title shown in post detail header instead of "Home". */
+  embedHeaderTitle?: string;
+  /** When this value changes, feed refetches (e.g. parent bumps after new post so all instances update). */
+  feedRefreshKey?: number;
+  /** When provided (e.g. embedded), called after a new post is created so parent can refresh all feed instances. */
+  onNewPostSuccess?: () => void;
+  /** Restore this post when returning to the page (open post detail by id). */
+  initialPostId?: string | null;
+  /** Called when user opens or closes a post so parent can persist subpage. */
+  onPostChange?: (postId: string | null) => void;
 }
 
 export function HomeFeed({
@@ -734,41 +836,106 @@ export function HomeFeed({
   userId,
   publicName = 'You',
   userAvatarUrl = null,
+  squadId,
+  squadName,
+  embedded = false,
+  newPostModalOpen: controlledNewPostOpen,
+  onNewPostModalOpenChange: onControlledNewPostOpenChange,
+  onPostDetailChange,
+  embedHeaderTitle,
+  feedRefreshKey,
+  onNewPostSuccess,
+  initialPostId,
+  onPostChange,
 }: HomeFeedProps) {
   const [posts, setPosts] = useState<FeedPostWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<FeedPostWithAuthor | null>(null);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
-  const [newPostModalOpen, setNewPostModalOpen] = useState(false);
+  const [internalNewPostOpen, setInternalNewPostOpen] = useState(false);
+  const [optimisticNewPost, setOptimisticNewPost] = useState<FeedPostWithAuthor | null>(null);
+  const hasRestoredPostRef = useRef(false);
+  const isControlled = controlledNewPostOpen !== undefined && onControlledNewPostOpenChange !== undefined;
+  const newPostModalOpen = isControlled ? controlledNewPostOpen : internalNewPostOpen;
+  const setNewPostModalOpen = isControlled ? onControlledNewPostOpenChange : setInternalNewPostOpen;
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await FeedService.listPosts(userId);
+      let list = squadId
+        ? await FeedService.listPostsForSquad(squadId, userId)
+        : await FeedService.listPosts(userId);
+      // Squad feed: only show posts for this squad (source_type=squad, source_id=squadId)
+      if (squadId && list.length > 0) {
+        list = list.filter((p) => p.source_type === 'squad' && p.source_id === squadId);
+      }
       setPosts(list);
     } catch {
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, squadId ?? '']);
 
   useEffect(() => {
     loadPosts();
-  }, [loadPosts]);
+  }, [loadPosts, feedRefreshKey]);
+
+  // Realtime: refetch posts when feed_posts change (home or squad)
+  useEffect(() => {
+    const channel = FeedService.subscribeToFeedPosts(squadId ?? null, loadPosts);
+    return () => FeedService.unsubscribeFromFeedPosts(channel);
+  }, [squadId, loadPosts]);
+
+  useEffect(() => {
+    if (onPostDetailChange) onPostDetailChange(!!selectedPost);
+  }, [selectedPost, onPostDetailChange]);
+
+  // Restore opened post when returning to the page (from URL/sessionStorage). Reset ref when initialPostId is cleared so a new restore can run later.
+  useEffect(() => {
+    if (!initialPostId) {
+      hasRestoredPostRef.current = false;
+      return;
+    }
+    if (loading || hasRestoredPostRef.current) return;
+    const post = posts.find((p) => p.id === initialPostId);
+    if (post) {
+      hasRestoredPostRef.current = true;
+      setSelectedPost(post);
+    } else {
+      // Post not in list (e.g. deleted); mark attempted so we don't retry on every posts update
+      hasRestoredPostRef.current = true;
+    }
+  }, [initialPostId, loading, posts]);
+
 
   const handleHeartPost = async (e: React.MouseEvent, post: FeedPostWithAuthor) => {
     e.stopPropagation();
-    if (!userId) return;
+    if (!userId || post.id.startsWith('opt-')) return;
+    const nextHearted = !post.current_user_hearted;
+    const nextCount = (post.heart_count ?? 0) + (nextHearted ? 1 : -1);
+    setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, current_user_hearted: nextHearted, heart_count: nextCount } : p));
     try {
       const { hearted } = await FeedService.toggleHeartPost(post.id, userId);
-      setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, current_user_hearted: hearted, heart_count: (p.heart_count ?? 0) + (hearted ? 1 : -1) } : p));
-    } catch {}
+      setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, current_user_hearted: hearted, heart_count: p.heart_count ?? 0 } : p));
+    } catch {
+      setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, current_user_hearted: post.current_user_hearted, heart_count: post.heart_count ?? 0 } : p));
+    }
   };
 
   const handlePinPost = async (e: React.MouseEvent, post: FeedPostWithAuthor) => {
     e.stopPropagation();
-    if (!userId) return;
+    if (!userId || post.id.startsWith('opt-')) return;
+    const nextPinned = !post.current_user_pinned;
+    setPosts((prev) => {
+      const next = prev.map((p) => p.id === post.id ? { ...p, current_user_pinned: nextPinned } : p);
+      return next.sort((a, b) => {
+        const aP = a.current_user_pinned ? 1 : 0;
+        const bP = b.current_user_pinned ? 1 : 0;
+        if (bP !== aP) return bP - aP;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    });
     try {
       const { pinned } = await FeedService.togglePinPost(post.id, userId);
       setPosts((prev) => {
@@ -780,7 +947,17 @@ export function HomeFeed({
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
       });
-    } catch {}
+    } catch {
+      setPosts((prev) => {
+        const next = prev.map((p) => p.id === post.id ? { ...p, current_user_pinned: post.current_user_pinned } : p);
+        return next.sort((a, b) => {
+          const aP = a.current_user_pinned ? 1 : 0;
+          const bP = b.current_user_pinned ? 1 : 0;
+          if (bP !== aP) return bP - aP;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+      });
+    }
   };
 
   if (viewingUserId) {
@@ -801,62 +978,81 @@ export function HomeFeed({
         userAvatarUrl={userAvatarUrl}
         onBack={() => {
           setSelectedPost(null);
+          onPostChange?.(null);
           loadPosts();
         }}
         onOpenUserProfile={(id) => id !== userId && setViewingUserId(id)}
+        headerTitle={embedHeaderTitle ?? 'Home'}
       />
     );
   }
 
-  const sourceLabel = (p: FeedPostWithAuthor) => (p.source_type === 'squad' ? 'Squad' : 'Student');
+  const sourceLabel = (p: FeedPostWithAuthor) =>
+    p.source_type === 'squad' ? (p.is_squad_admin ? `${p.source_name ?? 'Squad'} Admin` : 'Member') : 'Student';
   const sourceColor = '#d47455';
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <header className="flex-shrink-0 border-b border-[#e7ded1] bg-[#FBF9F5] px-5 py-4 flex items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl flex-1 min-w-0 font-medium text-[#27251f]" >
-          {greeting}, {publicName}
-        </h1>
-        {userId && (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
-            style={{ fontWeight: 600 }}
-            onClick={() => setNewPostModalOpen(true)}
-          >
-            <Plus size={18} />
-            New post
-          </button>
-        )}
-      </header>
-
+      {!embedded && (
+        <header className="flex-shrink-0 border-b border-[#e7ded1] bg-[#FBF9F5] px-5 py-4 flex items-center justify-between gap-4">
+          <h1 className="text-2xl md:text-3xl flex-1 min-w-0 font-medium text-[#27251f]" >
+            {greeting}, {publicName}
+          </h1>
+          {userId && (
+            <button
+              type="button"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#d47455] text-white text-sm flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
+              style={{ fontWeight: 600 }}
+              onClick={() => setNewPostModalOpen(true)}
+            >
+              <Plus size={18} />
+              New post
+            </button>
+          )}
+        </header>
+      )}
+      {embedded && (squadId || squadName) && !isControlled && (
+        <div className="flex-shrink-0 flex items-center justify-between gap-4 px-0 py-3">
+          <h2 className="text-lg font-semibold text-[#27251f]">
+            {squadName ?? 'Feed'}
+          </h2>
+          {userId && (
+            <button
+              type="button"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
+              style={{ fontWeight: 600 }}
+              onClick={() => setNewPostModalOpen(true)}
+            >
+              <Plus size={18} />
+              Post
+            </button>
+          )}
+        </div>
+      )}
       <div
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FBF9F5] px-4 py-4 pb-24 md:pb-4"
         style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-[#787771]">Loading...</div>
-        ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[#787771] text-center">
-            <p className="mb-2">No posts yet.</p>
-            {userId && (
-              <button
-                type="button"
-                onClick={() => setNewPostModalOpen(true)}
-                className="px-4 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold"
-              >
-                New post
-              </button>
-            )}
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
           </div>
+        ) : (optimisticNewPost ? [optimisticNewPost, ...posts] : posts).length === 0 ? (
+          <div className="py-12" />
         ) : (
           <div className="space-y-3">
-            {posts.map((post) => {
-              const authorName = FeedService.displayName(post.author);
-              const authorInitials = FeedService.initials(post.author);
+            {(optimisticNewPost ? [optimisticNewPost, ...posts] : posts).map((post) => {
+              const authorName = FeedService.postAuthorName(post);
+              const authorInitials = FeedService.postInitials(post);
               const authorColor = FeedService.avatarColor(post.author_id);
               const timeStr = FeedService.timeAgo(post.created_at);
-              const openPost = () => setSelectedPost(post);
+              const isOptimistic = post.id.startsWith('opt-');
+              const openPost = () => {
+                if (!isOptimistic) {
+                  setSelectedPost(post);
+                  onPostChange?.(post.id);
+                }
+              };
               return (
                 <div
                   key={post.id}
@@ -865,7 +1061,15 @@ export function HomeFeed({
                   <div className="p-4 pb-3">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {post.author_id !== userId ? (
+                        {post.override_author_name?.trim() ? (
+                          <AuthorAvatar
+                            profile={{ id: '', public_name: authorName, full_name: authorName, avatar_url: QUADLY_AVATAR_URL } as ProfileRow}
+                            color="#d47455"
+                            initials={authorInitials}
+                            sizeClass="min-w-[44px] min-h-[44px] w-9 h-9"
+                            className="relative z-10"
+                          />
+                        ) : post.author_id !== userId ? (
                           <AuthorAvatar
                             profile={post.author}
                             color={authorColor}
@@ -904,9 +1108,11 @@ export function HomeFeed({
                             <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
                             <span className="text-xs text-[#787771]">• {timeStr}</span>
                           </div>
-                          <div className="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}>
-                            {sourceLabel(post)}
-                          </div>
+                          {!post.override_author_name?.trim() && (
+                            <div className="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}>
+                              {sourceLabel(post)}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -944,13 +1150,31 @@ export function HomeFeed({
                       <h3 className="text-base mb-2 font-semibold text-[#27251f] leading-tight" >{post.title}</h3>
 
                       {post.post_type === 'poll' && post.poll_options && post.poll_options.length > 0 ? (
-                        <div className="text-sm text-[#787771] mb-2">
-                          Poll · {post.poll_options.reduce((s, o) => s + (o.vote_count ?? 0), 0)} votes
+                        <div className="mb-2 space-y-2">
+                          {post.poll_options.map((opt) => {
+                            const total = post.poll_options!.reduce((s, o) => s + (o.vote_count ?? 0), 0);
+                            const pct = total > 0 ? Math.round(((opt.vote_count ?? 0) / total) * 100) : 0;
+                            const isSelected = post.current_user_vote_option_id === opt.id;
+                            return (
+                              <div
+                                key={opt.id}
+                                className={`w-full text-left rounded-lg border-2 px-3 py-2 transition-colors ${isSelected ? 'border-[#d47455] bg-[#fff3e0]' : 'border-[#e7ded1]'}`}
+                              >
+                                <div className="flex justify-between items-center gap-2">
+                                  <span className="text-sm font-medium text-[#27251f]">{opt.option_text}</span>
+                                  <span className="text-xs text-[#787771]">{opt.vote_count ?? 0} votes ({pct}%)</span>
+                                </div>
+                                <div className="mt-1 h-1.5 rounded-full bg-[#F1EFE7] overflow-hidden">
+                                  <div className="h-full rounded-full bg-[#d47455]" style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <>
                           {post.content && (
-                            <p className="selectable-text text-sm mb-2 line-clamp-2 text-[#27251f] leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                            <p className="selectable-text text-sm mb-2 line-clamp-[7] text-[#27251f] leading-relaxed whitespace-pre-wrap">{post.content}</p>
                           )}
                           {post.image_path && (
                             <div className="block isolate rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30">
@@ -998,7 +1222,38 @@ export function HomeFeed({
           onOpenChange={setNewPostModalOpen}
           authorId={userId}
           publicName={publicName}
-          onSuccess={loadPosts}
+          onSuccess={async () => {
+            setOptimisticNewPost(null);
+            await loadPosts();
+            onNewPostSuccess?.();
+          }}
+          onOptimisticSubmit={(data: NewPostModalOptimisticData) => {
+            const now = new Date().toISOString();
+            const sourceType = squadId ? ('squad' as const) : ('user' as const);
+            const sourceId = squadId ?? null;
+            const opt: FeedPostWithAuthor = {
+              id: `opt-post-${Date.now()}`,
+              author_id: userId,
+              source_type: sourceType,
+              source_id: sourceId,
+              post_type: data.postType,
+              title: data.title,
+              content: data.content,
+              image_path: null,
+              url: data.url ?? null,
+              created_at: now,
+              updated_at: now,
+              author: { id: userId, public_name: publicName, full_name: publicName, avatar_url: userAvatarUrl ?? null },
+              heart_count: 0,
+              reply_count: 0,
+              current_user_hearted: false,
+              current_user_pinned: false,
+              poll_options: data.pollOptions?.map((text, i) => ({ id: `opt-opt-${i}`, post_id: '', option_text: text, sort_order: i, created_at: now, vote_count: 0 })),
+            };
+            setOptimisticNewPost(opt);
+          }}
+          onError={() => setOptimisticNewPost(null)}
+          squadId={squadId ?? undefined}
         />
       )}
     </div>

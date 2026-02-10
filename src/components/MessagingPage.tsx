@@ -6,10 +6,17 @@ import { MessagingService, Message, Participant } from '../services/messagingSer
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { UserProfileView } from './UserProfileView';
+import { TypingIndicator } from './TypingIndicator';
 import { supabase } from '../lib/supabase';
 
 interface MessagingPageProps {
+  /** Restore this conversation when returning to the page (from URL/sessionStorage). */
+  initialConversationId?: string | null;
+  /** Called when user selects or clears conversation so parent can persist subpage. */
+  onConversationChange?: (conversationId: string | null) => void;
   onCourseClick?: (courseId: string) => void;
+  /** If returns true, caller handled back (e.g. navigated to squad). Else messaging clears selection. */
+  onBackToSquad?: () => boolean | void;
 }
 
 interface DisplayConversation {
@@ -581,7 +588,7 @@ const ConversationItem = memo(function ConversationItem({
   );
 });
 
-export function MessagingPage({ onCourseClick }: MessagingPageProps) {
+export function MessagingPage({ initialConversationId, onConversationChange, onCourseClick, onBackToSquad }: MessagingPageProps) {
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const didConsumeStoredConversationRef = useRef(false);
@@ -590,37 +597,32 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const scrollMessagesToBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    // Force a reflow to ensure scrollHeight is calculated correctly
     const height = container.offsetHeight;
     const scrollHeight = container.scrollHeight;
-    // Only scroll if there's actually content to scroll to
-    if (scrollHeight > height) {
-      container.scrollTop = scrollHeight;
-    }
+    if (scrollHeight > height) container.scrollTop = scrollHeight;
   }, []);
   const { user } = useAuth();
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  // Restore conversation from parent (URL/sessionStorage) or sessionStorage so returning to page remembers selection
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return initialConversationId ?? sessionStorage.getItem('selectedConversationId') ?? null;
+  });
   const hasManuallySelectedRef = useRef(false);
   const storedConversationIdRef = useRef<string | null>(null);
-  
-  // Clear sessionStorage immediately and capture stored value on mount
+
+  // When parent passes a restored conversation (e.g. after nav), prime ref so consumption effect can apply it once conversations load
   useEffect(() => {
-    const stored = sessionStorage.getItem('selectedConversationId');
-    if (stored) {
-      storedConversationIdRef.current = stored;
-      sessionStorage.removeItem('selectedConversationId');
-    }
-  }, []);
-  
+    if (initialConversationId) storedConversationIdRef.current = initialConversationId;
+  }, [initialConversationId]);
+
   const openConversation = useCallback((conversationId: string) => {
-    // Clear stored conversation and mark as manually selected BEFORE setting state
     storedConversationIdRef.current = null;
     didConsumeStoredConversationRef.current = true;
     hasManuallySelectedRef.current = true;
-    // Clear messages immediately to prevent showing old messages
     setMessages([]);
     setSelectedConversation(conversationId);
-  }, []);
+    onConversationChange?.(conversationId);
+  }, [onConversationChange]);
   const [messageInput, setMessageInput] = useState('');
   const [isMessageInputFocused, setIsMessageInputFocused] = useState(false);
   const isSendingRef = useRef(false);
@@ -664,6 +666,9 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
   const [editMembersSearchQuery, setEditMembersSearchQuery] = useState('');
   const [editMembersSearchResults, setEditMembersSearchResults] = useState<Array<{ id: string; email: string; full_name: string | null; avatar_url?: string | null }>>([]);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Array<{ id: string; name: string }>>([]);
+  const typingPresenceRef = useRef<{ setTyping: (v: boolean) => void; unsubscribe: () => void } | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Check if there's a conversation ID from navigation (e.g., from squad detail page)
   // This should ONLY run once when conversations are first loaded, never after manual selection
@@ -704,9 +709,10 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                                dms.some(d => d.id === storedConversationId);
     if (conversationExists) {
       setSelectedConversation(storedConversationId);
+      onConversationChange?.(storedConversationId);
     }
     storedConversationIdRef.current = null;
-  }, [loading, conversations.length, groups.length, clubs.length, dms.length]);
+  }, [loading, conversations.length, groups.length, clubs.length, dms.length, onConversationChange]);
 
   const closeGroupModal = () => {
     setShowNewGroup(false);
@@ -963,14 +969,19 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
     if (!selectedConversation) return;
 
     const messageChannel = MessagingService.subscribeToMessages(selectedConversation, (newMessage) => {
-      // Add the new message to the list if it's not already there
-      setMessages(prev => {
-        if (prev.some(m => m.id === newMessage.id)) return prev;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMessage.id)) return prev;
+        if (newMessage.sender_id === user?.id && newMessage.message_type === 'text') {
+          const idx = prev.findIndex((m) => m.id.startsWith('opt-'));
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = newMessage;
+            return next;
+          }
+        }
         return [...prev, newMessage];
       });
-      // Mark as read since we're viewing the conversation
       MessagingService.markAsRead(selectedConversation).catch(console.error);
-      // Update conversation list to show latest message (debounced)
       debouncedLoadConversations();
     });
 
@@ -984,7 +995,62 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       MessagingService.unsubscribeFromMessages(messageChannel);
       MessagingService.unsubscribeFromParticipants(participantChannel);
     };
-  }, [selectedConversation]);
+  }, [selectedConversation, user?.id]);
+
+  // Typing presence: subscribe when in a conversation, cleanup on leave
+  useEffect(() => {
+    if (!selectedConversation || !user) {
+      setTypingUsers([]);
+      return;
+    }
+    const displayName = (user as { user_metadata?: { full_name?: string; name?: string } }).user_metadata?.full_name
+      ?? (user as { user_metadata?: { full_name?: string; name?: string } }).user_metadata?.name
+      ?? user.email?.split('@')[0]
+      ?? 'Someone';
+    const { setTyping, unsubscribe } = MessagingService.subscribeToTypingPresence(
+      selectedConversation,
+      user.id,
+      displayName,
+      setTypingUsers
+    );
+    typingPresenceRef.current = { setTyping, unsubscribe };
+    return () => {
+      setTyping(false);
+      unsubscribe();
+      typingPresenceRef.current = null;
+      setTypingUsers([]);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, [selectedConversation, user]);
+
+  // When user types, broadcast typing (debounced stop after 2s idle)
+  useEffect(() => {
+    const presence = typingPresenceRef.current;
+    if (!presence) return;
+    if (messageInput.trim().length > 0) {
+      presence.setTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        presence.setTyping(false);
+        typingTimeoutRef.current = null;
+      }, 2000);
+    } else {
+      presence.setTyping(false);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, [messageInput]);
 
   // Periodically mark messages as read while viewing the conversation
   useEffect(() => {
@@ -1203,11 +1269,31 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
     isSendingRef.current = true;
     setSendingMessage(true);
-    // Clear input immediately for better UX
     const textToSend = trimmedInput;
     const attachmentsToSend = [...pendingAttachments];
     setMessageInput('');
     setPendingAttachments([]);
+
+    let optimisticId: string | null = null;
+    if (hasText) {
+      optimisticId = `opt-msg-${Date.now()}`;
+      const optimisticMessage: Message = {
+        id: optimisticId,
+        conversation_id: selectedConversation,
+        sender_id: user.id,
+        content: textToSend,
+        message_type: 'text',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sender: {
+          full_name: (user as { user_metadata?: { full_name?: string; name?: string } }).user_metadata?.full_name ?? (user as { user_metadata?: { full_name?: string; name?: string } }).user_metadata?.name ?? null,
+          email: user.email ?? null,
+          avatar_url: null,
+        },
+        attachments: [],
+      };
+      setMessages((prev) => [...prev, optimisticMessage]);
+    }
 
     try {
       for (const att of attachmentsToSend) {
@@ -1223,17 +1309,16 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       }
 
       revokePendingUrls();
-      // Real-time subscription will handle adding the new message
-      // Use debounced reload to update last message preview
       debouncedLoadConversations();
     } catch (error) {
       console.error('Error sending message:', error);
-      // Restore input on error
+      if (optimisticId) {
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      }
       setMessageInput(textToSend);
       setPendingAttachments(attachmentsToSend);
     } finally {
       setSendingMessage(false);
-      // Reset the sending flag after a short delay to allow blur to complete
       setTimeout(() => {
         isSendingRef.current = false;
       }, 200);
@@ -1453,6 +1538,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       // If user removed themselves, go back to conversations list
       if (userId === user.id) {
         setSelectedConversation(null);
+        onConversationChange?.(null);
         await loadConversations();
       }
     } catch (error) {
@@ -1476,6 +1562,7 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
       await MessagingService.deleteConversation(selectedConversation);
       setShowDeleteConfirm(false);
       setSelectedConversation(null);
+      onConversationChange?.(null);
       await loadConversations();
     } catch (error) {
       console.error('Error deleting group:', error);
@@ -1566,18 +1653,19 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 </button>
               </div>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
-                <input
-                  type="text"
-                  placeholder={mobileTab === 'friends' ? "Search for people..." : mobileTab === 'groups' ? "Search your groups..." : "Search your squads..."}
-                  value={userSearchQuery}
-                  onChange={(e) => setUserSearchQuery(e.target.value)}
-                  onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
-                  className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border-0 text-sm"
-                  style={{ color: '#27251f' }}
-                />
+              <div className={`flex items-center gap-2 ${mobileTab === 'groups' ? 'flex-row' : ''}`}>
+                <div className="relative flex-1 min-w-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
+                  <input
+                    type="text"
+                    placeholder={mobileTab === 'friends' ? "Search for people..." : mobileTab === 'groups' ? "Search your groups..." : "Search your squads..."}
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
+                    className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border-0 text-sm"
+                    style={{ color: '#27251f' }}
+                  />
                 {showUserDropdown && userSearchResults.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-[#e7ded1] z-50 max-h-60 overflow-auto">
                     {userSearchResults.map((userResult) => {
@@ -1638,6 +1726,18 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                     })}
                   </div>
                 )}
+                </div>
+                {mobileTab === 'groups' && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#d47455] text-white text-sm shrink-0"
+                    onClick={() => setShowNewGroup(true)}
+                    style={{ fontWeight: 500 }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Group
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1680,33 +1780,20 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
 
                     {/* Groups Tab */}
                     {mobileTab === 'groups' && (
-                      <div>
-                        <div className="flex items-center justify-end mb-3">
-                          <button
-                            type="button"
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d47455] text-white text-sm"
-                            onClick={() => setShowNewGroup(true)}
-                            style={{ fontWeight: 500 }}
-                          >
-                            <Plus className="w-4 h-4" />
-                            New Group
-                          </button>
-                        </div>
-                        <div className="space-y-2">
-                          {groups.length === 0 ? (
-                            <p className="text-sm text-center py-8" style={{ color: '#787771' }}>
-                              No group chats yet
-                            </p>
-                          ) : (
-                            groups.map((conv) => (
-                              <ConversationItem
-                                key={conv.id}
-                                conv={conv}
-                                onClick={() => openConversation(conv.id)}
-                              />
-                            ))
-                          )}
-                        </div>
+                      <div className="space-y-2">
+                        {groups.length === 0 ? (
+                          <p className="text-sm text-center py-8" style={{ color: '#787771' }}>
+                            No group chats yet
+                          </p>
+                        ) : (
+                          groups.map((conv) => (
+                            <ConversationItem
+                              key={conv.id}
+                              conv={conv}
+                              onClick={() => openConversation(conv.id)}
+                            />
+                          ))
+                        )}
                       </div>
                     )}
 
@@ -1743,7 +1830,11 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
             <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setSelectedConversation(null)}
+                  onClick={() => {
+                    if (onBackToSquad?.()) return;
+                    setSelectedConversation(null);
+                    onConversationChange?.(null);
+                  }}
                   className="w-8 h-8 flex items-center justify-center -ml-2"
                 >
                   <ChevronLeft className="w-6 h-6 text-[#27251f]" />
@@ -2442,6 +2533,17 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                 </div>
               ) : (
                 <>
+                  {typingUsers.length > 0 && (
+                    <div className="mb-2">
+                      <TypingIndicator
+                        label={typingUsers.length === 1
+                          ? `${typingUsers[0].name} is typing`
+                          : typingUsers.length === 2
+                            ? `${typingUsers[0].name} and ${typingUsers[1].name} are typing`
+                            : `${typingUsers.length} people are typing`}
+                      />
+                    </div>
+                  )}
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -3793,6 +3895,17 @@ export function MessagingPage({ onCourseClick }: MessagingPageProps) {
                   </div>
                 ) : (
                   <>
+                    {typingUsers.length > 0 && (
+                      <div className="mb-2">
+                        <TypingIndicator
+                          label={typingUsers.length === 1
+                            ? `${typingUsers[0].name} is typing`
+                            : typingUsers.length === 2
+                              ? `${typingUsers[0].name} and ${typingUsers[1].name} are typing`
+                              : `${typingUsers.length} people are typing`}
+                        />
+                      </div>
+                    )}
                     <input
                       type="file"
                       ref={fileInputRef}

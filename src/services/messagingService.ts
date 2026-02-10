@@ -918,6 +918,61 @@ export class MessagingService {
     supabase.removeChannel(channel);
   }
 
+  /** Typing presence payload we track per user */
+  static typingPresencePayload(userId: string, displayName: string, typing: boolean) {
+    return { user_id: userId, display_name: displayName, typing };
+  }
+
+  /**
+   * Subscribe to typing presence for a conversation. Returns { setTyping, unsubscribe }.
+   * Call setTyping(true) when user is typing (debounced), setTyping(false) when they stop.
+   * onTyping(users) is called with list of { id, name } for others currently typing (excluding currentUserId).
+   */
+  static subscribeToTypingPresence(
+    conversationId: string,
+    currentUserId: string,
+    displayName: string,
+    onTyping: (users: { id: string; name: string }[]) => void
+  ): { setTyping: (typing: boolean) => void; unsubscribe: () => void } {
+    const channelName = `typing:${conversationId}`;
+    const channel = supabase.channel(channelName);
+
+    const emitTypingState = () => {
+      const state = channel.presenceState();
+      const typingUsers: { id: string; name: string }[] = [];
+      Object.values(state).forEach((presences) => {
+        (presences || []).forEach((p: Record<string, unknown>) => {
+          if (p.user_id && p.typing === true && p.user_id !== currentUserId) {
+            typingUsers.push({
+              id: p.user_id as string,
+              name: (p.display_name as string) || 'Someone',
+            });
+          }
+        });
+      });
+      onTyping(typingUsers);
+    };
+
+    channel
+      .on('presence', { event: 'sync' }, () => emitTypingState())
+      .on('presence', { event: 'join' }, () => emitTypingState())
+      .on('presence', { event: 'leave' }, () => emitTypingState())
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track(MessagingService.typingPresencePayload(currentUserId, displayName, false));
+        }
+      });
+
+    return {
+      setTyping: (typing: boolean) => {
+        channel.track(MessagingService.typingPresencePayload(currentUserId, displayName, typing));
+      },
+      unsubscribe: () => {
+        supabase.removeChannel(channel);
+      },
+    };
+  }
+
   // Block a user
   static async blockUser(userId: string): Promise<boolean> {
     const { data, error } = await supabase.rpc('block_user', { target_user_id: userId });

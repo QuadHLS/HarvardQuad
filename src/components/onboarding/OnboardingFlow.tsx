@@ -162,6 +162,7 @@ export function OnboardingFlowStandalone({ onComplete }: OnboardingFlowProps) {
         .update({
           public_name: formData.publicName.trim() || null,
           avatar_url: avatarUrl,
+          onboarding_completed: true,
         })
         .eq('id', user.id);
       setSaving(false);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, Users, Plus, Dumbbell, PartyPopper, BookOpen, Gamepad2, ChevronRight, ChevronDown, Globe, Lock } from 'lucide-react';
+import { Search, Users, Plus, Dumbbell, PartyPopper, BookOpen, Gamepad2, ChevronRight, Settings, Globe, Lock } from 'lucide-react';
 import { SquadsService, Squad } from '../services/squadsService';
+import { FeedService } from '../services/feedService';
 import { SquadMakingModal, CreateSquadPayload } from './SquadMakingModal';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -61,6 +62,21 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
         null,
         privacyType
       );
+      if (payload.avatarFile) {
+        try {
+          const avatarUrl = await SquadsService.uploadSquadAvatar(squad.id, payload.avatarFile);
+          await SquadsService.updateSquad(squad.id, { avatar_url: avatarUrl });
+        } catch (e) {
+          console.warn('Could not upload squad avatar:', e);
+        }
+      }
+      if (user?.id) {
+        try {
+          await FeedService.createSquadWelcomePost(squad.id, user.id);
+        } catch (e) {
+          console.warn('Could not create squad welcome post:', e);
+        }
+      }
       if (payload.members?.length) {
         await SquadsService.addSquadMembers(squad.id, payload.members);
       }
@@ -144,7 +160,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                       : 'All Squads'
                     }
                   </span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                  <Settings className="w-4 h-4" />
                 </button>
                 {showCategoryDropdown && (
                   <>
@@ -246,10 +262,14 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                   >
                     <div className="flex items-start gap-3">
                       <div 
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
                         style={{ backgroundColor: `${squadColor}20` }}
                       >
-                        <Users className="w-7 h-7" style={{ color: squadColor }} />
+                        {squad.avatar_url ? (
+                          <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Users className="w-7 h-7" style={{ color: squadColor }} />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
@@ -347,7 +367,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                     : 'All Squads'
                   }
                 </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                <Settings className="w-4 h-4" />
               </button>
               {showCategoryDropdown && (
                 <>
@@ -445,10 +465,14 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                 >
                   <div className="flex items-start gap-4 mb-4">
                     <div 
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
                       style={{ backgroundColor: `${squadColor}20` }}
                     >
-                      <Users className="w-8 h-8" style={{ color: squadColor }} />
+                      {squad.avatar_url ? (
+                        <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Users className="w-8 h-8" style={{ color: squadColor }} />
+                      )}
                     </div>
                     <div className="flex-1">
                       <h3 

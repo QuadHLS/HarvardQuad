@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, Calendar, Clock, MapPin, User, FileText, Plus, Edit2, Trash2, BookOpen, CheckCircle } from 'lucide-react';
 
 interface Course {
@@ -22,9 +22,28 @@ interface Assignment {
   completed: boolean;
 }
 
-export function ClassesPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'assignments'>('overview');
+type ClassesTab = 'overview' | 'schedule' | 'assignments';
+
+interface ClassesPageProps {
+  /** Restore this tab when returning to the page. */
+  initialTab?: ClassesTab;
+  /** Called when user switches tab so parent can persist subpage. */
+  onTabChange?: (tab: ClassesTab) => void;
+}
+
+export function ClassesPage({ initialTab = 'overview', onTabChange }: ClassesPageProps = {}) {
+  const [activeTab, setActiveTab] = useState<ClassesTab>(initialTab);
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Sync from parent when initialTab changes (e.g. browser back). Intentionally omit activeTab from deps to avoid loop.
+  useEffect(() => {
+    if (initialTab !== activeTab) setActiveTab(initialTab);
+  }, [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const switchTab = (tab: ClassesTab) => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  };
   const [showEditModal, setShowEditModal] = useState(false);
 
   const courses: Course[] = [
@@ -155,7 +174,7 @@ export function ClassesPage() {
       <div className="px-8 py-4 border-b border-[#e8e4db]">
         <div className="flex gap-6">
           <button
-            onClick={() => setActiveTab('overview')}
+            onClick={() => switchTab('overview')}
             className={`pb-3 px-2 text-[15px] border-b-2 transition-all ${
               activeTab === 'overview'
                 ? 'border-[#d47455] text-[#27251f]'
@@ -166,7 +185,7 @@ export function ClassesPage() {
             Overview
           </button>
           <button
-            onClick={() => setActiveTab('schedule')}
+            onClick={() => switchTab('schedule')}
             className={`pb-3 px-2 text-[15px] border-b-2 transition-all ${
               activeTab === 'schedule'
                 ? 'border-[#d47455] text-[#27251f]'
@@ -177,7 +196,7 @@ export function ClassesPage() {
             Schedule
           </button>
           <button
-            onClick={() => setActiveTab('assignments')}
+            onClick={() => switchTab('assignments')}
             className={`pb-3 px-2 text-[15px] border-b-2 transition-all ${
               activeTab === 'assignments'
                 ? 'border-[#d47455] text-[#27251f]'

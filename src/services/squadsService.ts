@@ -12,6 +12,7 @@ export interface Squad {
   created_at: string;
   updated_at: string;
   conversation_id: string | null;
+  avatar_url: string | null;
   member_count?: number;
   is_joined?: boolean;
 }
@@ -272,16 +273,33 @@ export class SquadsService {
     });
   }
 
-  // Update squad (admins only; name, info, category, type)
+  static readonly AVATAR_BUCKET = 'squad-avatars';
+
+  /** Upload squad avatar (admins only). Replaces existing. Returns public URL. */
+  static async uploadSquadAvatar(squadId: string, file: File): Promise<string> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const path = `${squadId}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from(SquadsService.AVATAR_BUCKET)
+      .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from(SquadsService.AVATAR_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  // Update squad (admins only; name, info, category, type, avatar_url)
   static async updateSquad(
     squadId: string,
-    updates: { name?: string; info?: string | null; category?: string; type?: 'open' | 'private' }
+    updates: { name?: string; info?: string | null; category?: string; type?: 'open' | 'private'; avatar_url?: string | null }
   ): Promise<void> {
     const payload: Record<string, unknown> = {};
     if (updates.name !== undefined) payload.name = updates.name.trim();
     if (updates.info !== undefined) payload.info = updates.info?.trim() || null;
     if (updates.category !== undefined) payload.category = updates.category;
     if (updates.type !== undefined) payload.type = updates.type;
+    if (updates.avatar_url !== undefined) payload.avatar_url = updates.avatar_url?.trim() || null;
     if (Object.keys(payload).length === 0) return;
     const { error } = await supabase.from('squads').update(payload).eq('id', squadId);
     if (error) throw error;

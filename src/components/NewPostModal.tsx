@@ -3,7 +3,7 @@
  * Create a new feed post: text_pic, social_url, or poll. No anonymous option; posts as public_name.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -11,12 +11,26 @@ import { Textarea } from './ui/textarea';
 import { FeedService, type PostType } from '../services/feedService';
 import { Plus, X } from 'lucide-react';
 
+export interface NewPostModalOptimisticData {
+  title: string;
+  content: string | null;
+  url: string | null;
+  postType: PostType;
+  pollOptions?: string[];
+}
+
 export interface NewPostModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   authorId: string;
   publicName: string;
   onSuccess: () => void;
+  /** When set, post is created as squad feed (source_type: 'squad', source_id: squadId). */
+  squadId?: string | null;
+  /** Called before createPost so parent can show optimistic post. */
+  onOptimisticSubmit?: (data: NewPostModalOptimisticData) => void;
+  /** Called when create fails so parent can clear optimistic post. */
+  onError?: () => void;
 }
 
 const POST_TYPES: { value: PostType; label: string }[] = [
@@ -31,7 +45,12 @@ export function NewPostModal({
   authorId,
   publicName,
   onSuccess,
+  squadId,
+  onOptimisticSubmit,
+  onError,
 }: NewPostModalProps) {
+  const sourceType = squadId ? 'squad' as const : 'user' as const;
+  const sourceId = squadId ?? null;
   const [postType, setPostType] = useState<PostType>('text_pic');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -40,6 +59,7 @@ export function NewPostModal({
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pollOptionsScrollRef = useRef<HTMLDivElement>(null);
 
   const reset = useCallback(() => {
     setPostType('text_pic');
@@ -52,7 +72,12 @@ export function NewPostModal({
   }, []);
 
   const addPollOption = () => {
-    if (pollOptions.length < 10) setPollOptions([...pollOptions, '']);
+    if (pollOptions.length >= 15) return;
+    setPollOptions([...pollOptions, '']);
+    setTimeout(() => {
+      const el = pollOptionsScrollRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    }, 50);
   };
 
   const removePollOption = (index: number) => {
@@ -86,13 +111,21 @@ export function NewPostModal({
       }
     }
 
+    onOptimisticSubmit?.({
+      title: trimmedTitle,
+      content: content.trim() || null,
+      url: postType === 'social_url' ? url.trim() || null : null,
+      postType,
+      pollOptions: postType === 'poll' ? pollOptions.map((o) => o.trim()).filter(Boolean) : undefined,
+    });
     setSubmitting(true);
     try {
       if (postType === 'poll') {
         const opts = pollOptions.map((o) => o.trim()).filter(Boolean);
         await FeedService.createPost({
           author_id: authorId,
-          source_type: 'user',
+          source_type: sourceType,
+          source_id: sourceId,
           post_type: 'poll',
           title: trimmedTitle,
           poll_options: opts.map((text, i) => ({ option_text: text, sort_order: i })),
@@ -100,7 +133,8 @@ export function NewPostModal({
       } else if (postType === 'social_url') {
         await FeedService.createPost({
           author_id: authorId,
-          source_type: 'user',
+          source_type: sourceType,
+          source_id: sourceId,
           post_type: 'social_url',
           title: trimmedTitle,
           content: content.trim() || null,
@@ -109,7 +143,8 @@ export function NewPostModal({
       } else {
         const post = await FeedService.createPost({
           author_id: authorId,
-          source_type: 'user',
+          source_type: sourceType,
+          source_id: sourceId,
           post_type: 'text_pic',
           title: trimmedTitle,
           content: content.trim() || null,
@@ -121,10 +156,12 @@ export function NewPostModal({
         }
       }
       reset();
+      // Refetch feed before closing so the new post appears immediately (await if callback is async)
+      await Promise.resolve(onSuccess());
       onOpenChange(false);
-      onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create post.');
+      onError?.();
     } finally {
       setSubmitting(false);
     }
@@ -143,7 +180,7 @@ export function NewPostModal({
       >
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-[#27251f]" >
-            New post
+            Post
           </DialogTitle>
         </DialogHeader>
         <p className="text-xs text-[#787771] -mt-2" >
@@ -242,9 +279,9 @@ export function NewPostModal({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-[#27251f]" >
-                  Options (min 2, max 10)
+                  Options (min 2, max 15)
                 </label>
-                {pollOptions.length < 10 && (
+                {pollOptions.length < 15 && (
                   <button
                     type="button"
                     onClick={addPollOption}
@@ -254,9 +291,9 @@ export function NewPostModal({
                   </button>
                 )}
               </div>
-              <div className="space-y-2">
+              <div ref={pollOptionsScrollRef} className="max-h-[12rem] overflow-y-auto overflow-x-hidden rounded-lg border border-[#e7ded1] bg-white p-2 space-y-2">
                 {pollOptions.map((opt, i) => (
-                  <div key={i} className="flex gap-2">
+                  <div key={i} className="flex gap-2 flex-shrink-0">
                     <Input
                       value={opt}
                       onChange={(e) => setPollOption(i, e.target.value)}
@@ -268,7 +305,7 @@ export function NewPostModal({
                       type="button"
                       onClick={() => removePollOption(i)}
                       disabled={pollOptions.length <= 2}
-                      className="p-2 rounded-lg text-[#787771] hover:bg-[#F1EFE7] disabled:opacity-40"
+                      className="p-2 rounded-lg text-[#787771] hover:bg-[#F1EFE7] disabled:opacity-40 flex-shrink-0"
                       aria-label="Remove option"
                     >
                       <X size={18} />

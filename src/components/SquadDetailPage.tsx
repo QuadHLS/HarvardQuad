@@ -4,6 +4,7 @@ import { SquadsService, Squad, SquadMember, SquadDocument } from '../services/sq
 import { MessagingService } from '../services/messagingService';
 import { useAuth } from '../contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { HomeFeed } from './HomeFeed';
 
 type InviteSearchResult = { id: string; email: string; full_name: string | null };
 
@@ -11,9 +12,17 @@ interface SquadDetailPageProps {
   squadId: string;
   onBack: () => void;
   onOpenChat: (conversationId?: string) => void;
+  /** Restore this post in the squad feed when returning to the page. */
+  initialFeedPostId?: string | null;
+  /** Called when user opens or closes a post in the squad feed. */
+  onFeedPostChange?: (postId: string | null) => void;
+  /** Current user's avatar URL (for reply form in squad feed). */
+  userAvatarUrl?: string | null;
+  /** Current user's display name (for reply form in squad feed). */
+  publicName?: string;
 }
 
-export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPageProps) {
+export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId, onFeedPostChange, userAvatarUrl: propsUserAvatarUrl, publicName: propsPublicName }: SquadDetailPageProps) {
   const { user } = useAuth();
   const [squad, setSquad] = useState<Squad | null>(null);
   const [members, setMembers] = useState<SquadMember[]>([]);
@@ -38,14 +47,20 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
   const [editInfo, setEditInfo] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [editType, setEditType] = useState<'open' | 'private'>('open');
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
   const [savingSquad, setSavingSquad] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [uploadingDocs, setUploadingDocs] = useState(false);
   const [showAddDocumentModal, setShowAddDocumentModal] = useState(false);
   const [addDocumentFile, setAddDocumentFile] = useState<File | null>(null);
   const [addDocumentName, setAddDocumentName] = useState('');
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [squadFeedNewPostOpen, setSquadFeedNewPostOpen] = useState(false);
+  const [squadFeedRefreshKey, setSquadFeedRefreshKey] = useState(0);
+  const [postDetailOpen, setPostDetailOpen] = useState(false);
 
   const loadSquadData = useCallback(async (options?: { showLoading?: boolean }) => {
     const showLoading = options?.showLoading !== false;
@@ -250,11 +265,24 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
     setEditInfo(squad.info || '');
     setEditCategory(squad.category);
     setEditType(squad.type);
+    setEditAvatarFile(null);
     setIsEditingSquad(true);
   };
 
   const cancelEditingSquad = () => {
+    setEditAvatarPreview(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setEditAvatarFile(null);
     setIsEditingSquad(false);
+  };
+
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    setEditAvatarPreview(prev => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file && file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    });
+    setEditAvatarFile(file && file.type.startsWith('image/') ? file : null);
   };
 
   const handleSaveSquadEdit = async () => {
@@ -270,13 +298,20 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
     }
     try {
       setSavingSquad(true);
+      let avatarUrl: string | null = squad.avatar_url ?? null;
+      if (editAvatarFile) {
+        avatarUrl = await SquadsService.uploadSquadAvatar(squad.id, editAvatarFile);
+      }
       await SquadsService.updateSquad(squad.id, {
         name,
         info: editInfo.trim() || null,
         category: editCategory,
         type: editType,
+        avatar_url: avatarUrl,
       });
       await loadSquadData({ showLoading: false });
+      setEditAvatarPreview(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+      setEditAvatarFile(null);
       setIsEditingSquad(false);
     } catch (e) {
       console.error('Error updating squad:', e);
@@ -455,62 +490,85 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
       </Dialog>
       {/* Mobile View */}
       <div className="md:hidden h-full flex flex-col">
-        {/* Mobile Header */}
-        <div className="bg-[#F1EFE7] px-4 py-4 flex-shrink-0">
-          <div className="flex items-center gap-3 mb-4">
-            <button
-              onClick={onBack}
-              className="w-8 h-8 flex items-center justify-center -ml-2"
-            >
-              <ChevronLeft className="w-6 h-6 text-[#27251f]" />
-            </button>
-            <h1 
-              className="text-2xl flex-1"
-              style={{ fontWeight: 600, color: '#27251f' }}
-            >
-              {squad.name}
-            </h1>
+        {/* Mobile Header - hidden when viewing a post (single header) */}
+        {!postDetailOpen && (
+        <div className="bg-[#F1EFE7] px-4 py-2.5 flex-shrink-0 flex items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <button
+                onClick={onBack}
+                className="w-8 h-8 flex items-center justify-center -ml-2 shrink-0"
+              >
+                <ChevronLeft className="w-6 h-6 text-[#27251f]" />
+              </button>
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                style={{ backgroundColor: squadColor + '20' }}
+              >
+                {squad.avatar_url ? (
+                  <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-base font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <h1 
+                className="text-lg flex-1 min-w-0 truncate"
+                style={{ fontWeight: 600, color: '#27251f' }}
+              >
+                {squad.name}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <UsersIcon className="w-3.5 h-3.5 text-[#787771]" />
+              <p className="text-xs text-[#787771]">
+                {squad.member_count || 0} members
+              </p>
+              {!isJoined && !isCreator && (
+                <button 
+                  onClick={handleJoinSquad}
+                  disabled={joining}
+                  className="ml-auto py-1.5 px-3 bg-[#d47455] text-white rounded-lg text-xs active:scale-95 transition-transform flex items-center gap-1.5 disabled:opacity-50"
+                  style={{ fontWeight: 600 }}
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  {joining ? 'Joining...' : 'Join'}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 self-center">
+            {(isJoined || isCreator) && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSquadFeedNewPostOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#d47455] text-[#d47455] text-xs active:scale-95 transition-transform hover:bg-[#d4745510]"
+                  style={{ fontWeight: 600 }}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Post
+                </button>
+                <button
+                  onClick={handleOpenChat}
+                  disabled={!squad.conversation_id}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-[#d47455] text-white rounded-lg text-xs active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ fontWeight: 600 }}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Chat
+                </button>
+              </>
+            )}
             <button
               onClick={() => setShowInfoMenu(true)}
-              className="w-8 h-8 flex items-center justify-center"
+              className="w-8 h-8 flex items-center justify-center shrink-0"
+              aria-label="Squad info"
             >
               <MoreVertical className="w-5 h-5 text-[#27251f]" />
             </button>
           </div>
-          <div className="flex items-center gap-2 mb-4">
-            <UsersIcon className="w-4 h-4 text-[#787771]" />
-            <p 
-              className="text-sm"
-              style={{ color: '#787771' }}
-            >
-              {squad.member_count || 0} members
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {isJoined && (
-              <button 
-                onClick={handleOpenChat}
-                disabled={!squad.conversation_id}
-                className="flex-1 py-2.5 bg-[#d47455] text-white rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ fontWeight: 600 }}
-              >
-                <MessageCircle className="w-4 h-4" />
-                Open Chat
-              </button>
-            )}
-            {!isJoined && !isCreator && (
-              <button 
-                onClick={handleJoinSquad}
-                disabled={joining}
-                className="flex-1 py-2.5 bg-[#d47455] text-white rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ fontWeight: 600 }}
-              >
-                <UserPlus className="w-4 h-4" />
-                {joining ? 'Joining...' : 'Join Squad'}
-              </button>
-            )}
-          </div>
         </div>
+        )}
 
         {/* Info Menu Overlay */}
         {showInfoMenu && (
@@ -545,6 +603,14 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
 
             {/* About Section */}
             <div className="px-4 py-4 border-b border-[#e7ded1]">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarFileSelect}
+                className="hidden"
+                aria-hidden
+              />
               <div className="flex items-center justify-between mb-3">
                 <h3 
                   className="text-base"
@@ -561,6 +627,31 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   >
                     <Pencil className="w-4 h-4" />
                     Edit
+                  </button>
+                )}
+              </div>
+              {/* Squad avatar: show in view mode; in edit mode show + Change photo */}
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden bg-[#f5f3eb] shrink-0"
+                  style={{ backgroundColor: squadColor + '20' }}
+                >
+                  {editAvatarPreview ? (
+                    <img src={editAvatarPreview} alt="" className="w-full h-full object-cover" />
+                  ) : squad.avatar_url ? (
+                    <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                {isEditingSquad && (
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="text-sm text-[#d47455] hover:text-[#c06545]"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Change photo
                   </button>
                 )}
               </div>
@@ -981,89 +1072,101 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
           </div>
         )}
 
-        {/* Mobile Content - Empty state for now (feed removed) */}
-        <div className="flex-1 overflow-y-auto bg-[#FBF9F5]">
-          <div className="p-4">
-            <div className="bg-white rounded-2xl p-6 text-center">
-              <MessageCircle className="w-12 h-12 text-[#787771] mx-auto mb-3" />
-              <p 
-                className="text-base mb-2"
-                style={{ fontWeight: 600, color: '#27251f' }}
-              >
-                Squad Feed Coming Soon
-              </p>
-              <p 
-                className="text-sm"
-                style={{ color: '#787771' }}
-              >
-                Use the chat to communicate with squad members
-              </p>
-            </div>
-          </div>
+        {/* Mobile Content - Squad feed */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-[#FBF9F5]">
+          <HomeFeed
+            embedded
+            squadId={squad.id}
+            squadName="Feed"
+            userId={user?.id}
+            publicName={propsPublicName ?? user?.user_metadata?.public_name ?? user?.email ?? 'You'}
+            userAvatarUrl={propsUserAvatarUrl ?? null}
+            newPostModalOpen={squadFeedNewPostOpen}
+            onNewPostModalOpenChange={setSquadFeedNewPostOpen}
+            onPostDetailChange={setPostDetailOpen}
+            embedHeaderTitle={squad.name}
+            feedRefreshKey={squadFeedRefreshKey}
+            onNewPostSuccess={() => setSquadFeedRefreshKey((k) => k + 1)}
+            initialPostId={initialFeedPostId}
+            onPostChange={onFeedPostChange}
+          />
         </div>
       </div>
 
       {/* Desktop View - Keep existing design */}
       <div className="hidden md:block h-full overflow-hidden flex flex-col"  >
-        {/* Squad Header */}
-        <div className="bg-[#fefefc] border-b border-[#e7ded1] px-8 py-6">
+        {/* Squad Header - hidden when viewing a post (single header) */}
+        {!postDetailOpen && (
+        <div className="bg-[#fefefc] border-b border-[#e7ded1] px-6 py-4">
           <button 
             onClick={onBack}
-            className="text-[13px] text-[#787771] hover:text-[#27251f] mb-4 bg-transparent border-0 cursor-pointer"
+            className="text-[13px] text-[#787771] hover:text-[#27251f] mb-2 bg-transparent border-0 cursor-pointer"
           >
             ← Back to Squads
           </button>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
               {/* Squad Image Bubble */}
               <div 
-                className="w-20 h-20 rounded-full bg-[#f8f6f0] border-2 border-[#e7ded1] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#d9d2c5] transition-colors"
-                style={{ backgroundColor: squad.color + '20' }}
+                className="w-12 h-12 rounded-full bg-[#f8f6f0] border-2 border-[#e7ded1] flex items-center justify-center flex-shrink-0 overflow-hidden hover:border-[#d9d2c5] transition-colors"
+                style={{ backgroundColor: squadColor + '20' }}
               >
-                <Image className="w-8 h-8 text-[#787771]" />
+                {squad.avatar_url ? (
+                  <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-lg font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
+                )}
               </div>
-              
-              <div>
+              <div className="min-w-0">
                 <h1 
-                  className="text-[32px] text-[#27251f] mb-2"
+                  className="text-xl text-[#27251f] truncate"
                   style={{ fontWeight: 600, lineHeight: 1.2 }}
                 >
                   {squad.name}
                 </h1>
-                <p 
-                  className="text-[16px] text-[#787771]"
-                >
+                <p className="text-sm text-[#787771]">
                   {squad.member_count || 0} members
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {isJoined && (
-                <button 
-                  onClick={handleOpenChat}
-                  disabled={!squad.conversation_id}
-                  className="px-4 py-2.5 bg-white border border-[#e7ded1] text-[#27251f] rounded-lg text-[14px] hover:bg-[#fefefc] hover:border-[#d9d2c5] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontWeight: 600 }}
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Open Chat
-                </button>
+            <div className="flex items-center gap-2 flex-shrink-0 self-center">
+              {(isJoined || isCreator) && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSquadFeedNewPostOpen(true)}
+                    className="px-3 py-2 bg-white border border-[#e7ded1] text-[#27251f] rounded-lg text-[13px] hover:bg-[#fefefc] hover:border-[#d9d2c5] transition-colors flex items-center gap-1.5"
+                    style={{ fontWeight: 600 }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Post
+                  </button>
+                  <button 
+                    onClick={handleOpenChat}
+                    disabled={!squad.conversation_id}
+                    className="px-3 py-2 bg-white border border-[#e7ded1] text-[#27251f] rounded-lg text-[13px] hover:bg-[#fefefc] hover:border-[#d9d2c5] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontWeight: 600 }}
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Chat
+                  </button>
+                </div>
               )}
               {!isJoined && !isCreator && (
                 <button 
                   onClick={handleJoinSquad}
                   disabled={joining}
-                  className="px-4 py-2.5 bg-[#d97757] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-3 py-2 bg-[#d97757] text-white rounded-lg text-[13px] hover:bg-[#c06545] transition-colors flex items-center gap-1.5 disabled:opacity-50"
                   style={{ fontWeight: 600 }}
                 >
-                  <UserPlus className="w-4 h-4" />
+                  <UserPlus className="w-3.5 h-3.5" />
                   {joining ? 'Joining...' : 'Join Squad'}
                 </button>
               )}
               {isAdmin && (
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="px-4 py-2.5 border rounded-lg text-[14px] transition-colors flex items-center gap-2"
+                  className="px-3 py-2 border rounded-lg text-[13px] transition-colors flex items-center gap-1.5"
                   style={{ 
                     fontWeight: 600,
                     backgroundColor: '#dc2626',
@@ -1071,34 +1174,36 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                     color: 'white'
                   }}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                   Delete Squad
                 </button>
               )}
             </div>
           </div>
         </div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden flex bg-[#fefefc]">
-          {/* Left Column - Feed */}
-          <div className="flex-1 overflow-y-auto px-8 py-6 relative">
-            <div className="max-w-3xl">
-              {/* Feed - Empty state for now */}
-              <div className="bg-white border border-[#e7ded1] rounded-lg p-8 text-center">
-                <MessageCircle className="w-16 h-16 text-[#787771] mx-auto mb-4" />
-                <h3 
-                  className="text-[18px] mb-2"
-                  style={{ fontWeight: 600, color: '#27251f' }}
-                >
-                  Squad Feed Coming Soon
-                </h3>
-                <p 
-                  className="text-[14px] text-[#787771]"
-                >
-                  Use the chat to communicate with squad members
-                </p>
-              </div>
+          {/* Left Column - Squad feed */}
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-8 py-6">
+            <div className="max-w-3xl flex-1 min-h-0 flex flex-col overflow-hidden">
+              <HomeFeed
+                embedded
+                squadId={squad.id}
+                squadName="Feed"
+                userId={user?.id}
+                publicName={propsPublicName ?? user?.user_metadata?.public_name ?? user?.email ?? 'You'}
+                userAvatarUrl={propsUserAvatarUrl ?? null}
+                newPostModalOpen={squadFeedNewPostOpen}
+                onNewPostModalOpenChange={setSquadFeedNewPostOpen}
+                onPostDetailChange={setPostDetailOpen}
+                embedHeaderTitle={squad.name}
+                feedRefreshKey={squadFeedRefreshKey}
+                onNewPostSuccess={() => setSquadFeedRefreshKey((k) => k + 1)}
+                initialPostId={initialFeedPostId}
+                onPostChange={onFeedPostChange}
+              />
             </div>
           </div>
 
@@ -1122,6 +1227,31 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat }: SquadDetailPage
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edit
+                  </button>
+                )}
+              </div>
+              {/* Squad avatar */}
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden bg-[#f5f3eb] shrink-0"
+                  style={{ backgroundColor: squadColor + '20' }}
+                >
+                  {editAvatarPreview ? (
+                    <img src={editAvatarPreview} alt="" className="w-full h-full object-cover" />
+                  ) : squad.avatar_url ? (
+                    <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                {isEditingSquad && (
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="text-[13px] text-[#d47455] hover:text-[#c06545]"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Change photo
                   </button>
                 )}
               </div>

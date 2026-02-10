@@ -15,6 +15,7 @@ export interface FeedPostRow {
   url: string | null;
   created_at: string;
   updated_at: string;
+  override_author_name?: string | null;
 }
 
 export interface ProfileRow {
@@ -32,6 +33,10 @@ export interface FeedPostWithAuthor extends FeedPostRow {
   current_user_pinned?: boolean;
   poll_options?: FeedPollOptionWithVotes[];
   current_user_vote_option_id?: string | null;
+  /** When source_type is 'squad', the squad's display name for the tag. */
+  source_name?: string | null;
+  /** When source_type is 'squad', true if the post author is an admin of that squad. */
+  is_squad_admin?: boolean;
 }
 
 export interface FeedPollOptionRow {
@@ -75,6 +80,18 @@ function displayName(profile: ProfileRow | null | undefined): string {
   return profile.public_name?.trim() || profile.full_name?.trim() || 'Unknown';
 }
 
+/** Display name for a post: uses override_author_name when set, otherwise author profile. */
+function postAuthorName(post: FeedPostRow & { author?: ProfileRow | null }): string {
+  if (post.override_author_name?.trim()) return post.override_author_name.trim();
+  return displayName(post.author);
+}
+
+/** Initials for post author: uses override_author_name when set, otherwise author profile. */
+function postInitials(post: FeedPostRow & { author?: ProfileRow | null }): string {
+  if (post.override_author_name?.trim()) return post.override_author_name.trim().slice(0, 2).toUpperCase();
+  return initials(post.author);
+}
+
 function initials(profile: ProfileRow | null | undefined): string {
   const name = displayName(profile);
   if (name === 'Unknown') return '?';
@@ -96,15 +113,18 @@ function timeAgo(iso: string): string {
 
 export const FeedService = {
   displayName,
+  postAuthorName,
+  postInitials,
   initials,
   avatarColor,
   timeAgo,
 
   async listPosts(userId: string | undefined): Promise<FeedPostWithAuthor[]> {
-    // Newer posts first (above older posts)
+    // Home feed: only user posts (no squad posts)
     const { data: rows, error } = await supabase
       .from('feed_posts')
       .select('*')
+      .eq('source_type', 'user')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -156,6 +176,13 @@ export const FeedService = {
       optionsByPost.set(o.post_id, list);
     });
 
+    const squadIds = [...new Set((rows as FeedPostRow[]).filter((p) => p.source_type === 'squad' && p.source_id).map((p) => p.source_id!))];
+    let squadNameById = new Map<string, string>();
+    if (squadIds.length > 0) {
+      const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds);
+      (squads || []).forEach((s: { id: string; name: string }) => squadNameById.set(s.id, s.name || ''));
+    }
+
     const mapped = (rows as FeedPostRow[]).map((p) => ({
       ...p,
       author: profileMap.get(p.author_id) ?? null,
@@ -165,9 +192,96 @@ export const FeedService = {
       current_user_pinned: userPinnedSet.has(p.id),
       poll_options: p.post_type === 'poll' ? (optionsByPost.get(p.id) || []) : undefined,
       current_user_vote_option_id: userVoteByPost[p.id] || null,
+      source_name: p.source_type === 'squad' && p.source_id ? (squadNameById.get(p.source_id) ?? null) : null,
     }));
 
     // Sort: pinned first, then newest above older (created_at descending)
+    return mapped.sort((a, b) => {
+      const aPinned = a.current_user_pinned ? 1 : 0;
+      const bPinned = b.current_user_pinned ? 1 : 0;
+      if (bPinned !== aPinned) return bPinned - aPinned;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  },
+
+  /** List feed posts for a single squad (source_type = 'squad', source_id = squadId). Same shape and logic as listPosts. */
+  async listPostsForSquad(squadId: string, userId: string | undefined): Promise<FeedPostWithAuthor[]> {
+    const { data: rows, error } = await supabase
+      .from('feed_posts')
+      .select('*')
+      .eq('source_type', 'squad')
+      .eq('source_id', squadId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!rows?.length) return [];
+
+    const authorIds = [...new Set((rows as FeedPostRow[]).map((p) => p.author_id))];
+    const [profilesRes, heartsRes, repliesRes, userPinsRes] = await Promise.all([
+      supabase.from('profiles').select('id, public_name, full_name, avatar_url').in('id', authorIds),
+      supabase.from('feed_hearts').select('post_id').not('post_id', 'is', null),
+      supabase.from('feed_replies').select('post_id'),
+      userId ? supabase.from('feed_user_pins').select('post_id').eq('user_id', userId) : Promise.resolve({ data: [] }),
+    ]);
+
+    const profileMap = new Map<string, ProfileRow>();
+    (profilesRes.data || []).forEach((p: ProfileRow) => profileMap.set(p.id, p));
+
+    const heartCountByPost = new Map<string, number>();
+    (heartsRes.data || []).forEach((h: { post_id: string }) => heartCountByPost.set(h.post_id, (heartCountByPost.get(h.post_id) || 0) + 1));
+    const replyCountByPost = new Map<string, number>();
+    (repliesRes.data || []).forEach((r: { post_id: string }) => replyCountByPost.set(r.post_id, (replyCountByPost.get(r.post_id) || 0) + 1));
+
+    const userPinnedSet = new Set((userPinsRes.data || []).map((row: { post_id: string }) => row.post_id));
+
+    let userHearts: { post_id: string }[] = [];
+    if (userId) {
+      const { data: uh } = await supabase.from('feed_hearts').select('post_id').eq('user_id', userId).not('post_id', 'is', null);
+      userHearts = uh || [];
+    }
+    const userHeartedSet = new Set(userHearts.map((h) => h.post_id));
+
+    const pollPostIds = (rows as FeedPostRow[]).filter((p) => p.post_type === 'poll').map((p) => p.id);
+    let options: FeedPollOptionRow[] = [];
+    let voteCountByOption: Record<string, number> = {};
+    let userVoteByPost: Record<string, string> = {};
+    if (pollPostIds.length > 0) {
+      const { data: optRows } = await supabase.from('feed_poll_options').select('*').in('post_id', pollPostIds).order('sort_order');
+      options = (optRows || []) as FeedPollOptionRow[];
+      const optionIds = options.map((o) => o.id);
+      const { data: votes } = await supabase.from('feed_poll_votes').select('option_id, post_id, user_id');
+      (votes || []).forEach((v: { option_id: string; post_id: string; user_id: string }) => {
+        voteCountByOption[v.option_id] = (voteCountByOption[v.option_id] || 0) + 1;
+        if (v.user_id === userId) userVoteByPost[v.post_id] = v.option_id;
+      });
+    }
+    const optionsByPost = new Map<string, FeedPollOptionWithVotes[]>();
+    options.forEach((o) => {
+      const list = optionsByPost.get(o.post_id) || [];
+      list.push({ ...o, vote_count: voteCountByOption[o.id] || 0 });
+      optionsByPost.set(o.post_id, list);
+    });
+
+    let squadName: string | null = null;
+    const { data: squadRow } = await supabase.from('squads').select('name').eq('id', squadId).maybeSingle();
+    if (squadRow && (squadRow as { name?: string }).name) squadName = (squadRow as { name: string }).name;
+
+    const { data: adminRows } = await supabase.from('squad_members').select('user_id').eq('squad_id', squadId).eq('role', 'admin');
+    const squadAdminIds = new Set((adminRows || []).map((r: { user_id: string }) => r.user_id));
+
+    const mapped = (rows as FeedPostRow[]).map((p) => ({
+      ...p,
+      author: profileMap.get(p.author_id) ?? null,
+      heart_count: heartCountByPost.get(p.id) || 0,
+      reply_count: replyCountByPost.get(p.id) || 0,
+      current_user_hearted: userHeartedSet.has(p.id),
+      current_user_pinned: userPinnedSet.has(p.id),
+      poll_options: p.post_type === 'poll' ? (optionsByPost.get(p.id) || []) : undefined,
+      current_user_vote_option_id: userVoteByPost[p.id] || null,
+      source_name: squadName,
+      is_squad_admin: squadAdminIds.has(p.author_id),
+    }));
+
     return mapped.sort((a, b) => {
       const aPinned = a.current_user_pinned ? 1 : 0;
       const bPinned = b.current_user_pinned ? 1 : 0;
@@ -209,8 +323,20 @@ export const FeedService = {
       (votes || []).forEach((v: { option_id: string }) => { voteCountByOption[v.option_id] = (voteCountByOption[v.option_id] || 0) + 1; });
     }
 
+    const row = post as FeedPostRow;
+    let source_name: string | null = null;
+    let is_squad_admin = false;
+    if (row.source_type === 'squad' && row.source_id) {
+      const [{ data: squadRow }, { data: memberRow }] = await Promise.all([
+        supabase.from('squads').select('name').eq('id', row.source_id).maybeSingle(),
+        supabase.from('squad_members').select('role').eq('squad_id', row.source_id).eq('user_id', row.author_id).maybeSingle(),
+      ]);
+      if (squadRow && (squadRow as { name?: string }).name) source_name = (squadRow as { name: string }).name;
+      if (memberRow && (memberRow as { role?: string }).role === 'admin') is_squad_admin = true;
+    }
+
     return {
-      ...(post as FeedPostRow),
+      ...row,
       author: (profileRes.data as ProfileRow) ?? null,
       heart_count: (heartsRes.data || []).length,
       reply_count: (repliesRes.data || []).length,
@@ -218,6 +344,8 @@ export const FeedService = {
       current_user_pinned: currentUserPinned,
       poll_options: optionRows.map((o) => ({ ...o, vote_count: voteCountByOption[o.id] || 0 })),
       current_user_vote_option_id: userVoteOptionId,
+      source_name,
+      is_squad_admin,
     };
   },
 
@@ -230,12 +358,19 @@ export const FeedService = {
     content?: string | null;
     image_path?: string | null;
     url?: string | null;
+    override_author_name?: string | null;
     poll_options?: { option_text: string; sort_order: number }[];
   }): Promise<FeedPostRow> {
-    const { poll_options, ...rest } = params;
+    const { poll_options, override_author_name, ...rest } = params;
     const { data: post, error } = await supabase
       .from('feed_posts')
-      .insert({ ...rest, content: rest.content ?? null, image_path: rest.image_path ?? null, url: rest.url ?? null })
+      .insert({
+        ...rest,
+        content: rest.content ?? null,
+        image_path: rest.image_path ?? null,
+        url: rest.url ?? null,
+        override_author_name: override_author_name ?? null,
+      })
       .select()
       .single();
     if (error) throw error;
@@ -243,6 +378,19 @@ export const FeedService = {
       await supabase.from('feed_poll_options').insert(poll_options.map((o, i) => ({ post_id: post.id, option_text: o.option_text, sort_order: i })));
     }
     return post as FeedPostRow;
+  },
+
+  /** Create the default welcome post for a new squad (displayed as Quadly). Call after squad creation. */
+  async createSquadWelcomePost(squadId: string, authorId: string): Promise<FeedPostRow> {
+    return this.createPost({
+      author_id: authorId,
+      source_type: 'squad',
+      source_id: squadId,
+      post_type: 'text_pic',
+      title: 'Welcome to your squad',
+      content: `Use the Feed here to share updates and posts with your squad. Use Chat to message everyone. Open the menu (⋮) for info, members, and documents.`,
+      override_author_name: 'Quadly',
+    });
   },
 
   async updatePost(postId: string, authorId: string, updates: { title?: string; content?: string | null; url?: string | null; image_path?: string | null }): Promise<void> {
@@ -358,5 +506,144 @@ export const FeedService = {
     if (error) throw error;
     const { data } = supabase.storage.from('feed-post-images').getPublicUrl(path);
     return data.publicUrl;
+  },
+
+  /** Subscribe to feed_posts changes. For home pass squadId=null (listens to user posts); for squad pass squadId. Callback is invoked so caller can refetch. */
+  subscribeToFeedPosts(
+    squadId: string | null,
+    onPostsChange: () => void
+  ): ReturnType<typeof supabase.channel> {
+    const channelName = squadId ? `feed-posts:squad:${squadId}` : 'feed-posts:home';
+    const config = squadId
+      ? { event: '*' as const, schema: 'public', table: 'feed_posts', filter: `source_id=eq.${squadId}` }
+      : { event: '*' as const, schema: 'public', table: 'feed_posts', filter: 'source_type=eq.user' };
+    return supabase
+      .channel(channelName)
+      .on('postgres_changes', config, () => onPostsChange())
+      .subscribe();
+  },
+
+  unsubscribeFromFeedPosts(channel: ReturnType<typeof supabase.channel>): void {
+    supabase.removeChannel(channel);
+  },
+
+  /** Subscribe to feed_replies for a post. Callback so caller can refetch replies. */
+  subscribeToFeedReplies(
+    postId: string,
+    onRepliesChange: () => void
+  ): ReturnType<typeof supabase.channel> {
+    return supabase
+      .channel(`feed-replies:${postId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'feed_replies', filter: `post_id=eq.${postId}` },
+        () => onRepliesChange()
+      )
+      .subscribe();
+  },
+
+  unsubscribeFromFeedReplies(channel: ReturnType<typeof supabase.channel>): void {
+    supabase.removeChannel(channel);
+  },
+
+  /** Subscribe to feed_hearts for a post; callback is throttled (default every 4s). Call returned .unsubscribe() on cleanup. */
+  subscribeToFeedHearts(
+    postId: string,
+    onHeartsChange: () => void,
+    options?: { throttleMs?: number }
+  ): { channel: ReturnType<typeof supabase.channel>; unsubscribe: () => void } {
+    const throttleMs = options?.throttleMs ?? 4000;
+    let lastCall = 0;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const throttled = () => {
+      const now = Date.now();
+      if (now - lastCall >= throttleMs) {
+        lastCall = now;
+        onHeartsChange();
+        return;
+      }
+      if (timeout == null) {
+        timeout = setTimeout(() => {
+          timeout = null;
+          lastCall = Date.now();
+          onHeartsChange();
+        }, throttleMs - (now - lastCall));
+      }
+    };
+    const channel = supabase
+      .channel(`feed-hearts:${postId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'feed_hearts', filter: `post_id=eq.${postId}` },
+        throttled
+      )
+      .subscribe();
+    return {
+      channel,
+      unsubscribe: () => {
+        if (timeout != null) clearTimeout(timeout);
+        supabase.removeChannel(channel);
+      },
+    };
+  },
+
+  /** Subscribe to feed_poll_options for a post (option text/order changes). Call unsubscribe on cleanup. */
+  subscribeToFeedPollOptions(
+    postId: string,
+    onPollOptionsChange: () => void
+  ): ReturnType<typeof supabase.channel> {
+    return supabase
+      .channel(`feed-poll-options:${postId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'feed_poll_options', filter: `post_id=eq.${postId}` },
+        () => onPollOptionsChange()
+      )
+      .subscribe();
+  },
+
+  unsubscribeFromFeedPollOptions(channel: ReturnType<typeof supabase.channel>): void {
+    supabase.removeChannel(channel);
+  },
+
+  /** Subscribe to feed_poll_votes for a post; callback is throttled (default every 4s). Call returned .unsubscribe() on cleanup. */
+  subscribeToFeedPollVotes(
+    postId: string,
+    onPollVotesChange: () => void,
+    options?: { throttleMs?: number }
+  ): { channel: ReturnType<typeof supabase.channel>; unsubscribe: () => void } {
+    const throttleMs = options?.throttleMs ?? 4000;
+    let lastCall = 0;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const throttled = () => {
+      const now = Date.now();
+      if (now - lastCall >= throttleMs) {
+        lastCall = now;
+        onPollVotesChange();
+        return;
+      }
+      if (timeout == null) {
+        timeout = setTimeout(() => {
+          timeout = null;
+          lastCall = Date.now();
+          onPollVotesChange();
+        }, throttleMs - (now - lastCall));
+      }
+    };
+    const channel = supabase
+      .channel(`feed-poll-votes:${postId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'feed_poll_votes', filter: `post_id=eq.${postId}` },
+        throttled
+      )
+      .subscribe();
+    return {
+      channel,
+      unsubscribe: () => {
+        if (timeout != null) clearTimeout(timeout);
+        supabase.removeChannel(channel);
+      },
+    };
   },
 };

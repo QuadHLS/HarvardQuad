@@ -1,12 +1,54 @@
 import { ChevronLeft, ChevronRight, Clock, MapPin, ChevronDown } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
-export function CalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isMonthExpanded, setIsMonthExpanded] = useState(true);
+/** Format date as YYYY-MM for month, YYYY-MM-DD for date. */
+function toYYYYMM(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+function toYYYYMMDD(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function parseMonth(ym: string): Date | null {
+  const [y, m] = ym.split('-').map(Number);
+  if (!y || !m || m < 1 || m > 12) return null;
+  return new Date(y, m - 1, 1);
+}
+function parseDate(ymd: string): Date | null {
+  const [y, m, day] = ymd.split('-').map(Number);
+  if (!y || !m || m < 1 || m > 12 || !day || day < 1) return null;
+  const d = new Date(y, m - 1, day);
+  if (isNaN(d.getTime())) return null;
+  // Reject rollover (e.g. Jan 32 -> Feb 1)
+  if (d.getDate() !== day || d.getMonth() !== m - 1 || d.getFullYear() !== y) return null;
+  return d;
+}
+
+interface CalendarPageProps {
+  /** Restore this month (YYYY-MM) when returning to the page. */
+  initialMonth?: string | null;
+  /** Restore this date (YYYY-MM-DD) when returning to the page. */
+  initialDate?: string | null;
+  /** Called when user changes month or selected date so parent can persist. */
+  onCalendarChange?: (month: string | null, date: string | null) => void;
+}
+
+export function CalendarPage({ initialMonth, initialDate, onCalendarChange }: CalendarPageProps = {}) {
   const today = new Date();
+  const initialCurrent = initialMonth ? parseMonth(initialMonth) : null;
+  const initialSelected = initialDate ? parseDate(initialDate) : null;
+  const [currentDate, setCurrentDate] = useState<Date>(() => initialCurrent || new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => initialSelected || new Date());
+  const [isMonthExpanded, setIsMonthExpanded] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const notifyChange = useCallback((current: Date, selected: Date) => {
+    onCalendarChange?.(toYYYYMM(current), toYYYYMMDD(selected));
+  }, [onCalendarChange]);
 
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
@@ -15,11 +57,15 @@ export function CalendarPage() {
                       'July', 'August', 'September', 'October', 'November', 'December'];
 
   const previousMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+    const next = new Date(currentYear, currentMonth - 1, 1);
+    setCurrentDate(next);
+    notifyChange(next, selectedDate);
   };
 
   const nextMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+    const next = new Date(currentYear, currentMonth + 1, 1);
+    setCurrentDate(next);
+    notifyChange(next, selectedDate);
   };
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -210,7 +256,10 @@ export function CalendarPage() {
                   <div key={index} className="flex items-center justify-center" style={{ height: '28px' }}>
                     {dayObj.day ? (
                       <button
-                        onClick={() => setSelectedDate(dayObj.date)}
+                        onClick={() => {
+                          setSelectedDate(dayObj.date);
+                          notifyChange(currentDate, dayObj.date);
+                        }}
                         className="w-6 h-6 flex items-center justify-center transition-all active:scale-95 rounded-full relative"
                       >
                         {/* Circle for today (outline) */}
@@ -266,7 +315,10 @@ export function CalendarPage() {
                 return (
                   <button
                     key={index}
-                    onClick={() => setSelectedDate(dayObj.date)}
+                    onClick={() => {
+                      setSelectedDate(dayObj.date);
+                      notifyChange(currentDate, dayObj.date);
+                    }}
                     className={`flex-1 rounded-lg py-1.5 px-1 transition-all ${
                       isSelectedWeekDay
                         ? 'bg-[#d47455]'
