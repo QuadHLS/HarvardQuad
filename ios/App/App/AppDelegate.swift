@@ -8,6 +8,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        DispatchQueue.main.async { [weak self] in
+            self?.configureBridgeWebViewGestures()
+        }
         return true
     }
 
@@ -27,6 +30,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        configureBridgeWebViewGestures()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
@@ -46,4 +50,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+    private func configureBridgeWebViewGestures() {
+        guard let bridgeViewController = findBridgeViewController(from: window?.rootViewController) else {
+            return
+        }
+        // Keep native browser history swipe disabled globally; app-level swipe-back is
+        // intentionally enabled only on screens that expose an explicit back affordance.
+        bridgeViewController.webView?.allowsBackForwardNavigationGestures = false
+    }
+
+    private func findBridgeViewController(from root: UIViewController?) -> CAPBridgeViewController? {
+        guard let root else { return nil }
+        if let bridge = root as? CAPBridgeViewController {
+            return bridge
+        }
+        if let nav = root as? UINavigationController {
+            for vc in nav.viewControllers {
+                if let bridge = findBridgeViewController(from: vc) {
+                    return bridge
+                }
+            }
+        }
+        if let tab = root as? UITabBarController {
+            for vc in tab.viewControllers ?? [] {
+                if let bridge = findBridgeViewController(from: vc) {
+                    return bridge
+                }
+            }
+        }
+        if let presented = root.presentedViewController {
+            if let bridge = findBridgeViewController(from: presented) {
+                return bridge
+            }
+        }
+        for child in root.children {
+            if let bridge = findBridgeViewController(from: child) {
+                return bridge
+            }
+        }
+        return nil
+    }
 }

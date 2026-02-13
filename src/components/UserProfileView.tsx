@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Mail, Phone, MapPin, Calendar, Book, ChevronLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { isValidSocialUrl, normalizeSocialUrl } from '../lib/urlUtils';
+import { SwipeBackContainer } from './ui/SwipeBackContainer';
 
 interface ProfileData {
   full_name: string | null;
@@ -167,7 +168,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
   }
 
   return (
-    <div className="h-full min-h-full w-full md:hidden" style={PROFILE_PAGE_BACKGROUND}>
+    <SwipeBackContainer onBack={onBack} className="h-full min-h-full w-full md:hidden" style={PROFILE_PAGE_BACKGROUND}>
       {/* Mobile View - v2 iOS-native premium design */}
       <div
         className="min-h-full overflow-y-auto"
@@ -410,6 +411,6 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
           </section>
         </div>
       </div>
-    </div>
+    </SwipeBackContainer>
   );
 }

@@ -5,6 +5,7 @@ import { MessagingService } from '../services/messagingService';
 import { useAuth } from '../contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { HomeFeed } from './HomeFeed';
+import { SwipeBackContainer } from './ui/SwipeBackContainer';
 
 type InviteSearchResult = { id: string; email: string; full_name: string | null };
 
@@ -366,7 +367,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
 
   if (loadError && !squad) {
     return (
-      <div className="min-h-[60vh] h-full flex flex-col items-center justify-center bg-[#FBF9F5] pt-[18vh] px-4 gap-4">
+      <SwipeBackContainer onBack={onBack} className="min-h-[60vh] h-full flex flex-col items-center justify-center bg-[#FBF9F5] pt-[18vh] px-4 gap-4">
         <p className="text-[#27251f] text-center" >
           Could not load squad. It may have been deleted or you may not have access.
         </p>
@@ -378,7 +379,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
         >
           Go back
         </button>
-      </div>
+      </SwipeBackContainer>
     );
   }
 
@@ -433,7 +434,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
   };
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]" >
+    <SwipeBackContainer onBack={onBack} className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]">
       <input
         ref={fileInputRef}
         type="file"
@@ -1608,6 +1609,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
           </div>
         </div>
       </div>
-    </div>
+    </SwipeBackContainer>
   );
 }

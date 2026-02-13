@@ -15,26 +15,71 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_CACHE_KEY = 'hqAuthSnapshotV1';
+
+interface CachedAuthSnapshot {
+  user: User | null;
+  session: Session | null;
+  cachedAt: number;
+}
+
+function readCachedAuth(): CachedAuthSnapshot | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(AUTH_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedAuthSnapshot;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedAuth(session: Session | null, user: User | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!session || !user) {
+      localStorage.removeItem(AUTH_CACHE_KEY);
+      return;
+    }
+    const snapshot: CachedAuthSnapshot = {
+      session,
+      user,
+      cachedAt: Date.now(),
+    };
+    localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // Ignore localStorage write failures.
+  }
+}
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedAuth = readCachedAuth();
+  const [user, setUser] = useState<User | null>(cachedAuth?.user ?? null);
+  const [session, setSession] = useState<Session | null>(cachedAuth?.session ?? null);
+  const [loading, setLoading] = useState(!cachedAuth);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      setSession(session ?? null);
+      setUser(nextUser);
+      writeCachedAuth(session ?? null, nextUser);
+      setLoading(false);
+    });
+
+    // Revalidate session from Supabase in background; cached values keep UI responsive.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const nextUser = session?.user ?? null;
+      setSession(session ?? null);
+      setUser(nextUser);
+      writeCachedAuth(session ?? null, nextUser);
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
@@ -50,6 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (data.session) {
       setSession(data.session);
       setUser(data.session.user);
+      writeCachedAuth(data.session, data.session.user);
     }
     
     return { error };
@@ -64,6 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (data.session) {
       setSession(data.session);
       setUser(data.session.user);
+      writeCachedAuth(data.session, data.session.user);
     }
     
     return { error };
@@ -78,6 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!error || isSessionMissing) {
         setSession(null);
         setUser(null);
+        writeCachedAuth(null, null);
         return { error: null };
       }
       return { error };
@@ -89,6 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (isSessionMissing) {
         setSession(null);
         setUser(null);
+        writeCachedAuth(null, null);
         return { error: null };
       }
       return { error: e as AuthError };

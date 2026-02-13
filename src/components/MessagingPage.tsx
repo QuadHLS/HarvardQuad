@@ -8,6 +8,7 @@ import { Button } from './ui/button';
 import { UserProfileView } from './UserProfileView';
 import { TypingIndicator } from './TypingIndicator';
 import { supabase } from '../lib/supabase';
+import { SwipeBackContainer } from './ui/SwipeBackContainer';
 
 interface MessagingPageProps {
   /** Restore this conversation when returning to the page (from URL/sessionStorage). */
@@ -657,6 +658,12 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
   >([]);
   const [showEditMembers, setShowEditMembers] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleBackFromConversation = useCallback(() => {
+    if (onBackToSquad?.()) return;
+    setSelectedConversation(null);
+    onConversationChange?.(null);
+  }, [onBackToSquad, onConversationChange]);
   const [editGroupName, setEditGroupName] = useState('');
   const [isEditingGroupName, setIsEditingGroupName] = useState(false);
   const [groupNameLoading, setGroupNameLoading] = useState(false);
@@ -1822,19 +1829,24 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
             </div>
           </>
         ) : (
-          /* Chat View - Fixed position sitting above nav bar */
-          <div 
+          /* Chat View - Fixed position sitting above nav bar.
+             Add safe-area top padding so header doesn't overlap iPhone status bar / Dynamic Island. */
+          <SwipeBackContainer
             className="fixed left-0 right-0 top-0 flex flex-col bg-[#fbf8f7] z-[55]"
             style={{ bottom: '76px' }}
+            onBack={handleBackFromConversation}
           >
-            <div className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10">
+            <div
+              className="bg-white border-b border-[#e7ded1] px-4 py-3 flex-shrink-0 z-10"
+              style={{
+                // On iOS, env(safe-area-inset-top) accounts for status bar / Dynamic Island.
+                // On other platforms this resolves to 0.
+                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
+              }}
+            >
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => {
-                    if (onBackToSquad?.()) return;
-                    setSelectedConversation(null);
-                    onConversationChange?.(null);
-                  }}
+                  onClick={handleBackFromConversation}
                   className="w-8 h-8 flex items-center justify-center -ml-2"
                 >
                   <ChevronLeft className="w-6 h-6 text-[#27251f]" />
@@ -2643,7 +2655,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                 </>
               )}
             </div>
-          </div>
+          </SwipeBackContainer>
         )}
       </div>
       )}

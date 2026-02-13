@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { Menu, Search, Calendar as CalendarIcon, Bell, MessageCircle, LayoutDashboard, Briefcase, Store, HomeIcon as HouseIcon, BookOpen, Users } from 'lucide-react';
 import { MessagingPage } from './components/MessagingPage';
 import { CoursePage } from './components/CoursePage';
@@ -21,6 +21,7 @@ import { supabase } from './lib/supabase';
 // nativeBrowser is dynamically imported in the appUrlOpen handler below
 
 type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
+type KeepAliveView = 'dashboard' | 'messaging' | 'profile' | 'classes' | 'squads' | 'calendar';
 
 interface ProfileData {
   full_name: string | null;
@@ -33,6 +34,29 @@ interface ProfileData {
   avatar_url: string | null;
   onboarding_completed?: boolean | null;
 }
+
+interface AppSnapshot {
+  view: ViewState;
+  course: string;
+  squad: string;
+  previous: ViewState;
+  conversation: string;
+  post: string;
+  classesTab: string;
+  squadPost: string;
+  calendarMonth: string;
+  calendarDate: string;
+  updatedAt: number;
+}
+
+interface CachedProfile {
+  profile: ProfileData;
+  cachedAt: number;
+}
+
+const APP_SNAPSHOT_KEY = 'hqAppSnapshotV1';
+const PROFILE_CACHE_KEY = 'hqProfileCacheV1';
+const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -64,17 +88,29 @@ export default function App() {
         calendarDate: '',
       };
     }
+    let snapshot: Partial<AppSnapshot> = {};
+    try {
+      const raw = localStorage.getItem(APP_SNAPSHOT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<AppSnapshot>;
+        if (parsed && typeof parsed === 'object') {
+          snapshot = parsed;
+        }
+      }
+    } catch {
+      // Ignore corrupt cache.
+    }
     const params = new URLSearchParams(window.location.search);
-    const view = params.get('view') || sessionStorage.getItem('currentView') || 'dashboard';
-    const course = params.get('course') || sessionStorage.getItem('selectedCourse') || '';
-    const squad = params.get('squad') || sessionStorage.getItem('selectedSquad') || '';
-    const previous = params.get('previous') || sessionStorage.getItem('previousView') || 'dashboard';
-    const conversation = params.get('conversation') || sessionStorage.getItem(SUBPAGE_KEYS.conversation) || sessionStorage.getItem('selectedConversationId') || '';
-    const post = params.get('post') || sessionStorage.getItem(SUBPAGE_KEYS.post) || '';
-    const classesTab = params.get('classesTab') || sessionStorage.getItem(SUBPAGE_KEYS.classesTab) || 'overview';
-    const squadPost = params.get('squadPost') || sessionStorage.getItem(SUBPAGE_KEYS.squadPost) || '';
-    const calendarMonth = params.get('calendarMonth') || sessionStorage.getItem(SUBPAGE_KEYS.calendarMonth) || '';
-    const calendarDate = params.get('calendarDate') || sessionStorage.getItem(SUBPAGE_KEYS.calendarDate) || '';
+    const view = params.get('view') || sessionStorage.getItem('currentView') || snapshot.view || 'dashboard';
+    const course = params.get('course') || sessionStorage.getItem('selectedCourse') || snapshot.course || '';
+    const squad = params.get('squad') || sessionStorage.getItem('selectedSquad') || snapshot.squad || '';
+    const previous = params.get('previous') || sessionStorage.getItem('previousView') || snapshot.previous || 'dashboard';
+    const conversation = params.get('conversation') || sessionStorage.getItem(SUBPAGE_KEYS.conversation) || sessionStorage.getItem('selectedConversationId') || snapshot.conversation || '';
+    const post = params.get('post') || sessionStorage.getItem(SUBPAGE_KEYS.post) || snapshot.post || '';
+    const classesTab = params.get('classesTab') || sessionStorage.getItem(SUBPAGE_KEYS.classesTab) || snapshot.classesTab || 'overview';
+    const squadPost = params.get('squadPost') || sessionStorage.getItem(SUBPAGE_KEYS.squadPost) || snapshot.squadPost || '';
+    const calendarMonth = params.get('calendarMonth') || sessionStorage.getItem(SUBPAGE_KEYS.calendarMonth) || snapshot.calendarMonth || '';
+    const calendarDate = params.get('calendarDate') || sessionStorage.getItem(SUBPAGE_KEYS.calendarDate) || snapshot.calendarDate || '';
     const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
     const validClassesTabs = ['overview', 'schedule', 'assignments'];
     return {
@@ -102,13 +138,35 @@ export default function App() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [previousView, setPreviousView] = useState<ViewState>(initialState.previous);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [profile, setProfile] = useState<ProfileData | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as CachedProfile;
+      if (!parsed?.profile || typeof parsed.cachedAt !== 'number') return null;
+      return Date.now() - parsed.cachedAt <= PROFILE_CACHE_TTL_MS ? parsed.profile : null;
+    } catch {
+      return null;
+    }
+  });
+  const [profileLoading, setProfileLoading] = useState(profile === null);
+  const hasCachedProfileRef = useRef(profile !== null);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
   const [isMessageInputFocused, setIsMessageInputFocused] = useState(false);
   const [isFeedInputFocused, setIsFeedInputFocused] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const bottomNavRef = useRef<HTMLDivElement | null>(null);
+  const keepAliveViews: KeepAliveView[] = ['dashboard', 'messaging', 'profile', 'classes', 'squads', 'calendar'];
+  const [mountedKeepAliveViews, setMountedKeepAliveViews] = useState<Record<KeepAliveView, boolean>>({
+    dashboard: initialState.view === 'dashboard',
+    messaging: initialState.view === 'messaging',
+    profile: initialState.view === 'profile',
+    classes: initialState.view === 'classes',
+    squads: initialState.view === 'squads',
+    calendar: initialState.view === 'calendar',
+  });
 
   // Ref to keep full height when keyboard is open (any input focused)
   const lastFullHeightRef = useRef<number>(
@@ -264,11 +322,105 @@ export default function App() {
         else sessionStorage.removeItem(SUBPAGE_KEYS.calendarDate);
       }
     }
+    try {
+      let existingSnapshot: Partial<AppSnapshot> = {};
+      const rawSnapshot = localStorage.getItem(APP_SNAPSHOT_KEY);
+      if (rawSnapshot) {
+        const parsed = JSON.parse(rawSnapshot) as Partial<AppSnapshot>;
+        if (parsed && typeof parsed === 'object') existingSnapshot = parsed;
+      }
+      const snapshot: AppSnapshot = {
+        view,
+        course: course ?? '',
+        squad: squad ?? '',
+        previous: previous ?? 'dashboard',
+        conversation: subpage && 'conversation' in subpage ? subpage.conversation ?? '' : existingSnapshot.conversation ?? '',
+        post: subpage && 'post' in subpage ? subpage.post ?? '' : existingSnapshot.post ?? '',
+        classesTab: subpage && 'classesTab' in subpage ? subpage.classesTab ?? 'overview' : existingSnapshot.classesTab ?? 'overview',
+        squadPost: subpage && 'squadPost' in subpage ? subpage.squadPost ?? '' : existingSnapshot.squadPost ?? '',
+        calendarMonth: subpage && 'calendarMonth' in subpage ? subpage.calendarMonth ?? '' : existingSnapshot.calendarMonth ?? '',
+        calendarDate: subpage && 'calendarDate' in subpage ? subpage.calendarDate ?? '' : existingSnapshot.calendarDate ?? '',
+        updatedAt: Date.now(),
+      };
+      localStorage.setItem(APP_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    } catch {
+      // Ignore storage write failures.
+    }
   }, []);
 
   // Track if this is the initial mount
   const isInitialMount = useRef(true);
   const hasInitializedURL = useRef(false);
+  const latestAppSnapshotRef = useRef<AppSnapshot>({
+    view: initialState.view,
+    course: initialState.course,
+    squad: initialState.squad,
+    previous: initialState.previous,
+    conversation: initialState.conversation,
+    post: initialState.post,
+    classesTab: initialState.classesTab,
+    squadPost: initialState.squadPost,
+    calendarMonth: initialState.calendarMonth,
+    calendarDate: initialState.calendarDate,
+    updatedAt: Date.now(),
+  });
+
+  useEffect(() => {
+    latestAppSnapshotRef.current = {
+      view: currentView,
+      course: selectedCourse,
+      squad: selectedSquad,
+      previous: previousView,
+      conversation: subpageConversation,
+      post: subpagePost,
+      classesTab: subpageClassesTab,
+      squadPost: subpageSquadPost,
+      calendarMonth: subpageCalendarMonth,
+      calendarDate: subpageCalendarDate,
+      updatedAt: Date.now(),
+    };
+  }, [currentView, selectedCourse, selectedSquad, previousView, subpageConversation, subpagePost, subpageClassesTab, subpageSquadPost, subpageCalendarMonth, subpageCalendarDate]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const persistSnapshot = () => {
+      try {
+        localStorage.setItem(APP_SNAPSHOT_KEY, JSON.stringify({
+          ...latestAppSnapshotRef.current,
+          updatedAt: Date.now(),
+        } as AppSnapshot));
+      } catch {
+        // Ignore storage write failures.
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') persistSnapshot();
+    };
+
+    let removeNativeListener: (() => void) | undefined;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { App } = await import('@capacitor/app');
+        const listener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+          if (!isActive) persistSnapshot();
+        });
+        removeNativeListener = () => listener.remove();
+      } catch {
+        // not native
+      }
+    })();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', persistSnapshot);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', persistSnapshot);
+      removeNativeListener?.();
+    };
+  }, []);
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -402,7 +554,8 @@ export default function App() {
         setProfileLoading(false);
         return;
       }
-      setProfileLoading(true);
+      // Keep UI responsive on app return; only show blocking loader if we have no cache.
+      setProfileLoading(!hasCachedProfileRef.current);
 
       try {
         const { data, error } = await supabase
@@ -425,6 +578,13 @@ export default function App() {
           });
         } else {
           setProfile(data);
+          hasCachedProfileRef.current = true;
+          try {
+            const cachedProfile: CachedProfile = { profile: data, cachedAt: Date.now() };
+            localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cachedProfile));
+          } catch {
+            // Ignore cache write failures.
+          }
           if (data?.onboarding_completed) {
             setOnboardingComplete(true);
           }
@@ -519,6 +679,39 @@ export default function App() {
       setIsFeedInputFocused(false);
     }
   }, [currentView]);
+
+  useEffect(() => {
+    if ((keepAliveViews as string[]).includes(currentView)) {
+      const view = currentView as KeepAliveView;
+      setMountedKeepAliveViews((prev) => (prev[view] ? prev : { ...prev, [view]: true }));
+    }
+  }, [currentView]);
+
+  // Keep a CSS var synced with the actual mobile bottom-nav height so other
+  // fixed bars (e.g. post reply composer) can sit flush above it.
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+    const setNavHeightVar = () => {
+      const rect = bottomNavRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const h = rect.height;
+      const offsetFromBottom = Math.max(0, window.innerHeight - rect.top);
+      if (h && Number.isFinite(h)) {
+        document.documentElement.style.setProperty('--mobile-bottom-nav-height', `${Math.round(h)}px`);
+      }
+      if (Number.isFinite(offsetFromBottom)) {
+        // Exact visible offset to the nav's top edge (more reliable than height on iOS).
+        document.documentElement.style.setProperty('--mobile-bottom-nav-offset', `${Math.round(offsetFromBottom)}px`);
+      }
+    };
+    setNavHeightVar();
+    window.addEventListener('resize', setNavHeightVar);
+    window.visualViewport?.addEventListener('resize', setNavHeightVar);
+    return () => {
+      window.removeEventListener('resize', setNavHeightVar);
+      window.visualViewport?.removeEventListener('resize', setNavHeightVar);
+    };
+  }, [currentView, isMessageInputFocused, isFeedInputFocused]);
 
   // Reset onboarding when user logs out so next login shows it again (must be before any conditional returns)
   useEffect(() => {
@@ -879,10 +1072,14 @@ export default function App() {
   // Clear saved state when user logs out (must be before any early returns)
   useEffect(() => {
     if (!user && typeof window !== 'undefined') {
+      hasCachedProfileRef.current = false;
+      setProfile(null);
       sessionStorage.removeItem('currentView');
       sessionStorage.removeItem('previousView');
       sessionStorage.removeItem('selectedCourse');
       sessionStorage.removeItem('selectedSquad');
+      localStorage.removeItem(APP_SNAPSHOT_KEY);
+      localStorage.removeItem(PROFILE_CACHE_KEY);
     }
   }, [user]);
 
@@ -1093,8 +1290,8 @@ export default function App() {
               <CoursePage courseId={selectedCourse} onBack={handleBackFromCourse} previousView={previousView} />
             </div>
           )}
-          {currentView === 'messaging' && (
-            <div className="bg-[#fbf8f7] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
+          {mountedKeepAliveViews.messaging && (
+            <div className={`bg-[#fbf8f7] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'messaging' ? '' : 'hidden'}`}>
               <MessagingPage
                 initialConversationId={subpageConversation || undefined}
                 onConversationChange={(id) => {
@@ -1120,13 +1317,13 @@ export default function App() {
               />
             </div>
           )}
-          {currentView === 'profile' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
+          {mountedKeepAliveViews.profile && (
+            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'profile' ? '' : 'hidden'}`}>
               <ProfilePage />
             </div>
           )}
-          {currentView === 'classes' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
+          {mountedKeepAliveViews.classes && (
+            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'classes' ? '' : 'hidden'}`}>
               <ClassesPage
                 initialTab={subpageClassesTab as 'overview' | 'schedule' | 'assignments'}
                 onTabChange={(tab) => {
@@ -1136,8 +1333,8 @@ export default function App() {
               />
             </div>
           )}
-          {currentView === 'squads' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
+          {mountedKeepAliveViews.squads && (
+            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'squads' ? '' : 'hidden'}`}>
               <SquadsPage onSquadClick={handleSquadDetailClick} />
             </div>
           )}
@@ -1165,8 +1362,8 @@ export default function App() {
               />
             </div>
           )}
-          {currentView === 'calendar' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
+          {mountedKeepAliveViews.calendar && (
+            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'calendar' ? '' : 'hidden'}`}>
               <CalendarPage
                 initialMonth={subpageCalendarMonth || undefined}
                 initialDate={subpageCalendarDate || undefined}
@@ -1181,8 +1378,8 @@ export default function App() {
               />
             </div>
           )}
-          {currentView === 'dashboard' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl flex-1 flex flex-col min-h-0 overflow-hidden">
+          {mountedKeepAliveViews.dashboard && (
+            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl flex-1 flex flex-col min-h-0 overflow-hidden ${currentView === 'dashboard' ? '' : 'hidden'}`}>
               <HomeFeed
                 greeting={greeting}
                 userName={profileLoading || !profile?.full_name ? '...' : profile.full_name.split(' ')[0]}
@@ -1202,6 +1399,7 @@ export default function App() {
       </div>
 
       <div
+        ref={bottomNavRef}
         className="md:hidden fixed bottom-0 left-0 right-0 bg-[#fbf8f7] border-t border-[#e7ded1] z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] transition-transform duration-300 ease-in-out"
         style={{ 
           backgroundColor: '#fbf8f7',
