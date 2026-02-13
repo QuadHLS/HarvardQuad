@@ -60,7 +60,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(!cachedAuth);
 
   useEffect(() => {
-    // Listen for auth changes
+    // Prevent loading from hanging (e.g. missing env or Supabase unreachable)
+    const fallback = setTimeout(() => setLoading(false), 5000);
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -71,7 +73,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     });
 
-    // Revalidate session from Supabase in background; cached values keep UI responsive.
     supabase.auth.getSession().then(({ data: { session } }) => {
       const nextUser = session?.user ?? null;
       setSession(session ?? null);
@@ -82,7 +83,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(fallback);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
