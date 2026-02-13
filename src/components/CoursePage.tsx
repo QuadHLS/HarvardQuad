@@ -1,5 +1,6 @@
 import { ArrowUp, MessageSquare, Bookmark, Pin, FileText, Calendar, Plus, ChevronLeft, ChevronDown, ChevronUp, MoreVertical, X } from 'lucide-react';
 import { useState } from 'react';
+import { SwipeBackContainer } from './ui/SwipeBackContainer';
 
 interface CoursePageProps {
   courseId: string;
@@ -148,7 +149,7 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
   ];
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]" >
+    <SwipeBackContainer onBack={onBack} className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]">
       {/* Mobile View */}
       <div className="md:hidden h-full flex flex-col">
         {/* Mobile Header */}
@@ -626,6 +627,6 @@ export function CoursePage({ courseId, onBack, previousView }: CoursePageProps) 
           </div>
         </div>
       </div>
-    </div>
+    </SwipeBackContainer>
   );
 }

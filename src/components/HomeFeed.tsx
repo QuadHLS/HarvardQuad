@@ -16,6 +16,7 @@ import { getEmbedInfo } from '../lib/embedUrl';
 import { ScrollArea } from './ui/scroll-area';
 import { NewPostModal, type NewPostModalOptimisticData } from './NewPostModal';
 import { UserProfileView } from './UserProfileView';
+import { SwipeBackContainer } from './ui/SwipeBackContainer';
 
 /** DiceBear thumbs avatar for Quadly (override-author) posts. */
 const QUADLY_AVATAR_URL = 'https://api.dicebear.com/9.x/thumbs/svg?seed=quadly';
@@ -287,7 +288,7 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
 
   if (loading || !detailPost) {
     return (
-      <div className="h-full flex flex-col bg-[#FBF9F5]">
+      <SwipeBackContainer onBack={onBack} className="h-full flex flex-col bg-[#FBF9F5]">
         <div className="bg-[#F1EFE7] px-4 py-4 flex-shrink-0 flex items-center gap-3">
           <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
             <ChevronLeft className="w-6 h-6 text-[#27251f]" />
@@ -297,7 +298,7 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
         </div>
-      </div>
+      </SwipeBackContainer>
     );
   }
 
@@ -311,7 +312,7 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
   const sourceColor = '#d47455';
 
   return (
-    <div className="h-full flex flex-col bg-[#FBF9F5]">
+    <SwipeBackContainer onBack={onBack} className="h-full flex flex-col bg-[#FBF9F5]">
       <div className="bg-[#F1EFE7] px-4 py-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
@@ -455,9 +456,56 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
             </span>
           </div>
 
-          {!replyingTo && (
-            <div className="pt-4 mt-2 border-t border-[#f5f3eb]">
-              <div className="flex items-center gap-3">
+        </div>
+
+        <div className={`px-0 py-0 ${isReplyInputFocused ? 'pb-4' : 'pb-40 md:pb-12'}`}>
+          <div className="space-y-4">
+            {replies.map((comment) => (
+              <ReplyBlock
+                key={comment.id}
+                reply={comment}
+                userId={userId}
+                onReply={() => setReplyingTo(comment.id)}
+                onHeart={async () => {
+                  if (!userId) return;
+                  await FeedService.toggleHeartReply(comment.id, userId);
+                  loadDetail();
+                }}
+                onReplySubmit={handleSubmitReply}
+                refreshReplies={loadDetail}
+                isTopLevel
+                replyingTo={replyingTo}
+                replyInput={replyInput}
+                setReplyInput={setReplyInput}
+                setReplyingTo={setReplyingTo}
+                onSubmitReply={handleSubmitReply}
+                submitting={submitting}
+                userDisplayName={userDisplayName}
+                userAvatarUrl={userAvatarUrl}
+                onReplyInputFocusChange={setIsReplyInputFocused}
+                onOpenUserProfile={onOpenUserProfile}
+              />
+            ))}
+          </div>
+        </div>
+        </div>
+      </ScrollArea>
+
+      {!replyingTo && (
+        <>
+          {/* Mobile: keep the post-reply composer fixed above bottom nav, like chat UI */}
+          <div
+            className={`md:hidden fixed left-0 right-0 bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 relative z-50 transition-[transform,position] duration-300 ease-in-out ${!isReplyInputFocused ? 'flex-shrink-0' : ''}`}
+            style={{
+              touchAction: 'none',
+              ...(isReplyInputFocused
+                ? { bottom: 0, left: 0, right: 0, transform: 'translateY(70px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }
+                : { bottom: 'var(--mobile-bottom-nav-height, 76px)', transform: 'translateY(0)' }
+              )
+            }}
+            onTouchMove={(e) => e.preventDefault()}
+          >
+            <div className="flex items-center gap-3">
                 <AuthorAvatar
                   profile={userId ? { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null } as ProfileRow : null}
                   color={userId ? FeedService.avatarColor(userId) : '#787771'}
@@ -500,44 +548,51 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
                 >
                   Post
                 </button>
-              </div>
             </div>
-          )}
-        </div>
-
-        <div className={`px-4 py-4 ${isReplyInputFocused ? 'pb-4' : 'pb-24 md:pb-12'}`}>
-          <div className="space-y-4">
-            {replies.map((comment) => (
-              <ReplyBlock
-                key={comment.id}
-                reply={comment}
-                userId={userId}
-                onReply={() => setReplyingTo(comment.id)}
-                onHeart={async () => {
-                  if (!userId) return;
-                  await FeedService.toggleHeartReply(comment.id, userId);
-                  loadDetail();
-                }}
-                onReplySubmit={handleSubmitReply}
-                refreshReplies={loadDetail}
-                isTopLevel
-                replyingTo={replyingTo}
-                replyInput={replyInput}
-                setReplyInput={setReplyInput}
-                setReplyingTo={setReplyingTo}
-                onSubmitReply={handleSubmitReply}
-                submitting={submitting}
-                userDisplayName={userDisplayName}
-                userAvatarUrl={userAvatarUrl}
-                onReplyInputFocusChange={setIsReplyInputFocused}
-                onOpenUserProfile={onOpenUserProfile}
-              />
-            ))}
           </div>
-        </div>
-        </div>
-      </ScrollArea>
-    </div>
+
+          {/* Desktop: keep composer visible at page bottom without fixed overlay */}
+          <div className="hidden md:block border-t border-[#f5f3eb] bg-[#FBF9F5] px-4 py-3">
+            <div className="flex items-center gap-3">
+              <AuthorAvatar
+                profile={userId ? { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null } as ProfileRow : null}
+                color={userId ? FeedService.avatarColor(userId) : '#787771'}
+                initials={userId && userDisplayName ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as ProfileRow) : userId ? 'You'.slice(0, 2) : '?'}
+                sizeClass="w-9 h-9"
+              />
+              <textarea
+                value={replyInput}
+                onChange={(e) => setReplyInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmitReply();
+                  }
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                }}
+                placeholder="Join the conversation..."
+                className="flex-1 min-h-[44px] resize-none overflow-y-auto bg-[#FBF9F5] rounded-xl px-4 py-2.5 text-sm border border-[#e7ded1] focus:outline-none focus:border-[#d47455]"
+                style={{ color: '#27251f', maxHeight: '120px', lineHeight: '24px' }}
+                disabled={!userId || submitting}
+                rows={1}
+              />
+              <button
+                type="button"
+                onClick={handleSubmitReply}
+                disabled={!userId || submitting || !replyInput.trim()}
+                className="px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold disabled:opacity-50"
+              >
+                Post
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </SwipeBackContainer>
   );
 }
 
@@ -979,7 +1034,6 @@ export function HomeFeed({
         onBack={() => {
           setSelectedPost(null);
           onPostChange?.(null);
-          loadPosts();
         }}
         onOpenUserProfile={(id) => id !== userId && setViewingUserId(id)}
         headerTitle={embedHeaderTitle ?? 'Home'}
