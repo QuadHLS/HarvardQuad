@@ -165,7 +165,7 @@ export function SquadMakingModal({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-w-md mx-auto bg-[#FBF9F5] border-0 border-t border-[#e7ded1] p-0 gap-0">
+      <SheetContent side="bottom" className="w-full max-w-none bg-[#FBF9F5] border-0 border-t border-[#e7ded1] p-0 gap-0">
         <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
           <SheetTitle
             className="text-2xl"

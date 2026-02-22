@@ -1831,11 +1831,9 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
             </div>
           </>
         ) : (
-          /* Chat View - Fixed position sitting above nav bar.
-             Add safe-area top padding so header doesn't overlap iPhone status bar / Dynamic Island. */
+          /* Chat View - Full height (nav hidden when in conversation). */
           <SwipeBackContainer
-            className="fixed left-0 right-0 top-0 flex flex-col bg-[#fbf8f7] z-[55]"
-            style={{ bottom: '76px' }}
+            className="fixed inset-0 flex flex-col bg-[#fbf8f7] z-[55]"
             onBack={handleBackFromConversation}
           >
             <div
@@ -2237,7 +2235,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
 
             <div 
               ref={messagesContainerRef} 
-              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1"
+              className="flex-1 min-h-0 overflow-y-auto p-4 pb-24 space-y-1"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
               {messagesLoading ? (
@@ -2528,13 +2526,10 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
             )}
 
             <div 
-              className={`bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 relative z-50 transition-[transform,position] duration-300 ease-in-out ${!isMessageInputFocused ? 'flex-shrink-0' : ''}`}
+              className="fixed left-0 right-0 bottom-0 z-50 bg-white border-t border-[#e7ded1] px-4 pt-4"
               style={{ 
                 touchAction: 'none',
-                ...(isMessageInputFocused
-                  ? { position: 'absolute' as const, bottom: 0, left: 0, right: 0, transform: 'translateY(70px)' }
-                  : { transform: 'translateY(0)' }
-                )
+                paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
               }}
               onTouchMove={(e) => e.preventDefault()}
             >
@@ -2987,33 +2982,37 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Sheet open={showDeleteConfirm && !clubs.some(c => c.id === selectedConversation)} onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }}>
-        <SheetContent side="bottom" className="bg-white border-t border-[#e7ded1] max-w-md mx-auto p-0 gap-0 z-[70]">
-          <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
-            <SheetTitle className="text-lg font-semibold text-[#27251f]">Delete Group</SheetTitle>
+      {showDeleteConfirm && !clubs.some(c => c.id === selectedConversation) && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[65] transition-opacity duration-300"
+            onClick={() => setShowDeleteConfirm(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-x-0 bottom-0 z-[70] bg-white rounded-t-2xl border-t border-[#e7ded1] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-out px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <h3 className="text-[#27251f] font-semibold text-base">Delete Group</h3>
             <p className="text-sm text-[#787771] mt-2">
               Are you sure you want to delete this group? This action cannot be undone. All messages and members will be permanently removed.
             </p>
-          </SheetHeader>
-          <SheetFooter className="flex-row gap-2 justify-end p-6 pt-4 border-t border-[#e7ded1]">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowDeleteConfirm(false)}
-              className="h-auto py-1.5 px-3 text-xs min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleDeleteGroup}
-              className="h-auto py-1.5 px-3 text-xs min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white"
-            >
-              Delete Group
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-1.5 px-3 rounded-full border border-[#d9d2c5] text-[#787771] text-xs font-semibold hover:bg-[#f5f3eb]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteGroup}
+                className="flex-1 py-1.5 px-3 rounded-full text-xs font-semibold bg-[#d47455] hover:bg-[#c06545] text-white"
+              >
+                Delete Group
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Desktop View - Keep existing design */}
       <div className="hidden md:flex h-full">

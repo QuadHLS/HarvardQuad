@@ -1122,65 +1122,74 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
         )}
 
         {/* Delete Document Confirmation */}
-        <Sheet open={!!docToDelete} onOpenChange={(open) => { if (!open) setDocToDelete(null); }}>
-          <SheetContent side="bottom" className="bg-[#FBF9F5] border-[#e7ded1] border-t max-w-sm mx-auto p-0 gap-0">
-            <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
-              <SheetTitle className="text-[#27251f]">Delete Document</SheetTitle>
+        {docToDelete && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 opacity-100"
+              onClick={() => setDocToDelete(null)}
+              aria-hidden="true"
+            />
+            <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-[#e7ded1] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-out px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+              <h3 className="text-[#27251f] font-semibold text-base">Delete Document</h3>
               <p className="text-sm text-[#787771] mt-1">
-                {docToDelete ? `Delete "${docToDelete.name}"? This cannot be undone.` : ''}
+                Delete &quot;{docToDelete.name}&quot;? This cannot be undone.
               </p>
-            </SheetHeader>
-            <SheetFooter className="flex-row gap-2 p-6 pt-4">
-              <button
-                type="button"
-                onClick={() => setDocToDelete(null)}
-                className="flex-1 py-1.5 px-3 rounded-full border border-[#d9d2c5] text-[#787771] text-xs hover:bg-[#f5f3eb]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDeleteDocument}
-                disabled={!!deletingDocumentId}
-                className="flex-1 py-1.5 px-3 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs disabled:opacity-50"
-              >
-                {deletingDocumentId ? 'Deleting...' : 'Delete'}
-              </button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+              <div className="flex gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setDocToDelete(null)}
+                  className="flex-1 py-1.5 px-3 rounded-full border border-[#d9d2c5] text-[#787771] text-xs hover:bg-[#f5f3eb]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteDocument}
+                  disabled={!!deletingDocumentId}
+                  className="flex-1 py-1.5 px-3 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs disabled:opacity-50"
+                >
+                  {deletingDocumentId ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Delete Squad Confirmation */}
-        <Sheet open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-          <SheetContent side="bottom" className="bg-[#FBF9F5] border-[#e7ded1] border-t max-w-md mx-auto p-0 gap-0">
-            <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
-              <SheetTitle className="text-[#27251f]">Delete Squad</SheetTitle>
+        {showDeleteConfirm && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 opacity-100"
+              onClick={() => setShowDeleteConfirm(false)}
+              aria-hidden="true"
+            />
+            <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-[#e7ded1] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-out px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+              <h3 className="text-[#27251f] font-semibold text-base">Delete Squad</h3>
               <p className="text-sm text-[#787771] mt-2 leading-relaxed">
-                Are you sure you want to delete <strong>{squad.name}</strong>? This action cannot be undone and will delete all squad data, members, and documents.
+                Are you sure you want to delete <strong>{squad?.name}</strong>? This action cannot be undone and will delete all squad data, members, and documents.
               </p>
-            </SheetHeader>
-            <SheetFooter className="flex-row gap-3 p-6 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-1.5 px-3 bg-white border border-[#d9d2c5] text-[#787771] rounded-full text-xs"
-                style={{ fontWeight: 600 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteSquad}
-                disabled={deleting}
-                className="flex-1 py-1.5 px-3 border rounded-full text-xs flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ fontWeight: 600, backgroundColor: '#dc2626', borderColor: '#b91c1c', color: 'white' }}
-              >
-                <Trash2 className="w-4 h-4" />
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+              <div className="flex gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-1.5 px-3 border border-[#d9d2c5] text-[#787771] rounded-full text-xs font-semibold hover:bg-[#f5f3eb]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteSquad}
+                  disabled={deleting}
+                  className="flex-1 py-1.5 px-3 border rounded-full text-xs flex items-center justify-center gap-2 disabled:opacity-50 font-semibold"
+                  style={{ backgroundColor: '#dc2626', borderColor: '#b91c1c', color: 'white' }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Mobile Content - single scroll: intro + feed scroll together (not in header); when viewing a post, no outer scroll so post header stays at top */}
         <div ref={scrollContainerRef} className={`flex-1 min-h-0 flex flex-col bg-[#FBF9F5] ${postDetailOpen ? 'overflow-hidden' : 'overflow-y-auto'}`} style={postDetailOpen ? undefined : { WebkitOverflowScrolling: 'touch' }}>

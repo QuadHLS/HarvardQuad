@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, Users, Plus, Dumbbell, PartyPopper, BookOpen, Gamepad2, ChevronRight, Settings, Globe, Lock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Users, Plus, Dumbbell, PartyPopper, BookOpen, Gamepad2, ChevronRight } from 'lucide-react';
 import { SquadsService, Squad } from '../services/squadsService';
 import { FeedService } from '../services/feedService';
 import { SquadMakingModal, CreateSquadPayload } from './SquadMakingModal';
@@ -15,11 +15,11 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'my-squads'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [squads, setSquads] = useState<Squad[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [joiningSquadId, setJoiningSquadId] = useState<string | null>(null);
 
   const categories = [
     { id: 'sports', label: 'Sports', icon: Dumbbell, color: '#7ba05b' },
@@ -28,12 +28,36 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
     { id: 'hobbies', label: 'Hobbies', icon: Gamepad2, color: '#c89b6e' },
   ];
 
+  const filterScrollRef = useRef<HTMLDivElement>(null);
+  const filterScrollRefDesktop = useRef<HTMLDivElement>(null);
+
+  const scrollFilterRight = () => {
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+    const scrollEl = isDesktop ? filterScrollRefDesktop.current : filterScrollRef.current;
+    if (!scrollEl) return;
+    scrollEl.scrollTo({ left: scrollEl.scrollWidth - scrollEl.clientWidth, behavior: 'smooth' });
+  };
+
   // Load squads on mount
   useEffect(() => {
     if (user) {
       loadSquads();
     }
   }, [user]);
+
+  const handleJoinSquad = async (e: React.MouseEvent, squadId: string) => {
+    e.stopPropagation();
+    try {
+      setJoiningSquadId(squadId);
+      await SquadsService.joinSquad(squadId);
+      setSquads(prev => prev.map(s => s.id === squadId ? { ...s, is_joined: true, member_count: (s.member_count ?? 0) + 1 } : s));
+    } catch (error) {
+      console.error('Error joining squad:', error);
+      toast.error('Could not join squad. Please try again.');
+    } finally {
+      setJoiningSquadId(null);
+    }
+  };
 
   const loadSquads = async () => {
     try {
@@ -117,127 +141,72 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
       {/* Mobile View */}
       <div className="md:hidden h-full flex flex-col">
         {/* Header - Fixed */}
-        <div className="px-4 pt-6 pb-4 bg-[#FBF9F5] flex-shrink-0">
-          <div className="flex items-center justify-between mb-6">
-            <h1 
-              className="text-3xl"
-              style={{ fontWeight: 600, color: '#27251f' }}
-            >
-              Squads
-            </h1>
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className="w-12 h-12 rounded-full bg-[#d47455] flex items-center justify-center active:scale-95 transition-transform shadow-md"
-            >
-              <Plus className="w-6 h-6 text-white" />
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
-            <input
-              type="text"
-              placeholder="Search squads..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border-0 text-sm shadow-sm"
-              style={{ color: '#27251f' }}
-            />
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-2 relative">
-            {activeTab === 'all' ? (
-              <div className="flex-1 relative">
-                <button
-                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                  className="w-full py-1.5 px-3 rounded-xl text-xs bg-[#d47455] text-white shadow-sm flex items-center justify-center gap-2"
-                  style={{ fontWeight: 600 }}
-                >
-                  <span className="flex-1 text-center">
-                    {selectedCategory 
-                      ? categories.find(c => c.id === selectedCategory)?.label || 'All Squads'
-                      : 'All Squads'
-                    }
-                  </span>
-                  <Settings className="w-4 h-4" />
-                </button>
-                {showCategoryDropdown && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-[60]"
-                      onClick={() => setShowCategoryDropdown(false)}
-                    />
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-[#e7ded1] z-[70] overflow-hidden">
-                      <button
-                        onClick={() => {
-                          setSelectedCategory(null);
-                          setShowCategoryDropdown(false);
-                        }}
-                        className={`w-full py-1.5 px-3 text-xs text-left transition-colors ${
-                          selectedCategory === null
-                            ? 'bg-[#f5f3eb] text-[#d47455]'
-                            : 'text-[#27251f] hover:bg-[#f5f3eb]'
-                        }`}
-                        style={{ fontWeight: 600 }}
-                      >
-                        All
-                      </button>
-                      {categories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => {
-                            setSelectedCategory(cat.id);
-                            setShowCategoryDropdown(false);
-                          }}
-                          className={`w-full py-1.5 px-3 text-xs text-left transition-colors flex items-center gap-2 ${
-                            selectedCategory === cat.id
-                              ? 'bg-[#f5f3eb] text-[#d47455]'
-                              : 'text-[#27251f] hover:bg-[#f5f3eb]'
-                          }`}
-                          style={{ fontWeight: 600 }}
-                        >
-                          <cat.icon className="w-4 h-4" style={{ color: cat.color }} />
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  setActiveTab('all');
-                  setSelectedCategory(null);
-                }}
-                className="flex-1 py-1.5 px-3 rounded-xl text-xs transition-all bg-white text-[#787771]"
-                style={{ fontWeight: 600 }}
-              >
-                All Squads
-              </button>
-            )}
+        <div className="px-4 py-2.5 bg-[#FBF9F5] flex-shrink-0 border-b border-[#e7ded1]">
+          <div className="flex items-stretch gap-2">
+            <div className="flex-1 min-w-0 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787771]" />
+              <input
+                type="text"
+                placeholder="Search by squad name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-white rounded-full border border-[#e7ded1] text-sm focus:outline-none focus:border-[#d47455]"
+                style={{ color: '#27251f' }}
+              />
+            </div>
             <button
-              onClick={() => {
-                setActiveTab('my-squads');
-                setSelectedCategory(null);
-                setShowCategoryDropdown(false);
-              }}
-              className={`flex-1 py-1.5 px-3 rounded-xl text-xs transition-all ${
-                activeTab === 'my-squads'
-                  ? 'bg-[#d47455] text-white shadow-sm'
-                  : 'bg-white text-[#787771]'
-              }`}
-              style={{ fontWeight: 600 }}
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center justify-center gap-1.5 px-2.5 rounded-full bg-[#27251f] text-white text-xs font-semibold active:scale-95 transition-transform shadow-sm shrink-0 min-w-[4.5rem]"
             >
-              My Squads
+              <Plus className="w-4 h-4" />
+              Create
             </button>
           </div>
         </div>
 
         {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto bg-[#FBF9F5]">
+          <h2 className="px-4 pt-4 pb-1 text-lg font-semibold text-[#27251f]">Explore squads</h2>
+          {/* Filter carousel - all chips visible, arrow scrolls to end */}
+          <div className="px-4 pt-2 pb-2 flex items-center gap-2">
+            <div ref={filterScrollRef} className="filter-scroll flex-1 min-w-0 overflow-x-auto overflow-y-hidden flex gap-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <button
+                onClick={() => { setActiveTab('all'); setSelectedCategory(null); }}
+                className={`shrink-0 py-1.5 px-3 rounded-xl text-xs transition-all ${
+                  activeTab === 'all' && !selectedCategory ? 'bg-[#d47455] text-white shadow-sm' : 'bg-white text-[#787771]'
+                }`}
+                style={{ fontWeight: 600 }}
+              >
+                All
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => { setActiveTab('all'); setSelectedCategory(cat.id); }}
+                  className={`shrink-0 py-1.5 px-3 rounded-xl text-xs transition-all flex items-center gap-1.5 ${
+                    activeTab === 'all' && selectedCategory === cat.id ? 'bg-[#d47455] text-white shadow-sm' : 'bg-white text-[#787771]'
+                  }`}
+                  style={{ fontWeight: 600 }}
+                >
+                  <cat.icon className="w-4 h-4" style={{ color: activeTab === 'all' && selectedCategory === cat.id ? undefined : cat.color }} />
+                  {cat.label}
+                </button>
+              ))}
+              <button
+                onClick={() => { setActiveTab('my-squads'); setSelectedCategory(null); }}
+                className={`shrink-0 py-1.5 px-3 rounded-xl text-xs transition-all ${
+                  activeTab === 'my-squads' ? 'bg-[#d47455] text-white shadow-sm' : 'bg-white text-[#787771]'
+                }`}
+                style={{ fontWeight: 600 }}
+              >
+                My Squads
+              </button>
+            </div>
+            <button onClick={scrollFilterRight} className="shrink-0 w-9 h-9 rounded-full bg-white border border-[#e7ded1] flex items-center justify-center text-[#787771] active:bg-[#f5f3eb] transition-colors" aria-label="Scroll filters">
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
           {/* Squads List */}
           <div className="px-4 pb-4 space-y-3">
             {loading ? (
@@ -251,194 +220,149 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                 </p>
               </div>
             ) : (
-              filteredSquads.map((squad) => {
-                const Icon = squad.type === 'open' ? Globe : Lock;
+              <>
+                <p className="text-lg font-semibold text-[#27251f] mb-2">Recommended for you</p>
+                {filteredSquads.map((squad) => {
                 const squadColor = getCategoryColor(squad.category);
                 
                 return (
                   <div
                     key={squad.id}
                     onClick={() => onSquadClick(squad.id)}
-                    className="bg-white rounded-2xl p-4 active:bg-[#f5f3eb] transition-colors shadow-sm"
+                    className="bg-[#FBF9F5] rounded-2xl p-3 border border-[#d4cfc4] active:bg-[#f5f3eb] transition-colors"
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-2.5">
                       <div 
-                        className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                         style={{ backgroundColor: `${squadColor}20`, borderRadius: '50%' }}
                       >
                         {squad.avatar_url ? (
                           <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <Users className="w-7 h-7" style={{ color: squadColor }} />
+                          <Users className="w-5 h-5" style={{ color: squadColor }} />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-start justify-between gap-2 mb-0.5">
                           <h3 
-                            className="text-lg"
+                            className="text-base"
                             style={{ fontWeight: 600, color: '#27251f' }}
                           >
                             {squad.name}
                           </h3>
-                          <ChevronRight className="w-5 h-5 flex-shrink-0 text-[#c7bcaa] mt-1" />
-                        </div>
-                        <p 
-                          className="text-sm mb-3 line-clamp-2"
-                          style={{ color: '#787771', lineHeight: 1.4 }}
-                        >
-                          {squad.info || 'No description'}
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1.5">
-                            <Icon className="w-4 h-4 text-[#787771]" />
-                            <span 
-                              className="text-xs"
-                              style={{ color: '#787771' }}
-                            >
-                              {squad.member_count || 0} members
-                            </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {squad.is_joined ? (
+                              <span 
+                                className="px-2 py-0.5 rounded-full text-[11px]"
+                                style={{ 
+                                  fontWeight: 600,
+                                  backgroundColor: '#e8f5e9',
+                                  color: '#4caf50'
+                                }}
+                              >
+                                Joined
+                              </span>
+                            ) : (
+                              <button
+                                onClick={(e) => handleJoinSquad(e, squad.id)}
+                                disabled={joiningSquadId === squad.id}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#27251f] text-white active:opacity-80 disabled:opacity-60"
+                              >
+                                {joiningSquadId === squad.id ? '…' : 'Join'}
+                              </button>
+                            )}
+                            <ChevronRight className="w-4 h-4 text-[#c7bcaa]" />
                           </div>
-                          {squad.is_joined && (
-                            <span 
-                              className="px-2.5 py-1 rounded-full text-xs"
-                              style={{ 
-                                fontWeight: 600,
-                                backgroundColor: '#e8f5e9',
-                                color: '#4caf50'
-                              }}
-                            >
-                              Joined
-                            </span>
-                          )}
                         </div>
+                        <span 
+                          className="text-xs block"
+                          style={{ color: '#787771', lineHeight: 1.35 }}
+                        >
+                          {squad.member_count || 0} members
+                        </span>
                       </div>
                     </div>
+                    {squad.info?.trim() && (
+                      <p 
+                        className="text-xs line-clamp-2 overflow-hidden mt-2"
+                        style={{ color: '#787771', lineHeight: 1.35 }}
+                      >
+                        {squad.info}
+                      </p>
+                    )}
                   </div>
                 );
-              })
+              })}
+              </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Desktop View - Keep existing design */}
-      <div className="hidden md:block p-12">
-        <div className="flex items-center justify-between mb-8">
-          <h1 
-            className="text-[56px] text-[#27251f]"
-            style={{ fontWeight: 400 }}
-          >
-            Squads
-          </h1>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="px-3 py-1.5 bg-[#d47455] text-white rounded-xl text-xs hover:bg-[#c06545] transition-colors flex items-center gap-2"
-            style={{ fontWeight: 600 }}
-          >
-            <Plus className="w-5 h-5" />
-            Create Squad
-          </button>
-        </div>
-
-        <div className="mb-6">
-          <div className="relative max-w-xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#787771]" />
-            <input
-              type="text"
-              placeholder="Search squads..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-[#e7ded1]"
-              style={{ color: '#27251f' }}
-            />
+      {/* Desktop View */}
+      <div className="hidden md:block h-full flex flex-col">
+        <div className="flex-shrink-0 px-8 py-2.5 border-b border-[#e7ded1] bg-[#FBF9F5]">
+          <div className="flex items-stretch gap-3">
+            <div className="flex-1 max-w-xl relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787771]" />
+              <input
+                type="text"
+                placeholder="Search by squad name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-1.5 bg-white rounded-full border border-[#e7ded1] text-sm focus:outline-none focus:border-[#d47455]"
+                style={{ color: '#27251f' }}
+              />
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center justify-center gap-2 px-3 rounded-full bg-[#27251f] text-white text-xs font-semibold hover:bg-[#3d3a33] transition-colors shrink-0 min-w-[4.5rem]"
+            >
+              <Plus className="w-4 h-4" />
+              Create
+            </button>
           </div>
         </div>
 
-        <div className="flex gap-3 mb-8 relative">
-          {activeTab === 'all' ? (
-            <div className="relative">
-              <button
-                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                className="px-6 py-2 rounded-xl bg-[#d47455] text-white flex items-center justify-center gap-2 min-w-[140px]"
-                style={{ fontWeight: 500 }}
-              >
-                <span className="flex-1 text-center">
-                  {selectedCategory 
-                    ? categories.find(c => c.id === selectedCategory)?.label || 'All Squads'
-                    : 'All Squads'
-                  }
-                </span>
-                <Settings className="w-4 h-4" />
-              </button>
-              {showCategoryDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-[60]"
-                    onClick={() => setShowCategoryDropdown(false)}
-                  />
-                  <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-[#e7ded1] z-[70] overflow-hidden min-w-[140px]">
-                    <button
-                      onClick={() => {
-                        setSelectedCategory(null);
-                        setShowCategoryDropdown(false);
-                      }}
-                      className={`w-full py-1.5 px-3 text-xs text-left transition-colors ${
-                        selectedCategory === null
-                          ? 'bg-[#f5f3eb] text-[#d47455]'
-                          : 'text-[#27251f] hover:bg-[#f5f3eb]'
-                      }`}
-                      style={{ fontWeight: 500 }}
-                    >
-                      All
-                    </button>
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          setSelectedCategory(cat.id);
-                          setShowCategoryDropdown(false);
-                        }}
-                        className={`w-full py-1.5 px-3 text-xs text-left transition-colors flex items-center gap-2 ${
-                          selectedCategory === cat.id
-                            ? 'bg-[#f5f3eb] text-[#d47455]'
-                            : 'text-[#27251f] hover:bg-[#f5f3eb]'
-                        }`}
-                        style={{ fontWeight: 500 }}
-                      >
-                        <cat.icon className="w-4 h-4" style={{ color: cat.color }} />
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
+        <div className="flex-1 overflow-y-auto p-8">
+
+        <h2 className="text-xl font-semibold text-[#27251f] mb-3">Explore squads</h2>
+        <div className="flex items-center gap-2 mb-6">
+          <div ref={filterScrollRefDesktop} className="filter-scroll flex-1 min-w-0 overflow-x-auto overflow-y-hidden flex gap-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button
-              onClick={() => {
-                setActiveTab('all');
-                setSelectedCategory(null);
-              }}
-              className="px-6 py-2 rounded-xl transition-colors bg-white text-[#787771] hover:bg-[#f5f3eb]"
+              onClick={() => { setActiveTab('all'); setSelectedCategory(null); }}
+              className={`shrink-0 px-4 py-2 rounded-xl text-sm transition-colors ${
+                activeTab === 'all' && !selectedCategory ? 'bg-[#d47455] text-white' : 'bg-white text-[#787771] hover:bg-[#f5f3eb]'
+              }`}
               style={{ fontWeight: 500 }}
             >
-              All Squads
+              All
             </button>
-          )}
-          <button
-            onClick={() => {
-              setActiveTab('my-squads');
-              setSelectedCategory(null);
-              setShowCategoryDropdown(false);
-            }}
-            className={`px-6 py-2 rounded-xl transition-colors ${
-              activeTab === 'my-squads'
-                ? 'bg-[#d47455] text-white'
-                : 'bg-white text-[#787771] hover:bg-[#f5f3eb]'
-            }`}
-            style={{ fontWeight: 500 }}
-          >
-            My Squads ({mySquads.length})
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => { setActiveTab('all'); setSelectedCategory(cat.id); }}
+                className={`shrink-0 px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-2 ${
+                  activeTab === 'all' && selectedCategory === cat.id ? 'bg-[#d47455] text-white' : 'bg-white text-[#787771] hover:bg-[#f5f3eb]'
+                }`}
+                style={{ fontWeight: 500 }}
+              >
+                <cat.icon className="w-4 h-4" style={{ color: activeTab === 'all' && selectedCategory === cat.id ? undefined : cat.color }} />
+                {cat.label}
+              </button>
+            ))}
+            <button
+              onClick={() => { setActiveTab('my-squads'); setSelectedCategory(null); }}
+              className={`shrink-0 px-4 py-2 rounded-xl text-sm transition-colors ${
+                activeTab === 'my-squads' ? 'bg-[#d47455] text-white' : 'bg-white text-[#787771] hover:bg-[#f5f3eb]'
+              }`}
+              style={{ fontWeight: 500 }}
+            >
+              My Squads ({mySquads.length})
+            </button>
+          </div>
+          <button onClick={scrollFilterRight} className="shrink-0 w-9 h-9 rounded-full bg-white border border-[#e7ded1] flex items-center justify-center text-[#787771] hover:bg-[#f5f3eb] transition-colors" aria-label="Scroll filters">
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
@@ -454,67 +378,81 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
               </p>
             </div>
           ) : (
-            filteredSquads.map((squad) => {
-              const Icon = squad.type === 'open' ? Globe : Lock;
+            <>
+              <p className="col-span-2 text-xl font-semibold text-[#27251f] mb-2">Recommended for you</p>
+              {filteredSquads.map((squad) => {
               const squadColor = getCategoryColor(squad.category);
               
               return (
                 <div
                   key={squad.id}
                   onClick={() => onSquadClick(squad.id)}
-                  className="bg-white rounded-2xl p-6 cursor-pointer hover:shadow-lg transition-all"
+                  className="bg-[#FBF9F5] rounded-2xl p-4 border border-[#d4cfc4] cursor-pointer hover:bg-[#f5f3eb] transition-all"
                 >
-                  <div className="flex items-start gap-4 mb-4">
+                  <div className="flex items-start gap-3">
                     <div 
-                      className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden"
+                      className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shrink-0"
                       style={{ backgroundColor: `${squadColor}20`, borderRadius: '50%' }}
                     >
                       {squad.avatar_url ? (
                         <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <Users className="w-8 h-8" style={{ color: squadColor }} />
+                        <Users className="w-6 h-6" style={{ color: squadColor }} />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <h3 
-                        className="text-xl mb-1"
-                        style={{ fontWeight: 600, color: '#27251f' }}
-                      >
-                        {squad.name}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-[#787771]" />
-                        <span 
-                          className="text-sm"
-                          style={{ color: '#787771' }}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-0.5">
+                        <h3 
+                          className="text-base"
+                          style={{ fontWeight: 600, color: '#27251f' }}
                         >
-                          {squad.member_count || 0} members
-                        </span>
+                          {squad.name}
+                        </h3>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {squad.is_joined ? (
+                            <span 
+                              className="inline-block px-2 py-0.5 rounded-full text-xs"
+                              style={{ 
+                                fontWeight: 600,
+                                backgroundColor: '#e8f5e9',
+                                color: '#4caf50'
+                              }}
+                            >
+                              Joined
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => handleJoinSquad(e, squad.id)}
+                              disabled={joiningSquadId === squad.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#27251f] text-white hover:bg-[#3d3a33] disabled:opacity-60 transition-colors"
+                            >
+                              {joiningSquadId === squad.id ? '…' : 'Join'}
+                            </button>
+                          )}
+                        </div>
                       </div>
+                      <span 
+                        className="text-xs block"
+                        style={{ color: '#787771', lineHeight: 1.35 }}
+                      >
+                        {squad.member_count || 0} members
+                      </span>
                     </div>
                   </div>
-                  <p 
-                    className="text-sm mb-4"
-                    style={{ color: '#787771' }}
-                  >
-                    {squad.info || 'No description'}
-                  </p>
-                  {squad.is_joined && (
-                    <span 
-                      className="inline-block px-3 py-1 rounded-full text-sm"
-                      style={{ 
-                        fontWeight: 600,
-                        backgroundColor: '#e8f5e9',
-                        color: '#4caf50'
-                      }}
+                  {squad.info?.trim() && (
+                    <p 
+                      className="text-xs line-clamp-2 overflow-hidden mt-2"
+                      style={{ color: '#787771', lineHeight: 1.35 }}
                     >
-                      Joined
-                    </span>
+                      {squad.info}
+                    </p>
                   )}
                 </div>
               );
-            })
+            })}
+            </>
           )}
+        </div>
         </div>
       </div>
 
