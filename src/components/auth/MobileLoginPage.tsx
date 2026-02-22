@@ -116,7 +116,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
           {onBack && (
             <button
               onClick={onBack}
-              className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
+              className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-full bg-white/50 hover:bg-white/70 transition-colors -ml-2"
             >
               ← Back
             </button>
@@ -151,7 +151,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             <div className="space-y-4 shrink-0" style={{ width: '440px', maxWidth: 'calc(100vw - 48px)' }}>
               <button
                 onClick={() => { setError(''); setSuccessMessage(''); setMode('signin'); }}
-                className="w-full px-6 py-5 rounded-xl border-2 border-[#d47455] bg-transparent text-[#27251f] hover:bg-[#d47455]/10 transition-colors"
+                className="w-full px-6 py-5 rounded-full border-2 border-[#d47455] bg-transparent text-[#27251f] hover:bg-[#d47455]/10 transition-colors"
                 style={{ fontWeight: 600 }}
               >
                 Sign In
@@ -159,7 +159,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
 
               <button
                 onClick={() => { setError(''); setSuccessMessage(''); setMode('choose-signup'); }}
-                className="w-full flex items-center justify-center gap-2 px-6 py-5 rounded-xl bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-2 px-6 py-5 rounded-full bg-[#d47455] text-white hover:bg-[#c26645] transition-colors shadow-sm"
                 style={{ fontWeight: 600 }}
               >
                 Create Account
@@ -203,7 +203,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('welcome'); }}
-            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
+            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-full bg-white/50 hover:bg-white/70 transition-colors -ml-2"
           >
             ← Back
           </button>
@@ -399,7 +399,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('welcome'); }}
-            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
+            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-full bg-white/50 hover:bg-white/70 transition-colors -ml-2"
           >
             ← Back
           </button>
@@ -825,7 +825,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
         <div className="px-6 pt-6 pb-4 flex-shrink-0 w-full">
           <button
             onClick={() => { setError(''); setSuccessMessage(''); setMode('signin'); }}
-            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors -ml-2"
+            className="text-sm text-[#787771] hover:text-[#27251f] px-4 py-2 rounded-full bg-white/50 hover:bg-white/70 transition-colors -ml-2"
           >
             ← Back
           </button>

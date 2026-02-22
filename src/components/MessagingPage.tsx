@@ -9,6 +9,8 @@ import { UserProfileView } from './UserProfileView';
 import { TypingIndicator } from './TypingIndicator';
 import { supabase } from '../lib/supabase';
 import { SwipeBackContainer } from './ui/SwipeBackContainer';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
+import { toast } from 'sonner';
 
 interface MessagingPageProps {
   /** Restore this conversation when returning to the page (from URL/sessionStorage). */
@@ -595,6 +597,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
   const didConsumeStoredConversationRef = useRef(false);
   const loadConversationsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingConversationsRef = useRef(false);
+  const loadConversationsRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const scrollMessagesToBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -731,14 +734,12 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
 
   // Debounced conversation loader to prevent excessive reloads
   const debouncedLoadConversations = useCallback(() => {
-    // Clear any pending timeout
     if (loadConversationsTimeoutRef.current) {
       clearTimeout(loadConversationsTimeoutRef.current);
     }
-    // Debounce by 500ms to batch rapid updates
     loadConversationsTimeoutRef.current = setTimeout(() => {
       if (!isLoadingConversationsRef.current) {
-        loadConversations();
+        loadConversationsRef.current();
       }
     }, 500);
   }, []);
@@ -909,6 +910,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       isLoadingConversationsRef.current = false;
     }
   };
+  loadConversationsRef.current = loadConversations;
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -1468,14 +1470,14 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       await loadConversations();
     } catch (error) {
       console.error('Error creating DM:', error);
-      alert('Error creating DM. Please try again.');
+      toast.error('Error creating DM. Please try again.');
     }
   };
 
   const handleCreateGroup = async () => {
     // Require at least 2 people total (creator + 1 selected)
     if (!newGroupName.trim() || selectedGroupMembers.length < 1 || !user) {
-      alert('Add a group name and at least 1 member (2 incl. you).');
+      toast.error('Add a group name and at least 1 member (2 incl. you).');
       return;
     }
 
@@ -1486,7 +1488,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       await loadConversations();
     } catch (error) {
       console.error('Error creating group:', error);
-      alert('Error creating group. Please try again.');
+      toast.error('Error creating group. Please try again.');
     }
   };
 
@@ -1518,7 +1520,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       setIsEditingGroupName(false);
     } catch (error) {
       console.error('Error updating group name:', error);
-      alert('Error updating group name. Please try again.');
+      toast.error('Error updating group name. Please try again.');
     } finally {
       setGroupNameLoading(false);
     }
@@ -1533,7 +1535,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       setEditMembersSearchResults([]);
     } catch (error) {
       console.error('Error adding member:', error);
-      alert('Error adding member. Please try again.');
+      toast.error('Error adding member. Please try again.');
     }
   };
 
@@ -1550,7 +1552,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       }
     } catch (error) {
       console.error('Error removing member:', error);
-      alert('Error removing member. Please try again.');
+      toast.error('Error removing member. Please try again.');
     }
   };
 
@@ -1560,7 +1562,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
     // Prevent deletion of club group chats
     const isClubChat = clubs.some(c => c.id === selectedConversation);
     if (isClubChat) {
-      alert('Squad group chats cannot be deleted. Delete the squad from the Squads page instead.');
+      toast.error('Squad group chats cannot be deleted. Delete the squad from the Squads page instead.');
       setShowDeleteConfirm(false);
       return;
     }
@@ -1573,7 +1575,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       await loadConversations();
     } catch (error) {
       console.error('Error deleting group:', error);
-      alert('Error deleting group. Please try again.');
+      toast.error('Error deleting group. Please try again.');
     }
   };
 
@@ -1628,7 +1630,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                 <button
                   type="button"
                   onClick={() => setMobileTab('friends')}
-                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${
                     mobileTab === 'friends'
                       ? 'bg-[#d47455] text-white'
                       : 'text-[#787771] hover:text-[#27251f]'
@@ -1639,7 +1641,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                 <button
                   type="button"
                   onClick={() => setMobileTab('groups')}
-                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${
                     mobileTab === 'groups'
                       ? 'bg-[#d47455] text-white'
                       : 'text-[#787771] hover:text-[#27251f]'
@@ -1650,7 +1652,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                 <button
                   type="button"
                   onClick={() => setMobileTab('squads')}
-                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${
                     mobileTab === 'squads'
                       ? 'bg-[#d47455] text-white'
                       : 'text-[#787771] hover:text-[#27251f]'
@@ -1737,7 +1739,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                 {mobileTab === 'groups' && (
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#d47455] text-white text-sm shrink-0"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d47455] text-white text-xs shrink-0"
                     onClick={() => setShowNewGroup(true)}
                     style={{ fontWeight: 500 }}
                   >
@@ -2661,35 +2663,14 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
       )}
 
       {/* Group Modal */}
-      {showNewGroup && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={closeGroupModal}
-            aria-hidden="true"
-          />
-          <div className="relative w-full max-w-lg bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75]">
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                className="text-lg font-semibold"
-                style={{ color: '#27251f' }}
-              >
-                New Group Chat
-              </h2>
-              <button
-                type="button"
-                onClick={closeGroupModal}
-                className="w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#27251f] hover:bg-[#e8e5dc]"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            <div className="space-y-4">
+      <Sheet open={showNewGroup} onOpenChange={(open) => { if (!open) closeGroupModal(); }}>
+        <SheetContent side="bottom" className="bg-white border-t border-[#e7ded1] max-w-lg mx-auto p-0 gap-0 z-[70]">
+          <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
+            <SheetTitle className="text-lg font-semibold text-[#27251f]">
+              New Group Chat
+            </SheetTitle>
+          </SheetHeader>
+          <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
               <Input
                 placeholder="Group name"
                 value={newGroupName}
@@ -2774,58 +2755,43 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                   })}
                 </div>
               )}
-              <div className="flex gap-2 justify-end items-center">
-                <span
-                  className={`text-xs ${!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'text-[#d47455]' : 'text-transparent'}`}
-                  style={{ minHeight: '16px' }}
-                >
-                  {!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'Needs 2 incl. you' : ''}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={closeGroupModal}
-                  className="min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleCreateGroup}
-                  disabled={!newGroupName.trim() || selectedGroupMembers.length < 1}
-                  className="min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white disabled:opacity-60 disabled:hover:bg-[#d47455]"
-                  title={!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'Needs 2 incl. you' : undefined}
-                >
-                  Create Group
-                </Button>
-              </div>
-            </div>
           </div>
-        </div>
-      )}
+          <SheetFooter className="flex-row gap-2 justify-end p-6 pt-4 border-t border-[#e7ded1]">
+            <span
+              className={`text-xs flex items-center ${!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'text-[#d47455]' : 'text-transparent'}`}
+              style={{ minHeight: '16px' }}
+            >
+              {!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'Needs 2 incl. you' : ''}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeGroupModal}
+              className="h-auto py-1.5 px-3 text-xs min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateGroup}
+              disabled={!newGroupName.trim() || selectedGroupMembers.length < 1}
+              className="h-auto py-1.5 px-3 text-xs min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white disabled:opacity-60 disabled:hover:bg-[#d47455]"
+              title={!newGroupName.trim() || selectedGroupMembers.length < 1 ? 'Needs 2 incl. you' : undefined}
+            >
+              Create Group
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Edit Members Modal */}
       {showEditMembers && selectedConv && !clubs.some(c => c.id === selectedConversation) && (
-        <div
-          className="fixed inset-0 z-[70] flex items-start justify-center px-4 pt-20"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={handleCloseEditMembers}
-            aria-hidden="true"
-          />
-          <div className="relative w-full max-w-lg bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75] max-h-[80vh] overflow-y-auto">
-            <button
-              type="button"
-              onClick={handleCloseEditMembers}
-              className="absolute top-2 right-1 w-8 h-8 rounded-full bg-[#f5f3eb] flex items-center justify-center text-[#27251f] hover:bg-[#e8e5dc]"
-              aria-label="Close"
-            >
-              ×
-            </button>
-            <div className="space-y-4">
+        <Sheet open={showEditMembers} onOpenChange={(open) => { if (!open) handleCloseEditMembers(); }}>
+          <SheetContent side="bottom" className="bg-white border-t border-[#e7ded1] max-w-lg mx-auto p-0 gap-0 z-[70]">
+            <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
+              <SheetTitle className="text-lg font-semibold text-[#27251f]">Edit Group</SheetTitle>
+            </SheetHeader>
+            <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
               {/* Group Name */}
               <div>
                 <h3 className="text-sm font-semibold mb-2" style={{ color: '#27251f' }}>
@@ -3016,52 +2982,38 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                 )}
               </div>
             </div>
-          </div>
-        </div>
+          </SheetContent>
+        </Sheet>
       )}
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && !clubs.some(c => c.id === selectedConversation) && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowDeleteConfirm(false)}
-            aria-hidden="true"
-          />
-          <div className="relative w-full max-w-md bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[75]">
-            <h2
-              className="text-lg font-semibold mb-4"
-              style={{ color: '#27251f' }}
-            >
-              Delete Group
-            </h2>
-            <p className="text-sm mb-6" style={{ color: '#787771' }}>
+      <Sheet open={showDeleteConfirm && !clubs.some(c => c.id === selectedConversation)} onOpenChange={(open) => { if (!open) setShowDeleteConfirm(false); }}>
+        <SheetContent side="bottom" className="bg-white border-t border-[#e7ded1] max-w-md mx-auto p-0 gap-0 z-[70]">
+          <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
+            <SheetTitle className="text-lg font-semibold text-[#27251f]">Delete Group</SheetTitle>
+            <p className="text-sm text-[#787771] mt-2">
               Are you sure you want to delete this group? This action cannot be undone. All messages and members will be permanently removed.
             </p>
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleDeleteGroup}
-                className="min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white"
-              >
-                Delete Group
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+          </SheetHeader>
+          <SheetFooter className="flex-row gap-2 justify-end p-6 pt-4 border-t border-[#e7ded1]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="h-auto py-1.5 px-3 text-xs min-w-[96px] justify-center bg-[#f5f3eb] hover:bg-[#e8e5dc]"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDeleteGroup}
+              className="h-auto py-1.5 px-3 text-xs min-w-[120px] justify-center bg-[#d47455] hover:bg-[#c06545] text-white"
+            >
+              Delete Group
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Desktop View - Keep existing design */}
       <div className="hidden md:flex h-full">
@@ -3964,7 +3916,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                       <button
                         onClick={handleSendMessage}
                         disabled={sendingMessage}
-                        className="px-6 py-3 text-white rounded-xl transition-colors bg-[#d47455] hover:bg-[#c06545] relative"
+                        className="px-3 py-1.5 text-white rounded-full text-xs transition-colors bg-[#d47455] hover:bg-[#c06545] relative"
                         style={{ fontWeight: 600 }}
                       >
                         Send

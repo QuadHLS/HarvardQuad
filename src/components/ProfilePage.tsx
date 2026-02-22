@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin, Calendar, Book, Edit2, ChevronRight, LogOut, Save,
 import { useAuth } from '../contexts/AuthContext';
 import { navigateWithoutReload } from '../lib/navigation';
 import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 import { isValidSocialUrl, normalizeSocialUrl } from '../lib/urlUtils';
 
 interface ProfileData {
@@ -205,7 +206,7 @@ export function ProfilePage() {
 
       if (error) {
         console.error('Error updating profile:', error);
-        alert('Failed to update profile. Please try again.');
+        toast.error('Failed to update profile. Please try again.');
         setSaving(false);
         return;
       }
@@ -228,7 +229,7 @@ export function ProfilePage() {
       setIsEditing(false);
     } catch (err) {
       console.error('Error updating profile:', err);
-      alert('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -253,13 +254,13 @@ export function ProfilePage() {
         .update({ avatar_url: avatarUrl })
         .eq('id', user.id);
       if (error) {
-        alert('Failed to update avatar. Please try again.');
+        toast.error('Failed to update avatar. Please try again.');
         return;
       }
       setProfile({ ...profile, avatar_url: avatarUrl });
       window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (err) {
-      alert('An unexpected error occurred. Please try again.');
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setRerollingAvatar(false);
     }
@@ -401,7 +402,7 @@ export function ProfilePage() {
                     type="button"
                     onClick={handleRerollAvatar}
                     disabled={rerollingAvatar}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition-all ${
                       rerollingAvatar
                         ? 'border-[#e8e4db] bg-[#f5f4f2] text-[#787771] cursor-not-allowed'
                         : 'border-[#d47455] bg-white text-[#d47455] hover:bg-[#fef9f5] active:scale-95'
@@ -728,12 +729,12 @@ export function ProfilePage() {
                   (error as { name?: string })?.name === 'AuthSessionMissingError';
                 if (error && !isSessionMissing) {
                   console.error('Error signing out:', error);
-                  alert('Failed to sign out. Please try again.');
+                  toast.error('Failed to sign out. Please try again.');
                   return;
                 }
                 navigateWithoutReload('/');
               }}
-              className="w-full py-3.5 rounded-2xl text-[15px] font-medium text-[#c94a3a] active:bg-[#c94a3a]/10 transition-colors min-h-[44px]"
+              className="w-full py-1.5 px-3 rounded-full text-xs font-medium text-[#c94a3a] active:bg-[#c94a3a]/10 transition-colors"
               style={{ 
                 background: 'rgba(201, 74, 58, 0.08)',
               }}
@@ -773,7 +774,7 @@ export function ProfilePage() {
             {!isEditing ? (
               <button 
                 onClick={handleEditClick}
-                className="flex items-center gap-2 px-4 py-2 bg-[#27251f] text-white rounded-lg text-[14px] hover:bg-[#1a1916] transition-colors" 
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#27251f] text-white rounded-full text-xs hover:bg-[#1a1916] transition-colors" 
               >
                 <Edit2 size={16} />
                 Edit Profile
@@ -783,7 +784,7 @@ export function ProfilePage() {
                 <button 
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#27251f] text-white rounded-lg text-[14px] hover:bg-[#1a1916] transition-colors disabled:opacity-50" 
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#27251f] text-white rounded-full text-xs hover:bg-[#1a1916] transition-colors disabled:opacity-50" 
                 >
                   <Save size={16} />
                   {saving ? 'Saving...' : 'Save'}
@@ -791,7 +792,7 @@ export function ProfilePage() {
                 <button 
                   onClick={handleCancel}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#27251f] text-white rounded-lg text-[14px] hover:bg-[#1a1916] transition-colors disabled:opacity-50" 
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#27251f] text-white rounded-full text-xs hover:bg-[#1a1916] transition-colors disabled:opacity-50" 
                 >
                   <X size={16} />
                   Cancel
@@ -833,7 +834,7 @@ export function ProfilePage() {
                       type="button"
                       onClick={handleRerollAvatar}
                       disabled={rerollingAvatar}
-                      className={`mt-2 flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
+                      className={`mt-2 flex items-center gap-2 px-4 py-2 rounded-full border-2 text-sm font-medium transition-all ${
                         rerollingAvatar
                           ? 'border-[#e8e4db] bg-[#f5f4f2] text-[#787771] cursor-not-allowed'
                           : 'border-[#d47455] bg-white text-[#d47455] hover:bg-[#fef9f5] active:scale-95'
@@ -1110,19 +1111,17 @@ export function ProfilePage() {
                     (error as { name?: string })?.name === 'AuthSessionMissingError';
                   if (error && !isSessionMissing) {
                     console.error('Error signing out:', error);
-                    alert('Failed to sign out. Please try again.');
+                    toast.error('Failed to sign out. Please try again.');
                     return;
                   }
                   navigateWithoutReload('/');
                 }}
-                className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border-[#f5f3eb] hover:bg-[#fef3ef] transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-[#e7ded1] text-xs hover:bg-[#fef3ef] transition-colors"
                 aria-label="Sign out of your account"
               >
-                <div className="w-9 h-9 rounded-xl bg-[#fef3ef] flex items-center justify-center">
-                  <LogOut className="w-5 h-5 text-[#d47455]" aria-hidden="true" />
-                </div>
+                <LogOut className="w-4 h-4 text-[#d47455] shrink-0" aria-hidden="true" />
                 <span 
-                  className="text-sm"
+                  className="text-xs"
                   style={{ color: '#d47455', fontWeight: 600 }}
                 >
                   Sign Out

@@ -60,7 +60,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(!cachedAuth);
 
   useEffect(() => {
-    // Prevent loading from hanging (e.g. missing env or Supabase unreachable)
     const fallback = setTimeout(() => setLoading(false), 5000);
 
     const {

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { TermsPage } from "./components/TermsPage";
 import { PrivacyPage } from "./components/PrivacyPage";
+import { Toaster } from "./components/ui/sonner";
 import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -55,6 +56,7 @@ createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <AuthProvider>
       <Root />
+      <Toaster position="top-center" richColors />
     </AuthProvider>
   </ErrorBoundary>
 );

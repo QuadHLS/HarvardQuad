@@ -60,7 +60,7 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
           <div className="flex justify-center pt-8">
             <button
               onClick={onSignIn}
-              className="font-normal bg-[#27251f] text-[#f7f8f3] px-8 py-4 hover:bg-[#27251f]/90 transition-colors rounded-lg"
+              className="font-normal bg-[#27251f] text-[#f7f8f3] px-8 py-4 hover:bg-[#27251f]/90 transition-colors rounded-full"
               aria-label="Get started for free"
             >
               Get started for free
