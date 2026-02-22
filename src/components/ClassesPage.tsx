@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Upload, Calendar, Clock, MapPin, User, FileText, Plus, Edit2, Trash2, BookOpen, CheckCircle } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
 
 interface Course {
   id: string;
@@ -152,7 +153,7 @@ export function ClassesPage({ initialTab = 'overview', onTabChange }: ClassesPag
           <div className="flex gap-3">
             <button 
               onClick={() => setShowUploadModal(true)}
-              className="px-4 py-2 bg-white border border-[#e8e4db] text-[#27251f] rounded-lg text-[14px] hover:bg-[#faf9f7] transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 bg-white border border-[#e8e4db] text-[#27251f] rounded-lg text-xs hover:bg-[#faf9f7] transition-colors flex items-center gap-2"
               style={{ fontWeight: 600 }}
             >
               <Upload className="w-4 h-4" />
@@ -347,7 +348,7 @@ export function ClassesPage({ initialTab = 'overview', onTabChange }: ClassesPag
               <h2 className="text-[20px] text-[#27251f] m-0" style={{ fontWeight: 600 }}>
                 All Assignments
               </h2>
-              <button className="flex items-center gap-2 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[13px] hover:bg-[#c06545] transition-colors" style={{ fontWeight: 600 }}>
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-[#d47455] text-white rounded-lg text-xs hover:bg-[#c06545] transition-colors" style={{ fontWeight: 600 }}>
                 <Plus className="w-4 h-4" />
                 New Assignment
               </button>
@@ -402,99 +403,96 @@ export function ClassesPage({ initialTab = 'overview', onTabChange }: ClassesPag
         )}
       </div>
 
-      {/* Upload Syllabus Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-[24px] text-[#27251f] mb-4 mt-0" style={{ fontWeight: 600 }}>
+      {/* Upload Syllabus */}
+      <Sheet open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <SheetContent side="bottom" className="bg-white border-t border-[#e8e4db] max-w-md mx-auto p-0 gap-0">
+          <SheetHeader className="p-6 pb-4 border-b border-[#e8e4db]">
+            <SheetTitle className="text-[24px] text-[#27251f]" style={{ fontWeight: 600 }}>
               Upload Syllabus
-            </h2>
-            <p className="text-[14px] text-[#787771] mb-6 mt-0" >
+            </SheetTitle>
+            <p className="text-[14px] text-[#787771] mt-2">
               Upload a PDF syllabus and we'll automatically extract course information and add it to your schedule.
             </p>
-
-            <div className="border-2 border-dashed border-[#e8e4db] rounded-lg p-8 text-center mb-6 hover:border-[#d47455] hover:bg-[#fef9f5] transition-all cursor-pointer">
+          </SheetHeader>
+          <div className="p-6">
+            <div className="border-2 border-dashed border-[#e8e4db] rounded-lg p-8 text-center hover:border-[#d47455] hover:bg-[#fef9f5] transition-all cursor-pointer">
               <Upload className="w-12 h-12 text-[#787771] mx-auto mb-3" />
               <p className="text-[14px] text-[#787771] mb-1" style={{ fontWeight: 600 }}>
                 Click to upload or drag and drop
               </p>
-              <p className="text-[12px] text-[#787771] m-0" >
+              <p className="text-[12px] text-[#787771] m-0">
                 PDF files only (max 10MB)
               </p>
             </div>
-
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowUploadModal(false)}
-                className="flex-1 px-4 py-2 bg-[#faf9f7] text-[#27251f] rounded-lg text-[14px] hover:bg-[#f0ede3] transition-colors"
-                style={{ fontWeight: 600 }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="flex-1 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors"
-                style={{ fontWeight: 600 }}
-              >
-                Upload
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+          <SheetFooter className="flex-row gap-3 p-6 pt-4 border-t border-[#e8e4db]">
+            <button
+              type="button"
+              onClick={() => setShowUploadModal(false)}
+              className="flex-1 px-3 py-1.5 bg-[#faf9f7] text-[#27251f] rounded-lg text-xs hover:bg-[#f0ede3] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="flex-1 px-3 py-1.5 bg-[#d47455] text-white rounded-lg text-xs hover:bg-[#c06545] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              Upload
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {/* Edit Schedule Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-[24px] text-[#27251f] mb-4 mt-0" style={{ fontWeight: 600 }}>
+      {/* Edit Schedule */}
+      <Sheet open={showEditModal} onOpenChange={setShowEditModal}>
+        <SheetContent side="bottom" className="bg-white border-t border-[#e8e4db] max-w-2xl mx-auto p-0 gap-0">
+          <SheetHeader className="p-6 pb-4 border-b border-[#e8e4db]">
+            <SheetTitle className="text-[24px] text-[#27251f]" style={{ fontWeight: 600 }}>
               Edit Course Schedule
-            </h2>
-            <p className="text-[14px] text-[#787771] mb-6 mt-0" >
+            </SheetTitle>
+            <p className="text-[14px] text-[#787771] mt-2">
               Add, remove, or modify your enrolled courses.
             </p>
-
-            <div className="space-y-3 mb-6">
+          </SheetHeader>
+          <div className="p-6 overflow-y-auto max-h-[50vh]">
+            <div className="space-y-3">
               {courses.map((course) => (
                 <div key={course.id} className="bg-[#faf9f7] border border-[#e8e4db] rounded-lg p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div 
-                      className="w-1 h-12 rounded-sm"
-                      style={{ backgroundColor: course.color }}
-                    ></div>
+                    <div className="w-1 h-12 rounded-sm" style={{ backgroundColor: course.color }} />
                     <div>
-                      <div className="text-[14px] text-[#27251f]" style={{ fontWeight: 600 }}>
-                        {course.name}
-                      </div>
-                      <div className="text-[12px] text-[#787771]" >
-                        {course.code} • {course.credits} credits
-                      </div>
+                      <div className="text-[14px] text-[#27251f]" style={{ fontWeight: 600 }}>{course.name}</div>
+                      <div className="text-[12px] text-[#787771]">{course.code} • {course.credits} credits</div>
                     </div>
                   </div>
-                  <button className="p-2 text-[#dd3a3a] hover:bg-white rounded-lg transition-colors">
+                  <button type="button" className="p-2 text-[#dd3a3a] hover:bg-white rounded-lg transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               ))}
             </div>
-
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 px-4 py-2 bg-[#faf9f7] text-[#27251f] rounded-lg text-[14px] hover:bg-[#f0ede3] transition-colors"
-                style={{ fontWeight: 600 }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="flex-1 px-4 py-2 bg-[#d47455] text-white rounded-lg text-[14px] hover:bg-[#c06545] transition-colors"
-                style={{ fontWeight: 600 }}
-              >
-                Save Changes
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+          <SheetFooter className="flex-row gap-3 p-6 pt-4 border-t border-[#e8e4db]">
+            <button
+              type="button"
+              onClick={() => setShowEditModal(false)}
+              className="flex-1 px-3 py-1.5 bg-[#faf9f7] text-[#27251f] rounded-lg text-xs hover:bg-[#f0ede3] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="flex-1 px-3 py-1.5 bg-[#d47455] text-white rounded-lg text-xs hover:bg-[#c06545] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              Save Changes
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

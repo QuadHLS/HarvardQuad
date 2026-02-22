@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { FeedService, type FeedPostWithAuthor, type FeedReplyWithAuthor, type ProfileRow } from '../services/feedService';
 import { getEmbedInfo } from '../lib/embedUrl';
-import { ScrollArea } from './ui/scroll-area';
 import { NewPostModal, type NewPostModalOptimisticData } from './NewPostModal';
 import { UserProfileView } from './UserProfileView';
 import { SwipeBackContainer } from './ui/SwipeBackContainer';
@@ -26,7 +25,7 @@ function AuthorAvatar({
   profile,
   color,
   initials,
-  sizeClass = 'w-9 h-9',
+  sizeClass = 'w-7 h-7',
   className = '',
   asButton = false,
   onClick,
@@ -147,25 +146,25 @@ interface PostDetailViewProps {
   onOpenUserProfile?: (userId: string) => void;
   /** When set (e.g. embedded in squad page), used as the header title instead of "Home". */
   headerTitle?: string;
+  /** When true (e.g. embedded in squad), do not show the header bar; parent provides it. */
+  hideHeader?: boolean;
+  /** When set (e.g. from squad), header uses this background color. */
+  headerColor?: string;
+  /** When true, header uses dark text (for light backgrounds like squad footer color). */
+  headerDarkText?: boolean;
+  /** When set (e.g. from squad), show "X members" under the title in the header. */
+  memberCount?: number;
 }
 
-function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, onOpenUserProfile, headerTitle = 'Home' }: PostDetailViewProps) {
+function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, onOpenUserProfile, headerTitle = 'Home', hideHeader = false, headerColor, headerDarkText, memberCount }: PostDetailViewProps) {
   const [detailPost, setDetailPost] = useState<FeedPostWithAuthor | null>(post);
-  const [replies, setReplies] = useState<FeedReplyWithAuthor[]>([]);
-  const [replyInput, setReplyInput] = useState('');
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [isReplyInputFocused, setIsReplyInputFocused] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const loadDetail = useCallback(async () => {
     try {
-      const [p, r] = await Promise.all([
-        FeedService.getPost(post.id, userId),
-        FeedService.listReplies(post.id, userId),
-      ]);
+      const p = await FeedService.getPost(post.id, userId);
       if (p) setDetailPost(p);
-      setReplies(r);
     } catch {
       setDetailPost(null);
     } finally {
@@ -177,124 +176,44 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
     loadDetail();
   }, [loadDetail]);
 
-  // Realtime: replies, throttled hearts, and (for polls) options + throttled votes
   useEffect(() => {
-    const replyChannel = FeedService.subscribeToFeedReplies(post.id, loadDetail);
-    const { unsubscribe: unsubscribeHearts } = FeedService.subscribeToFeedHearts(post.id, loadDetail, { throttleMs: 4000 });
-    const cleanups: (() => void)[] = [
-      () => FeedService.unsubscribeFromFeedReplies(replyChannel),
-      unsubscribeHearts,
-    ];
-    if (post.post_type === 'poll') {
-      const pollOptsChannel = FeedService.subscribeToFeedPollOptions(post.id, loadDetail);
-      const { unsubscribe: unsubscribePollVotes } = FeedService.subscribeToFeedPollVotes(post.id, loadDetail, { throttleMs: 4000 });
-      cleanups.push(() => FeedService.unsubscribeFromFeedPollOptions(pollOptsChannel), unsubscribePollVotes);
-    }
-    return () => cleanups.forEach((c) => c());
-  }, [post.id, post.post_type, loadDetail]);
-
-  const handleHeartPost = async () => {
-    if (!userId || !detailPost) return;
-    const nextHearted = !detailPost.current_user_hearted;
-    const nextCount = (detailPost.heart_count ?? 0) + (nextHearted ? 1 : -1);
-    setDetailPost((prev) => prev ? { ...prev, current_user_hearted: nextHearted, heart_count: nextCount } : null);
-    try {
-      const { hearted } = await FeedService.toggleHeartPost(detailPost.id, userId);
-      setDetailPost((prev) => prev ? { ...prev, current_user_hearted: hearted, heart_count: prev.heart_count ?? 0 } : null);
-    } catch {
-      setDetailPost((prev) => prev ? { ...prev, current_user_hearted: detailPost.current_user_hearted, heart_count: detailPost.heart_count ?? 0 } : null);
-    }
-  };
-
-  const handleVote = async (optionId: string) => {
-    if (!userId || !detailPost?.poll_options) return;
-    const prevOptionId = detailPost.current_user_vote_option_id ?? null;
-    if (prevOptionId === optionId) return;
-    const options = detailPost.poll_options.map((o) => ({
-      ...o,
-      vote_count: o.id === optionId ? (o.vote_count || 0) + 1 : o.id === prevOptionId ? Math.max(0, (o.vote_count || 0) - 1) : o.vote_count || 0,
-    }));
-    setDetailPost((prev) => prev ? { ...prev, current_user_vote_option_id: optionId, poll_options: options } : null);
-    try {
-      await FeedService.votePoll(detailPost.id, optionId, userId);
-      await loadDetail();
-    } catch {
-      setDetailPost((prev) => prev ? { ...prev, current_user_vote_option_id: prevOptionId, poll_options: detailPost.poll_options } : null);
-    }
-  };
-
-  const handlePinPost = async () => {
-    if (!userId || !detailPost) return;
-    const nextPinned = !detailPost.current_user_pinned;
-    setDetailPost((prev) => prev ? { ...prev, current_user_pinned: nextPinned } : null);
-    try {
-      const { pinned } = await FeedService.togglePinPost(detailPost.id, userId);
-      setDetailPost((prev) => prev ? { ...prev, current_user_pinned: pinned } : null);
-    } catch {
-      setDetailPost((prev) => prev ? { ...prev, current_user_pinned: detailPost.current_user_pinned } : null);
-    }
-  };
-
-  const countTotalReplies = (replies: FeedReplyWithAuthor[]): number => {
-    return replies.reduce((sum, r) => sum + 1 + (r.replies?.length ? countTotalReplies(r.replies) : 0), 0);
-  };
-
-  const handleSubmitReply = async () => {
-    const content = replyInput.replace(/^[ \t]+|[ \t]+$/g, '');
-    if (!userId || !detailPost || !content || !content.trim()) return;
-    const parentId = replyingTo ?? null;
-    const optimisticReply: FeedReplyWithAuthor = {
-      id: `opt-reply-${Date.now()}`,
-      post_id: detailPost.id,
-      parent_reply_id: parentId,
-      author_id: userId,
-      content: content.trim(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      author: { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null },
-      heart_count: 0,
-      current_user_hearted: false,
-      replies: [],
-    };
-    const addOptimisticReply = (list: FeedReplyWithAuthor[], parent: string | null, reply: FeedReplyWithAuthor): FeedReplyWithAuthor[] => {
-      if (parent == null) return [...list, reply];
-      return list.map((r) =>
-        r.id === parent ? { ...r, replies: [...(r.replies ?? []), reply] } : { ...r, replies: r.replies ? addOptimisticReply(r.replies, parent, reply) : r.replies }
-      );
-    };
-    setReplies((prev) => addOptimisticReply(prev, parentId, optimisticReply));
-    setDetailPost((prev) => prev ? { ...prev, reply_count: (prev.reply_count ?? 0) + 1 } : null);
-    setReplyInput('');
-    setReplyingTo(null);
-    setSubmitting(true);
-    try {
-      await FeedService.createReply(detailPost.id, userId, content.trim(), replyingTo ?? undefined);
-      const r = await FeedService.listReplies(detailPost.id, userId);
-      setReplies(r);
-      setDetailPost((prev) => prev ? { ...prev, reply_count: countTotalReplies(r) } : null);
-    } catch {
-      setReplies((prev) => {
-        const removeOpt = (list: FeedReplyWithAuthor[]): FeedReplyWithAuthor[] =>
-          list.filter((r) => !r.id.startsWith('opt-reply-')).map((r) => ({ ...r, replies: r.replies ? removeOpt(r.replies) : r.replies }));
-        return removeOpt(prev);
-      });
-      setDetailPost((prev) => prev ? { ...prev, reply_count: Math.max(0, (prev.reply_count ?? 1) - 1) } : null);
-      setReplyInput(content);
-      setReplyingTo(parentId);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+  }, [post.id]);
 
   if (loading || !detailPost) {
     return (
       <SwipeBackContainer onBack={onBack} className="h-full flex flex-col bg-[#FBF9F5]">
-        <div className="bg-[#F1EFE7] px-4 py-4 flex-shrink-0 flex items-center gap-3">
-          <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
-            <ChevronLeft className="w-6 h-6 text-[#27251f]" />
-          </button>
-          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >{headerTitle}</h1>
-        </div>
+        {!hideHeader && (
+          <div
+            className={`flex-shrink-0 px-4 ${headerColor ? 'py-2.5 border-b border-black/10' : 'py-4 bg-[#F1EFE7]'}`}
+            style={headerColor ? { backgroundColor: headerColor } : undefined}
+          >
+            <div className="flex items-center gap-2 w-full max-w-3xl mx-auto">
+              <button
+                onClick={onBack}
+                className={headerColor
+                  ? `w-9 h-9 flex items-center justify-center rounded-full shrink-0 active:scale-95 transition-transform ${headerDarkText ? 'bg-black/10 text-[#27251f] hover:bg-black/15' : 'bg-black/65 text-white hover:bg-black/75'}`
+                  : 'w-8 h-8 flex items-center justify-center shrink-0'}
+                aria-label="Back"
+              >
+                <ChevronLeft className={headerColor ? (headerDarkText ? 'w-5 h-5 text-[#27251f]' : 'w-5 h-5 text-white') : 'w-6 h-6 text-[#27251f]'} />
+              </button>
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <h1
+                  className={`text-lg truncate font-semibold ${headerColor ? (headerDarkText ? 'text-[#27251f]' : 'text-white') : 'text-[#27251f]'}`}
+                  style={{ fontWeight: 600 }}
+                >
+                  {headerTitle}
+                </h1>
+                {headerColor != null && memberCount != null && (
+                  <p className={`text-xs truncate ${headerDarkText ? 'text-[#787771]' : 'text-white/90'}`}>
+                    {memberCount} members
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
         </div>
@@ -302,296 +221,48 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
     );
   }
 
-  const authorName = FeedService.postAuthorName(detailPost);
-  const authorInitials = FeedService.postInitials(detailPost);
-  const authorColor = FeedService.avatarColor(detailPost.author_id);
-  const timeStr = FeedService.timeAgo(detailPost.created_at);
-  const sourceLabel = detailPost.source_type === 'squad'
-    ? (detailPost.is_squad_admin ? `${detailPost.source_name ?? 'Squad'} Admin` : 'Member')
-    : 'Student';
-  const sourceColor = '#d47455';
-
   return (
-    <SwipeBackContainer onBack={onBack} className="h-full flex flex-col bg-[#FBF9F5]">
-      <div className="bg-[#F1EFE7] px-4 py-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-8 h-8 flex items-center justify-center -ml-2">
-            <ChevronLeft className="w-6 h-6 text-[#27251f]" />
-          </button>
-          <h1 className="text-lg flex-1 font-semibold text-[#27251f]" >{headerTitle}</h1>
+    <SwipeBackContainer onBack={onBack} className="h-full min-h-0 flex flex-col bg-[#FBF9F5]">
+      {!hideHeader && (
+        <div
+          className={`flex-shrink-0 px-4 ${headerColor ? 'py-2.5 border-b border-black/10' : 'py-4 bg-[#F1EFE7]'}`}
+          style={headerColor ? { backgroundColor: headerColor } : undefined}
+        >
+          <div className="flex items-center gap-2 w-full max-w-3xl mx-auto">
+            <button
+              onClick={onBack}
+              className={headerColor
+                ? `w-9 h-9 flex items-center justify-center rounded-full shrink-0 active:scale-95 transition-transform ${headerDarkText ? 'bg-black/10 text-[#27251f] hover:bg-black/15' : 'bg-black/65 text-white hover:bg-black/75'}`
+                : 'w-8 h-8 flex items-center justify-center shrink-0'}
+              aria-label="Back"
+            >
+              <ChevronLeft className={headerColor ? (headerDarkText ? 'w-5 h-5 text-[#27251f]' : 'w-5 h-5 text-white') : 'w-6 h-6 text-[#27251f]'} />
+            </button>
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <h1
+                className={`text-lg truncate font-semibold ${headerColor ? (headerDarkText ? 'text-[#27251f]' : 'text-white') : 'text-[#27251f]'}`}
+                style={{ fontWeight: 600 }}
+              >
+                {headerTitle}
+              </h1>
+              {headerColor != null && memberCount != null && (
+                <p className={`text-xs truncate ${headerDarkText ? 'text-[#787771]' : 'text-white/90'}`}>
+                  {memberCount} members
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+      >
+        <div className="px-4 max-w-3xl mx-auto w-full py-6">
+          {/* Post content area – reserved for redesign */}
         </div>
       </div>
-
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="pr-4">
-        <div className="bg-white p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              {detailPost.override_author_name?.trim() ? (
-                <AuthorAvatar
-                  profile={{ id: '', public_name: authorName, full_name: authorName, avatar_url: QUADLY_AVATAR_URL } as ProfileRow}
-                  color="#d47455"
-                  initials={authorInitials}
-                  sizeClass="min-w-[44px] min-h-[44px] w-10 h-10"
-                />
-              ) : detailPost.author_id !== userId ? (
-                <AuthorAvatar
-                  profile={detailPost.author}
-                  color={authorColor}
-                  initials={authorInitials}
-                  sizeClass="min-w-[44px] min-h-[44px] w-10 h-10"
-                  asButton
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onOpenUserProfile?.(detailPost.author_id);
-                  }}
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onOpenUserProfile?.(detailPost.author_id);
-                  }}
-                  aria-label={`View ${authorName}'s profile`}
-                />
-              ) : (
-                <AuthorAvatar
-                  profile={detailPost.author}
-                  color={authorColor}
-                  initials={authorInitials}
-                  sizeClass="w-10 h-10"
-                />
-              )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
-                  <span className="text-xs text-[#787771]">• {timeStr}</span>
-                </div>
-                {!detailPost.override_author_name?.trim() && (
-                  <div
-                    className="text-xs px-2 py-0.5 rounded-full inline-block mt-1"
-                    style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}
-                  >
-                    {sourceLabel}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-0.5">
-              {userId && (
-                <button
-                  type="button"
-                  onClick={handlePinPost}
-                  className="p-2 rounded-lg text-[#787771] hover:bg-[#F1EFE7] active:scale-95 transition-transform"
-                  aria-label={detailPost.current_user_pinned ? 'Unpin' : 'Pin'}
-                  title={detailPost.current_user_pinned ? 'Unpin' : 'Pin'}
-                >
-                  <Pin size={18} className={detailPost.current_user_pinned ? 'text-[#d97757]' : ''} fill={detailPost.current_user_pinned ? '#d97757' : 'none'} />
-                </button>
-              )}
-              {detailPost.current_user_pinned && (
-                <button
-                  type="button"
-                  onClick={handlePinPost}
-                  className="text-xs font-semibold text-[#d97757] hover:underline active:scale-95 transition-transform cursor-pointer"
-                  title="Unpin"
-                >
-                  Pinned
-                </button>
-              )}
-            </div>
-          </div>
-
-          <h2 className="text-xl mb-3 font-semibold text-[#27251f] leading-tight" >{detailPost.title}</h2>
-
-          {detailPost.content && (
-            <p className="selectable-text text-base mb-3 text-[#27251f] leading-relaxed whitespace-pre-wrap">{detailPost.content}</p>
-          )}
-          {detailPost.image_path && (
-            <div className="block isolate rounded-xl overflow-hidden max-h-80 mb-3 bg-muted/30">
-              <img src={detailPost.image_path} alt="" className="block w-full max-h-80 object-contain" />
-            </div>
-          )}
-          {detailPost.url && (
-            getEmbedInfo(detailPost.url) ? (
-              <EmbedBlock url={detailPost.url} className="mb-3" />
-            ) : (
-              <a href={detailPost.url} target="_blank" rel="noopener noreferrer" className="text-[#d47455] text-sm font-medium hover:underline block mb-3">{detailPost.url}</a>
-            )
-          )}
-
-          {detailPost.post_type === 'poll' && detailPost.poll_options && detailPost.poll_options.length > 0 && (
-            <div className="mb-4 space-y-2">
-              {detailPost.poll_options.map((opt) => {
-                const total = detailPost.poll_options!.reduce((s, o) => s + (o.vote_count ?? 0), 0);
-                const pct = total > 0 ? Math.round(((opt.vote_count ?? 0) / total) * 100) : 0;
-                const isSelected = detailPost.current_user_vote_option_id === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => handleVote(opt.id)}
-                    className={`w-full text-left rounded-lg border-2 px-3 py-2 transition-colors ${isSelected ? 'border-[#d47455] bg-[#fff3e0]' : 'border-[#e7ded1] hover:border-[#d47455]/50'}`}
-                  >
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-sm font-medium text-[#27251f]">{opt.option_text}</span>
-                      <span className="text-xs text-[#787771]">{opt.vote_count ?? 0} votes ({pct}%)</span>
-                    </div>
-                    <div className="mt-1 h-1.5 rounded-full bg-[#F1EFE7] overflow-hidden">
-                      <div className="h-full rounded-full bg-[#d47455]" style={{ width: `${pct}%` }} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="flex items-center gap-4 pt-2 border-t border-[#f5f3eb]">
-            <button onClick={handleHeartPost} className="flex items-center gap-1.5 py-2 active:scale-95 transition-transform">
-              <Heart size={20} className={detailPost.current_user_hearted ? 'text-[#d47455]' : 'text-[#787771]'} fill={detailPost.current_user_hearted ? '#d47455' : 'none'} />
-              <span className="text-base font-semibold" style={{ color: detailPost.current_user_hearted ? '#d47455' : '#27251f' }}>{detailPost.heart_count ?? 0}</span>
-            </button>
-            <span className="flex items-center gap-1.5 py-2 text-[#787771]">
-              <MessageSquare size={20} />
-              <span className="text-base">{detailPost.reply_count ?? 0}</span>
-            </span>
-          </div>
-
-        </div>
-
-        <div className={`px-0 py-0 ${isReplyInputFocused ? 'pb-4' : 'pb-40 md:pb-12'}`}>
-          <div className="space-y-4">
-            {replies.map((comment) => (
-              <ReplyBlock
-                key={comment.id}
-                reply={comment}
-                userId={userId}
-                onReply={() => setReplyingTo(comment.id)}
-                onHeart={async () => {
-                  if (!userId) return;
-                  await FeedService.toggleHeartReply(comment.id, userId);
-                  loadDetail();
-                }}
-                onReplySubmit={handleSubmitReply}
-                refreshReplies={loadDetail}
-                isTopLevel
-                replyingTo={replyingTo}
-                replyInput={replyInput}
-                setReplyInput={setReplyInput}
-                setReplyingTo={setReplyingTo}
-                onSubmitReply={handleSubmitReply}
-                submitting={submitting}
-                userDisplayName={userDisplayName}
-                userAvatarUrl={userAvatarUrl}
-                onReplyInputFocusChange={setIsReplyInputFocused}
-                onOpenUserProfile={onOpenUserProfile}
-              />
-            ))}
-          </div>
-        </div>
-        </div>
-      </ScrollArea>
-
-      {!replyingTo && (
-        <>
-          {/* Mobile: keep the post-reply composer fixed above bottom nav, like chat UI */}
-          <div
-            className={`md:hidden fixed left-0 right-0 bg-white border-t border-[#e7ded1] px-4 pt-4 pb-4 relative z-50 transition-[transform,position] duration-300 ease-in-out ${!isReplyInputFocused ? 'flex-shrink-0' : ''}`}
-            style={{
-              touchAction: 'none',
-              ...(isReplyInputFocused
-                ? { bottom: 0, left: 0, right: 0, transform: 'translateY(70px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }
-                : { bottom: 'var(--mobile-bottom-nav-height, 76px)', transform: 'translateY(0)' }
-              )
-            }}
-            onTouchMove={(e) => e.preventDefault()}
-          >
-            <div className="flex items-center gap-3">
-                <AuthorAvatar
-                  profile={userId ? { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null } as ProfileRow : null}
-                  color={userId ? FeedService.avatarColor(userId) : '#787771'}
-                  initials={userId && userDisplayName ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as ProfileRow) : userId ? 'You'.slice(0, 2) : '?'}
-                  sizeClass="w-9 h-9"
-                />
-                <textarea
-                  value={replyInput}
-                  onChange={(e) => setReplyInput(e.target.value)}
-                  onFocus={() => {
-                    setIsReplyInputFocused(true);
-                    window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: true } }));
-                  }}
-                  onBlur={() => {
-                    setIsReplyInputFocused(false);
-                    window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: false } }));
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmitReply();
-                    }
-                  }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 120) + 'px';
-                  }}
-                  placeholder="Join the conversation..."
-                  className="flex-1 min-h-[44px] resize-none overflow-y-auto bg-[#FBF9F5] rounded-xl px-4 py-2.5 text-sm border border-[#e7ded1] focus:outline-none focus:border-[#d47455]"
-                  style={{ color: '#27251f', maxHeight: '120px', lineHeight: '24px' }}
-                  disabled={!userId || submitting}
-                  rows={1}
-                />
-                <button
-                  type="button"
-                  onClick={handleSubmitReply}
-                  disabled={!userId || submitting || !replyInput.trim()}
-                  className="px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold disabled:opacity-50"
-                >
-                  Post
-                </button>
-            </div>
-          </div>
-
-          {/* Desktop: keep composer visible at page bottom without fixed overlay */}
-          <div className="hidden md:block border-t border-[#f5f3eb] bg-[#FBF9F5] px-4 py-3">
-            <div className="flex items-center gap-3">
-              <AuthorAvatar
-                profile={userId ? { id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null } as ProfileRow : null}
-                color={userId ? FeedService.avatarColor(userId) : '#787771'}
-                initials={userId && userDisplayName ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as ProfileRow) : userId ? 'You'.slice(0, 2) : '?'}
-                sizeClass="w-9 h-9"
-              />
-              <textarea
-                value={replyInput}
-                onChange={(e) => setReplyInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmitReply();
-                  }
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = Math.min(target.scrollHeight, 120) + 'px';
-                }}
-                placeholder="Join the conversation..."
-                className="flex-1 min-h-[44px] resize-none overflow-y-auto bg-[#FBF9F5] rounded-xl px-4 py-2.5 text-sm border border-[#e7ded1] focus:outline-none focus:border-[#d47455]"
-                style={{ color: '#27251f', maxHeight: '120px', lineHeight: '24px' }}
-                disabled={!userId || submitting}
-                rows={1}
-              />
-              <button
-                type="button"
-                onClick={handleSubmitReply}
-                disabled={!userId || submitting || !replyInput.trim()}
-                className="px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold disabled:opacity-50"
-              >
-                Post
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </SwipeBackContainer>
   );
 }
@@ -653,7 +324,7 @@ function InlineReplyForm({
         profile={currentUserProfile}
         color={userId ? FeedService.avatarColor(userId) : '#787771'}
         initials={userId && userDisplayName ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as ProfileRow) : 'Yo'}
-        sizeClass="w-8 h-8"
+        sizeClass="w-6 h-6"
       />
       <textarea
         value={replyInput}
@@ -689,7 +360,7 @@ function InlineReplyForm({
         type="button"
         onClick={onSubmitReply}
         disabled={!userId || submitting || !replyInput.trim()}
-        className="px-2.5 py-2 rounded-lg bg-[#d47455] text-white text-sm font-semibold disabled:opacity-50 flex-shrink-0"
+        className="px-3 py-1.5 rounded-lg bg-[#d47455] text-white text-xs font-semibold disabled:opacity-50 flex-shrink-0"
       >
         Post
       </button>
@@ -722,7 +393,7 @@ function ReplyBlock({
   const initials = FeedService.initials(reply.author);
   const color = FeedService.avatarColor(reply.author_id);
   const timeStr = FeedService.timeAgo(reply.created_at);
-  const size = isTopLevel ? 'w-9 h-9 text-xs' : 'w-8 h-8 text-xs';
+  const size = isTopLevel ? 'w-7 h-7 text-xs' : 'w-6 h-6 text-xs';
   const handleNestedHeart = async (replyId: string) => {
     if (!userId) return;
     await FeedService.toggleHeartReply(replyId, userId);
@@ -751,14 +422,14 @@ function ReplyBlock({
   };
   return (
     <div className={indentClass}>
-      <div className={isTopLevel ? 'bg-white rounded-2xl p-4 shadow-sm' : 'bg-[#fefefc] rounded-2xl p-4'}>
+      <div className={isTopLevel ? 'bg-white rounded-xl p-4 shadow-sm' : 'bg-[#fefefc] rounded-xl p-4'}>
         <div className="flex items-start gap-3">
           {onOpenUserProfile && !isOwnReply ? (
             <AuthorAvatar
               profile={reply.author}
               color={color}
               initials={initials}
-              sizeClass={`min-w-[44px] min-h-[44px] ${size}`}
+              sizeClass={`min-w-[28px] min-h-[28px] ${size}`}
               asButton
               onClick={handleAvatarClick}
               onPointerDown={handleAvatarPointerDown}
@@ -875,6 +546,12 @@ export interface HomeFeedProps {
   onPostDetailChange?: (isOpen: boolean) => void;
   /** When embedded, title shown in post detail header instead of "Home". */
   embedHeaderTitle?: string;
+  /** When embedded (e.g. squad), header uses this background color so post header matches squad header. */
+  embedHeaderColor?: string;
+  /** When true, embedded post header uses dark text (for light backgrounds). */
+  embedHeaderDarkText?: boolean;
+  /** When embedded (e.g. squad), show this member count under the header title. */
+  embedMemberCount?: number;
   /** When this value changes, feed refetches (e.g. parent bumps after new post so all instances update). */
   feedRefreshKey?: number;
   /** When provided (e.g. embedded), called after a new post is created so parent can refresh all feed instances. */
@@ -883,6 +560,10 @@ export interface HomeFeedProps {
   initialPostId?: string | null;
   /** Called when user opens or closes a post so parent can persist subpage. */
   onPostChange?: (postId: string | null) => void;
+  /** When true (e.g. embedded in squad detail), feed does not use internal scroll; parent scrolls intro + feed together. */
+  scrollWithParent?: boolean;
+  /** When provided (e.g. embedded), parent can register a function to close the post detail from outside. */
+  onRegisterClosePost?: (close: () => void) => void;
 }
 
 export function HomeFeed({
@@ -898,10 +579,15 @@ export function HomeFeed({
   onNewPostModalOpenChange: onControlledNewPostOpenChange,
   onPostDetailChange,
   embedHeaderTitle,
+  embedHeaderColor,
+  embedHeaderDarkText,
+  embedMemberCount,
   feedRefreshKey,
   onNewPostSuccess,
   initialPostId,
   onPostChange,
+  scrollWithParent = false,
+  onRegisterClosePost,
 }: HomeFeedProps) {
   const [posts, setPosts] = useState<FeedPostWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -945,6 +631,14 @@ export function HomeFeed({
   useEffect(() => {
     if (onPostDetailChange) onPostDetailChange(!!selectedPost);
   }, [selectedPost, onPostDetailChange]);
+
+  useEffect(() => {
+    onRegisterClosePost?.(() => {
+      setSelectedPost(null);
+      onPostChange?.(null);
+    });
+    return () => onRegisterClosePost?.(() => {});
+  }, [onRegisterClosePost, onPostChange]);
 
   // Restore opened post when returning to the page (from URL/sessionStorage). Reset ref when initialPostId is cleared so a new restore can run later.
   useEffect(() => {
@@ -1037,16 +731,27 @@ export function HomeFeed({
         }}
         onOpenUserProfile={(id) => id !== userId && setViewingUserId(id)}
         headerTitle={embedHeaderTitle ?? 'Home'}
+        hideHeader={false}
+        headerColor={embedHeaderColor}
+        headerDarkText={embedHeaderDarkText}
+        memberCount={embedMemberCount}
       />
     );
   }
 
   const sourceLabel = (p: FeedPostWithAuthor) =>
-    p.source_type === 'squad' ? (p.is_squad_admin ? `${p.source_name ?? 'Squad'} Admin` : 'Member') : 'Student';
+    p.source_type === 'squad' ? (p.is_squad_admin ? 'Admin' : 'Member') : 'Student';
   const sourceColor = '#d47455';
 
+  const rootClass = scrollWithParent
+    ? 'flex flex-col min-h-0'
+    : 'flex-1 min-h-0 flex flex-col overflow-hidden';
+  const listWrapperClass = scrollWithParent
+    ? 'overflow-x-hidden bg-[#FBF9F5] px-2 py-4 pb-24 md:pb-4'
+    : 'flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FBF9F5] px-2 py-4 pb-24 md:pb-4';
+
   return (
-    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+    <div className={rootClass}>
       {!embedded && (
         <header className="flex-shrink-0 border-b border-[#e7ded1] bg-[#FBF9F5] px-5 py-4 flex items-center justify-between gap-4">
           <h1 className="text-2xl md:text-3xl flex-1 min-w-0 font-medium text-[#27251f]" >
@@ -1055,7 +760,7 @@ export function HomeFeed({
           {userId && (
             <button
               type="button"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#d47455] text-white text-sm flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#d47455] text-white text-xs flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
               style={{ fontWeight: 600 }}
               onClick={() => setNewPostModalOpen(true)}
             >
@@ -1073,7 +778,7 @@ export function HomeFeed({
           {userId && (
             <button
               type="button"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#d47455] text-white text-sm flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#d47455] text-white text-xs flex-shrink-0 active:scale-[0.98] transition-transform hover:bg-[#c06545]"
               style={{ fontWeight: 600 }}
               onClick={() => setNewPostModalOpen(true)}
             >
@@ -1084,8 +789,8 @@ export function HomeFeed({
         </div>
       )}
       <div
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FBF9F5] px-4 py-4 pb-24 md:pb-4"
-        style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}
+        className={listWrapperClass}
+        style={scrollWithParent ? undefined : { overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
@@ -1110,17 +815,23 @@ export function HomeFeed({
               return (
                 <div
                   key={post.id}
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm"
+                  className="bg-white rounded-xl overflow-hidden shadow-sm"
                 >
                   <div className="p-4 pb-3">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={openPost}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPost(); } }}
+                        className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer active:scale-[0.98] transition-transform"
+                      >
                         {post.override_author_name?.trim() ? (
                           <AuthorAvatar
                             profile={{ id: '', public_name: authorName, full_name: authorName, avatar_url: QUADLY_AVATAR_URL } as ProfileRow}
                             color="#d47455"
                             initials={authorInitials}
-                            sizeClass="min-w-[44px] min-h-[44px] w-9 h-9"
+                            sizeClass="min-w-[28px] min-h-[28px] w-7 h-7 shrink-0"
                             className="relative z-10"
                           />
                         ) : post.author_id !== userId ? (
@@ -1128,7 +839,7 @@ export function HomeFeed({
                             profile={post.author}
                             color={authorColor}
                             initials={authorInitials}
-                            sizeClass="min-w-[44px] min-h-[44px] w-9 h-9"
+                            sizeClass="min-w-[28px] min-h-[28px] w-7 h-7 shrink-0"
                             asButton
                             onClick={(e) => {
                               e.preventDefault();
@@ -1148,24 +859,16 @@ export function HomeFeed({
                             profile={post.author}
                             color={authorColor}
                             initials={authorInitials}
-                            sizeClass="w-9 h-9"
+                            sizeClass="w-7 h-7 shrink-0"
                           />
                         )}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={openPost}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPost(); } }}
-                          className="flex-1 min-w-0 cursor-pointer active:scale-[0.98] transition-transform"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-[#27251f]">{authorName}</span>
-                            <span className="text-xs text-[#787771]">• {timeStr}</span>
-                          </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
+                          <span className="text-sm font-semibold text-[#27251f] truncate">{authorName}</span>
+                          <span className="text-xs text-[#787771] shrink-0">• {timeStr}</span>
                           {!post.override_author_name?.trim() && (
-                            <div className="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}>
+                            <span className="text-xs px-2 py-0.5 rounded-full inline-block shrink-0" style={{ backgroundColor: sourceColor + '20', color: sourceColor, fontWeight: 600 }}>
                               {sourceLabel(post)}
-                            </div>
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1231,8 +934,8 @@ export function HomeFeed({
                             <p className="selectable-text text-sm mb-2 line-clamp-[7] text-[#27251f] leading-relaxed whitespace-pre-wrap">{post.content}</p>
                           )}
                           {post.image_path && (
-                            <div className="block isolate rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30">
-                              <img src={post.image_path} alt="" className="block w-full max-h-48 object-contain" />
+                            <div className="w-full flex justify-center rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30">
+                              <img src={post.image_path} alt="" className="max-w-full max-h-48 w-auto h-auto object-contain" />
                             </div>
                           )}
                           {post.url && (

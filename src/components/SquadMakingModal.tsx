@@ -18,12 +18,12 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from './ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from './ui/sheet';
 import { MessagingService } from '../services/messagingService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -164,24 +164,24 @@ export function SquadMakingModal({
   const displayList = [...selectedPeopleDetails, ...searchOnly];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[82vh] overflow-y-auto bg-[#FBF9F5] border-0 shadow-2xl rounded-2xl">
-        <DialogHeader className="pb-4 border-b border-[#e7ded1]">
-          <DialogTitle
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="max-w-md mx-auto bg-[#FBF9F5] border-0 border-t border-[#e7ded1] p-0 gap-0">
+        <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
+          <SheetTitle
             className="text-2xl"
-            style={{  fontWeight: 600, color: '#27251f' }}
+            style={{ fontWeight: 600, color: '#27251f' }}
           >
             Create a New Squad
-          </DialogTitle>
-          <DialogDescription
+          </SheetTitle>
+          <SheetDescription
             className="mt-2"
             style={{ color: '#787771' }}
           >
             Build your community and connect with like-minded individuals.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="space-y-6 pt-6">
+        <div className="space-y-6 p-6 overflow-y-auto flex-1">
           {/* Squad Name */}
           <div className="space-y-2">
             <label
@@ -469,16 +469,16 @@ export function SquadMakingModal({
         </div>
 
         {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-[#e7ded1] flex gap-3">
+        <div className="p-6 pt-4 border-t border-[#e7ded1] flex gap-3 flex-shrink-0">
           <button
-            className="flex-1 px-6 py-3 bg-white border-2 border-[#e7ded1] rounded-xl hover:bg-[#F1EFE7] transition-colors"
+            className="flex-1 px-3 py-1.5 bg-white border-2 border-[#e7ded1] rounded-full text-xs hover:bg-[#F1EFE7] transition-colors"
             style={{ fontWeight: 600, color: '#787771' }}
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </button>
           <button
-            className="flex-1 px-6 py-3 bg-[#d47455] text-white rounded-xl hover:bg-[#c06545] transition-colors shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-3 py-1.5 bg-[#d47455] text-white rounded-full text-xs hover:bg-[#c06545] transition-colors shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ fontWeight: 600 }}
             onClick={handleCreateSquad}
             disabled={!newSquadName.trim() || !newSquadCategory}
@@ -486,7 +486,7 @@ export function SquadMakingModal({
             Create Squad
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

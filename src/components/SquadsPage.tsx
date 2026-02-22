@@ -4,6 +4,7 @@ import { SquadsService, Squad } from '../services/squadsService';
 import { FeedService } from '../services/feedService';
 import { SquadMakingModal, CreateSquadPayload } from './SquadMakingModal';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface SquadsPageProps {
   onSquadClick: (squadId: string) => void;
@@ -48,7 +49,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
 
   const handleCreateSquadFromPayload = async (payload: CreateSquadPayload) => {
     if (!payload.name.trim() || !payload.category) {
-      alert('Please fill in the required fields (name and category).');
+      toast.error('Please fill in the required fields (name and category).');
       return;
     }
     const privacyType = payload.type === 'public' ? 'open' : 'private';
@@ -84,7 +85,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
       await loadSquads();
     } catch (error) {
       console.error('Error creating squad:', error);
-      alert('Error creating squad. Please try again.');
+      toast.error('Error creating squad. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -151,7 +152,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
               <div className="flex-1 relative">
                 <button
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                  className="w-full py-2.5 px-4 rounded-xl text-sm bg-[#d47455] text-white shadow-sm flex items-center justify-center gap-2"
+                  className="w-full py-1.5 px-3 rounded-xl text-xs bg-[#d47455] text-white shadow-sm flex items-center justify-center gap-2"
                   style={{ fontWeight: 600 }}
                 >
                   <span className="flex-1 text-center">
@@ -174,7 +175,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                           setSelectedCategory(null);
                           setShowCategoryDropdown(false);
                         }}
-                        className={`w-full py-2.5 px-4 text-sm text-left transition-colors ${
+                        className={`w-full py-1.5 px-3 text-xs text-left transition-colors ${
                           selectedCategory === null
                             ? 'bg-[#f5f3eb] text-[#d47455]'
                             : 'text-[#27251f] hover:bg-[#f5f3eb]'
@@ -190,7 +191,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                             setSelectedCategory(cat.id);
                             setShowCategoryDropdown(false);
                           }}
-                          className={`w-full py-2.5 px-4 text-sm text-left transition-colors flex items-center gap-2 ${
+                          className={`w-full py-1.5 px-3 text-xs text-left transition-colors flex items-center gap-2 ${
                             selectedCategory === cat.id
                               ? 'bg-[#f5f3eb] text-[#d47455]'
                               : 'text-[#27251f] hover:bg-[#f5f3eb]'
@@ -211,7 +212,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                   setActiveTab('all');
                   setSelectedCategory(null);
                 }}
-                className="flex-1 py-2.5 px-4 rounded-xl text-sm transition-all bg-white text-[#787771]"
+                className="flex-1 py-1.5 px-3 rounded-xl text-xs transition-all bg-white text-[#787771]"
                 style={{ fontWeight: 600 }}
               >
                 All Squads
@@ -223,7 +224,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                 setSelectedCategory(null);
                 setShowCategoryDropdown(false);
               }}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-sm transition-all ${
+              className={`flex-1 py-1.5 px-3 rounded-xl text-xs transition-all ${
                 activeTab === 'my-squads'
                   ? 'bg-[#d47455] text-white shadow-sm'
                   : 'bg-white text-[#787771]'
@@ -262,8 +263,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                   >
                     <div className="flex items-start gap-3">
                       <div 
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                        style={{ backgroundColor: `${squadColor}20` }}
+                        className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                        style={{ backgroundColor: `${squadColor}20`, borderRadius: '50%' }}
                       >
                         {squad.avatar_url ? (
                           <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -331,7 +332,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
           </h1>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-[#d47455] text-white rounded-xl hover:bg-[#c06545] transition-colors flex items-center gap-2"
+            className="px-3 py-1.5 bg-[#d47455] text-white rounded-xl text-xs hover:bg-[#c06545] transition-colors flex items-center gap-2"
             style={{ fontWeight: 600 }}
           >
             <Plus className="w-5 h-5" />
@@ -381,7 +382,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                         setSelectedCategory(null);
                         setShowCategoryDropdown(false);
                       }}
-                      className={`w-full py-2.5 px-4 text-sm text-left transition-colors ${
+                      className={`w-full py-1.5 px-3 text-xs text-left transition-colors ${
                         selectedCategory === null
                           ? 'bg-[#f5f3eb] text-[#d47455]'
                           : 'text-[#27251f] hover:bg-[#f5f3eb]'
@@ -397,7 +398,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                           setSelectedCategory(cat.id);
                           setShowCategoryDropdown(false);
                         }}
-                        className={`w-full py-2.5 px-4 text-sm text-left transition-colors flex items-center gap-2 ${
+                        className={`w-full py-1.5 px-3 text-xs text-left transition-colors flex items-center gap-2 ${
                           selectedCategory === cat.id
                             ? 'bg-[#f5f3eb] text-[#d47455]'
                             : 'text-[#27251f] hover:bg-[#f5f3eb]'
@@ -465,8 +466,8 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                 >
                   <div className="flex items-start gap-4 mb-4">
                     <div 
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
-                      style={{ backgroundColor: `${squadColor}20` }}
+                      className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden"
+                      style={{ backgroundColor: `${squadColor}20`, borderRadius: '50%' }}
                     >
                       {squad.avatar_url ? (
                         <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />

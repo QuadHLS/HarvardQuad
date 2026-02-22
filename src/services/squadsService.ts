@@ -154,13 +154,21 @@ export class SquadsService {
     if (error) throw error;
   }
 
-  // Join a squad
+  // Join a squad. Treats "already a member" as success (idempotent).
   static async joinSquad(squadId: string): Promise<void> {
     const { error } = await supabase.rpc('join_squad', {
       squad_id_param: squadId,
     });
 
-    if (error) throw error;
+    if (error) {
+      const msg = (error as { message?: string }).message ?? '';
+      const details = (error as { details?: string }).details ?? '';
+      const isAlreadyMember =
+        (error as { code?: string }).code === 'P0001' ||
+        /already a member/i.test(msg);
+      if (isAlreadyMember) return;
+      throw new Error(msg || details || 'Failed to join squad');
+    }
   }
 
   // Leave a squad

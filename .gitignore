@@ -37,6 +37,18 @@ lerna-debug.log*
 
 # Vite
 .vite
+vite
+TheQuad@*
 
 # TypeScript
 *.tsbuildinfo
+
+# Capacitor / iOS
+ios/App/App/public/assets/
+ios/App/Pods/
+**/xcuserdata/
+*.xcuserstate
+
+# Android (if added later)
+android/app/build/
+android/.gradle/

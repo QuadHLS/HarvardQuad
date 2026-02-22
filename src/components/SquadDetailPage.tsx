@@ -1,13 +1,18 @@
-import { UserPlus, UserMinus, MessageCircle, Users as UsersIcon, ChevronLeft, ChevronDown, MoreVertical, X, Globe, Lock, Users, FileText, Image, Trash2, Search, Check, Plus, Pencil, Upload } from 'lucide-react';
+import { UserPlus, MessageCircle, Users as UsersIcon, ChevronLeft, ChevronDown, MoreVertical, X, Globe, Lock, Users, FileText, Image, Trash2, Search, Check, Plus, Pencil, Upload, MinusCircle } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SquadsService, Squad, SquadMember, SquadDocument } from '../services/squadsService';
 import { MessagingService } from '../services/messagingService';
 import { useAuth } from '../contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
+import { toast } from 'sonner';
 import { HomeFeed } from './HomeFeed';
 import { SwipeBackContainer } from './ui/SwipeBackContainer';
+import { useIsMobile } from './ui/use-mobile';
 
 type InviteSearchResult = { id: string; email: string; full_name: string | null };
+
+/** Footer (bottom nav) color – squad header matches this when viewing a squad */
+const SQUAD_HEADER_FOOTER_COLOR = '#fbf8f7';
 
 interface SquadDetailPageProps {
   squadId: string;
@@ -25,6 +30,7 @@ interface SquadDetailPageProps {
 
 export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId, onFeedPostChange, userAvatarUrl: propsUserAvatarUrl, publicName: propsPublicName }: SquadDetailPageProps) {
   const { user } = useAuth();
+  const headerColor = SQUAD_HEADER_FOOTER_COLOR;
   const [squad, setSquad] = useState<Squad | null>(null);
   const [members, setMembers] = useState<SquadMember[]>([]);
   const [documents, setDocuments] = useState<SquadDocument[]>([]);
@@ -33,6 +39,8 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLeaveSheet, setShowLeaveSheet] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<SquadDocument | null>(null);
   const [showInfoMenu, setShowInfoMenu] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
@@ -62,6 +70,15 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
   const [squadFeedNewPostOpen, setSquadFeedNewPostOpen] = useState(false);
   const [squadFeedRefreshKey, setSquadFeedRefreshKey] = useState(0);
   const [postDetailOpen, setPostDetailOpen] = useState(false);
+  const [introInViewMobile, setIntroInViewMobile] = useState(true);
+  const [introInViewDesktop, setIntroInViewDesktop] = useState(true);
+  const introRef = useRef<HTMLDivElement>(null);
+  const introRefDesktop = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRefDesktop = useRef<HTMLDivElement>(null);
+  const closePostRef = useRef<() => void>(() => {});
+  const isMobile = useIsMobile();
+  const introInView = isMobile ? introInViewMobile : introInViewDesktop;
 
   const loadSquadData = useCallback(async (options?: { showLoading?: boolean }) => {
     const showLoading = options?.showLoading !== false;
@@ -91,30 +108,69 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
     loadSquadData();
   }, [loadSquadData]);
 
+  useEffect(() => {
+    const mobileEl = introRef.current;
+    const mobileRoot = scrollContainerRef.current;
+    if (!mobileEl || !mobileRoot) return;
+    const observerMobile = new IntersectionObserver(
+      ([entry]) => setIntroInViewMobile(entry.isIntersecting),
+      { threshold: 0, root: mobileRoot, rootMargin: '0px' }
+    );
+    observerMobile.observe(mobileEl);
+    return () => observerMobile.disconnect();
+  }, [squad]);
+
+  useEffect(() => {
+    const desktopEl = introRefDesktop.current;
+    const desktopRoot = scrollContainerRefDesktop.current;
+    if (!desktopEl || !desktopRoot) return;
+    const observerDesktop = new IntersectionObserver(
+      ([entry]) => setIntroInViewDesktop(entry.isIntersecting),
+      { threshold: 0, root: desktopRoot, rootMargin: '0px' }
+    );
+    observerDesktop.observe(desktopEl);
+    return () => observerDesktop.disconnect();
+  }, [squad]);
+
+  // When opening a post, reset scroll so the top of the post is visible
+  useEffect(() => {
+    if (!postDetailOpen) return;
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+    scrollContainerRefDesktop.current?.scrollTo({ top: 0 });
+  }, [postDetailOpen]);
+
   const handleJoinSquad = async () => {
     try {
       setJoining(true);
       await SquadsService.joinSquad(squadId);
       await loadSquadData({ showLoading: false });
     } catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+      if (/already a member/i.test(msg)) {
+        await loadSquadData({ showLoading: false });
+        return;
+      }
       console.error('Error joining squad:', error);
-      alert('Error joining squad. Please try again.');
+      toast.error(msg || 'Error joining squad. Please try again.');
     } finally {
       setJoining(false);
     }
   };
 
-  const handleLeaveSquad = async () => {
-    if (!confirm('Are you sure you want to leave this squad?')) {
-      return;
-    }
+  const handleLeaveSquad = () => {
+    setShowInfoMenu(false);
+    setShowLeaveSheet(true);
+  };
+
+  const confirmLeaveSquad = async () => {
     try {
       setLeaving(true);
       await SquadsService.leaveSquad(squadId);
-      await loadSquadData({ showLoading: false });
+      onBack();
     } catch (error) {
       console.error('Error leaving squad:', error);
-      alert('Error leaving squad. Please try again.');
+      const msg = error instanceof Error ? error.message : (error as { message?: string }).message ?? '';
+      toast.error(msg || 'Error leaving squad. Please try again.');
     } finally {
       setLeaving(false);
     }
@@ -128,7 +184,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
       onBack();
     } catch (error) {
       console.error('Error deleting squad:', error);
-      alert('Error deleting squad. Please try again.');
+      toast.error('Error deleting squad. Please try again.');
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -254,7 +310,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
       await loadSquadData({ showLoading: false });
     } catch (e) {
       console.error('Error adding members:', e);
-      alert('Could not add members. Please try again.');
+      toast.error('Could not add members. Please try again.');
     } finally {
       setInviteAdding(false);
     }
@@ -290,11 +346,11 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
     if (!squad || savingSquad) return;
     const name = editName.trim();
     if (!name) {
-      alert('Squad name is required.');
+      toast.error('Squad name is required.');
       return;
     }
     if (!SQUAD_CATEGORIES.some((c) => c.id === editCategory)) {
-      alert('Please select a valid category.');
+      toast.error('Please select a valid category.');
       return;
     }
     try {
@@ -316,7 +372,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
       setIsEditingSquad(false);
     } catch (e) {
       console.error('Error updating squad:', e);
-      alert('Could not update squad. Please try again.');
+      toast.error('Could not update squad. Please try again.');
     } finally {
       setSavingSquad(false);
     }
@@ -351,7 +407,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
       closeAddDocumentModal();
     } catch (err) {
       console.error('Error uploading document:', err);
-      alert('Could not add document. Only squad admins can add documents.');
+      toast.error('Could not add document. Only squad admins can add documents.');
     } finally {
       setUploadingDocs(false);
     }
@@ -374,7 +430,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
         <button
           type="button"
           onClick={onBack}
-          className="px-4 py-2 rounded-xl bg-[#d47455] text-white hover:bg-[#c06545]"
+          className="px-3 py-1.5 rounded-full bg-[#d47455] text-white text-xs hover:bg-[#c06545]"
           style={{ fontWeight: 600 }}
         >
           Go back
@@ -391,7 +447,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
     );
   }
 
-  const isJoined = squad.is_joined || false;
+  const isJoined = members.some((m) => m.user_id === user?.id);
   const isCreator = user?.id === squad.created_by;
   const isAdmin = members.find((m) => m.user_id === user?.id)?.role === 'admin';
   const adminCount = members.filter((m) => m.role === 'admin').length;
@@ -407,7 +463,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
       await loadSquadData({ showLoading: false });
     } catch (e) {
       console.error('Error removing member:', e);
-      alert('Could not remove member. Only squad admins can remove members.');
+      toast.error('Could not remove member. Only squad admins can remove members.');
     } finally {
       setRemovingMemberId(null);
     }
@@ -418,16 +474,21 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
     member.user_id !== user?.id &&
     (member.role !== 'admin' || adminCount > 1);
 
-  const handleDeleteDocument = async (doc: SquadDocument) => {
+  const handleDeleteDocument = (doc: SquadDocument) => {
     if (!squad || deletingDocumentId) return;
-    if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return;
+    setDocToDelete(doc);
+  };
+
+  const confirmDeleteDocument = async () => {
+    if (!squad || !docToDelete) return;
+    setDocToDelete(null);
     try {
-      setDeletingDocumentId(doc.id);
-      await SquadsService.deleteSquadDocument(squad.id, doc.id);
+      setDeletingDocumentId(docToDelete.id);
+      await SquadsService.deleteSquadDocument(squad.id, docToDelete.id);
       await loadSquadData({ showLoading: false });
     } catch (e) {
       console.error('Error deleting document:', e);
-      alert('Could not delete document. Only squad admins can delete documents.');
+      toast.error('Could not delete document. Only squad admins can delete documents.');
     } finally {
       setDeletingDocumentId(null);
     }
@@ -442,12 +503,12 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
         accept="*/*"
         onChange={handleFileSelect}
       />
-      <Dialog open={showAddDocumentModal} onOpenChange={(open) => { if (!open) closeAddDocumentModal(); }}>
-        <DialogContent className="bg-[#FBF9F5] border-[#e7ded1] rounded-xl max-w-sm" >
-          <DialogHeader>
-            <DialogTitle className="text-[#27251f]" >Add document</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
+      <Sheet open={showAddDocumentModal} onOpenChange={(open) => { if (!open) closeAddDocumentModal(); }}>
+        <SheetContent side="bottom" className="bg-[#FBF9F5] border-[#e7ded1] border-t max-w-sm mx-auto p-0 gap-0">
+          <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
+            <SheetTitle className="text-[#27251f]" >Add document</SheetTitle>
+          </SheetHeader>
+          <div className="grid gap-4 p-6">
             <div>
               <label className="text-sm font-medium text-[#27251f] block mb-1.5">Document name</label>
               <input
@@ -470,11 +531,11 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
               </button>
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <SheetFooter className="flex-row gap-2 p-6 pt-4 border-t border-[#e7ded1]">
             <button
               type="button"
               onClick={closeAddDocumentModal}
-              className="px-4 py-2 rounded-xl border border-[#d9d2c5] text-[#787771] hover:bg-[#f5f3eb]"
+              className="px-3 py-1.5 rounded-full border border-[#d9d2c5] text-[#787771] text-xs hover:bg-[#f5f3eb]"
             >
               Cancel
             </button>
@@ -482,92 +543,96 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
               type="button"
               onClick={handleAddDocumentSubmit}
               disabled={!addDocumentFile || !addDocumentName.trim() || uploadingDocs}
-              className="px-4 py-2 rounded-xl bg-[#d47455] text-white hover:bg-[#c06545] disabled:opacity-50 disabled:pointer-events-none"
+              className="px-3 py-1.5 rounded-full bg-[#d47455] text-white text-xs hover:bg-[#c06545] disabled:opacity-50 disabled:pointer-events-none"
             >
               {uploadingDocs ? 'Adding…' : 'Add'}
             </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       {/* Mobile View */}
       <div className="md:hidden h-full flex flex-col">
-        {/* Mobile Header - hidden when viewing a post (single header) */}
+        {/* Mobile Header - hidden when viewing a post; post detail view shows its own header */}
         {!postDetailOpen && (
-        <div className="bg-[#F1EFE7] px-4 py-2.5 flex-shrink-0 flex items-center gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <button
-                onClick={onBack}
-                className="w-8 h-8 flex items-center justify-center -ml-2 shrink-0"
+        <div className="border-b border-black/10 px-4 py-2.5 flex-shrink-0 flex items-center gap-2" style={{ backgroundColor: headerColor }}>
+          <button
+            onClick={postDetailOpen ? () => closePostRef.current() : onBack}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] shrink-0 active:scale-95 transition-transform hover:bg-black/15"
+            aria-label="Back"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <h1 
+              className={`text-lg truncate transition-opacity duration-300 text-[#27251f] ${postDetailOpen || !introInView ? 'opacity-100' : 'opacity-0'}`}
+              style={{ fontWeight: 600, ...(!postDetailOpen && introInView && { pointerEvents: 'none' as const }) }}
+            >
+              {postDetailOpen ? 'Post' : squad.name}
+            </h1>
+            {!postDetailOpen && (
+              <p 
+                className={`text-xs text-[#787771] truncate transition-opacity duration-300 ${!introInView ? 'opacity-100' : 'opacity-0'}`}
+                style={introInView ? { pointerEvents: 'none' as const } : undefined}
               >
-                <ChevronLeft className="w-6 h-6 text-[#27251f]" />
-              </button>
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0"
-                style={{ backgroundColor: squadColor + '20' }}
-              >
-                {squad.avatar_url ? (
-                  <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-base font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              <h1 
-                className="text-lg flex-1 min-w-0 truncate"
-                style={{ fontWeight: 600, color: '#27251f' }}
-              >
-                {squad.name}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <UsersIcon className="w-3.5 h-3.5 text-[#787771]" />
-              <p className="text-xs text-[#787771]">
                 {squad.member_count || 0} members
               </p>
-              {!isJoined && !isCreator && (
-                <button 
+            )}
+          </div>
+          {!postDetailOpen && (
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            <div className="relative w-14 h-8 flex items-center justify-end">
+              {isJoined && !isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveSheet(true)}
+                  className={`shrink-0 px-2.5 py-1.5 rounded-full bg-[#e7ded1] text-[#787771] text-xs border border-[#d9d2c5] transition-opacity duration-300 active:scale-95 ${introInView ? 'opacity-0' : 'opacity-100'}`}
+                  style={{ fontWeight: 600 }}
+                  aria-label="Joined"
+                >
+                  Joined
+                </button>
+              ) : !isCreator && (
+                <button
                   onClick={handleJoinSquad}
                   disabled={joining}
-                  className="ml-auto py-1.5 px-3 bg-[#d47455] text-white rounded-lg text-xs active:scale-95 transition-transform flex items-center gap-1.5 disabled:opacity-50"
+                  className={`absolute right-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#d47455] text-white text-xs transition-opacity duration-300 ${introInView ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                   style={{ fontWeight: 600 }}
+                  aria-label="Join squad"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  {joining ? 'Joining...' : 'Join'}
+                  {joining ? '…' : 'Join'}
                 </button>
               )}
             </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0 self-center">
             {(isJoined || isCreator) && (
               <>
                 <button
                   type="button"
                   onClick={() => setSquadFeedNewPostOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#d47455] text-[#d47455] text-xs active:scale-95 transition-transform hover:bg-[#d4745510]"
-                  style={{ fontWeight: 600 }}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] active:scale-95 transition-transform hover:bg-black/15 disabled:opacity-50"
+                  aria-label="New post"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  Post
+                  <Plus className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleOpenChat}
                   disabled={!squad.conversation_id}
-                  className="flex items-center gap-1 px-2.5 py-1.5 bg-[#d47455] text-white rounded-lg text-xs active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontWeight: 600 }}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] active:scale-95 transition-transform hover:bg-black/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Chat"
                 >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  Chat
+                  <MessageCircle className="w-4 h-4" />
                 </button>
               </>
             )}
             <button
               onClick={() => setShowInfoMenu(true)}
-              className="w-8 h-8 flex items-center justify-center shrink-0"
+              className={`w-8 h-8 flex items-center justify-center rounded-full text-[#27251f] transition-opacity duration-300 ${!introInView && !isJoined && !isCreator ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
               aria-label="Squad info"
             >
-              <MoreVertical className="w-5 h-5 text-[#27251f]" />
+              <MoreVertical className="w-5 h-5" />
             </button>
           </div>
+          )}
         </div>
         )}
 
@@ -579,15 +644,16 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
           />
         )}
 
-        {/* Info Menu Slide-out Panel */}
+        {/* Info Menu Bottom Sheet */}
         <div 
-          className={`fixed top-0 right-0 h-full w-80 bg-white z-50 transition-transform duration-300 shadow-xl rounded-l-2xl ${
-            showInfoMenu ? 'translate-x-0' : 'translate-x-full'
+          className={`fixed inset-x-0 bottom-0 top-0 z-50 bg-white transition-transform duration-300 ease-out ${
+            showInfoMenu ? 'translate-y-0' : 'translate-y-full'
           }`}
+          style={{ height: '100dvh' }}
         >
-          <div className="h-full overflow-y-auto">
+          <div className="flex flex-col h-full min-h-0">
             {/* Menu Header */}
-            <div className="bg-[#F1EFE7] px-4 py-4 flex items-center justify-between sticky top-0 z-10 rounded-tl-2xl">
+            <div className="bg-white border-b border-[#e7ded1] px-4 py-4 flex items-center justify-between flex-shrink-0">
               <h2 
                 className="text-lg"
                 style={{ fontWeight: 600, color: '#27251f' }}
@@ -602,6 +668,8 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
               </button>
             </div>
 
+            {/* Scrollable content */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[max(2.5rem,env(safe-area-inset-bottom))]">
             {/* About Section */}
             <div className="px-4 py-4 border-b border-[#e7ded1]">
               <input
@@ -688,7 +756,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                           key={c.id}
                           type="button"
                           onClick={() => setEditCategory(c.id)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#27251f]'}`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#27251f]'}`}
                         >
                           {c.label}
                         </button>
@@ -701,7 +769,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       <button
                         type="button"
                         onClick={() => setEditType('open')}
-                        className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium flex items-center justify-center gap-2 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
+                        className={`flex-1 py-1.5 px-3 rounded-full border-2 text-xs font-medium flex items-center justify-center gap-2 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Globe className="w-4 h-4" />
                         Public
@@ -709,7 +777,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       <button
                         type="button"
                         onClick={() => setEditType('private')}
-                        className={`flex-1 py-2 rounded-xl border-2 text-sm font-medium flex items-center justify-center gap-2 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
+                        className={`flex-1 py-1.5 px-3 rounded-full border-2 text-xs font-medium flex items-center justify-center gap-2 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Lock className="w-4 h-4" />
                         Private
@@ -720,7 +788,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                     <button
                       type="button"
                       onClick={cancelEditingSquad}
-                      className="flex-1 py-2.5 rounded-xl border border-[#e7ded1] text-[#787771] text-sm font-medium"
+                      className="flex-1 py-1.5 px-3 rounded-full border border-[#e7ded1] text-[#787771] text-xs font-medium"
                     >
                       Cancel
                     </button>
@@ -728,7 +796,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       type="button"
                       onClick={handleSaveSquadEdit}
                       disabled={savingSquad}
-                      className="flex-1 py-2.5 rounded-xl bg-[#d47455] text-white text-sm font-medium disabled:opacity-50"
+                      className="flex-1 py-1.5 px-3 rounded-full bg-[#d47455] text-white text-xs font-medium disabled:opacity-50"
                     >
                       {savingSquad ? 'Saving...' : 'Save'}
                     </button>
@@ -808,7 +876,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                         onClick={(e) => handleDownloadDocument(e, doc)}
                         className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer no-underline"
                       >
-                        <div className="w-10 h-10 bg-[#f0eee6] rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 bg-[#f0eee6] rounded-xl flex items-center justify-center flex-shrink-0">
                           <FileText size={18} className="text-[#787771]" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -834,7 +902,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                           type="button"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDocument(doc); }}
                           disabled={deletingDocumentId === doc.id}
-                          className="w-9 h-9 rounded-lg flex items-center justify-center text-[#787771] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0"
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-[#787771] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0"
                           aria-label={`Delete ${doc.name}`}
                         >
                           <Trash2 size={18} />
@@ -845,21 +913,6 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                 )}
               </div>
             </div>
-
-            {/* Leave Squad Section (Non-Creator Members Only) */}
-            {isJoined && !isCreator && (
-              <div className="px-4 py-4 border-t border-[#e7ded1]">
-                <button
-                  onClick={handleLeaveSquad}
-                  disabled={leaving}
-                  className="w-full py-3 bg-white border border-[#d9d2c5] text-[#787771] rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ fontWeight: 600 }}
-                >
-                  <UserMinus className="w-4 h-4" />
-                  {leaving ? 'Leaving...' : 'Leave Squad'}
-                </button>
-              </div>
-            )}
 
             {/* Invite Members (Admin only) */}
             {isAdmin && (
@@ -924,7 +977,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                     type="button"
                     onClick={handleAddMembers}
                     disabled={inviteAdding}
-                    className="w-full py-3 bg-[#d47455] text-white rounded-xl text-sm font-medium active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-1.5 px-3 bg-[#d47455] text-white rounded-full text-xs font-medium active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <UserPlus className="w-4 h-4" />
                     {inviteAdding ? 'Adding...' : `Add ${inviteSelectedIds.length} member${inviteSelectedIds.length === 1 ? '' : 's'}`}
@@ -1003,7 +1056,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
               <div className="px-4 py-4 border-t border-[#e7ded1] mt-auto">
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full py-3 border rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+                  className="w-full py-3 border rounded-full text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
                   style={{ 
                     fontWeight: 600,
                     backgroundColor: '#dc2626',
@@ -1022,94 +1075,122 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                 </p>
               </div>
             )}
-          </div>
-        </div>
+            </div>
 
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-            <div
-              className="absolute inset-0 bg-black/50"
-              onClick={() => setShowDeleteConfirm(false)}
-              aria-hidden="true"
-            />
-            <div className="relative w-full max-w-md bg-white rounded-lg border border-[#e7ded1] p-6 shadow-lg z-[101]">
-              <h2
-                className="text-xl mb-4"
-                style={{ fontWeight: 600, color: '#27251f' }}
-              >
-                Delete Squad
-              </h2>
-              <p
-                className="text-sm mb-6"
-                style={{ color: '#27251f', lineHeight: 1.5 }}
-              >
-                Are you sure you want to delete <strong>{squad.name}</strong>? This action cannot be undone and will delete all squad data, members, and documents.
-              </p>
-              <div className="flex gap-3">
+            {/* Leave Squad - bottom right (Non-Creator Members Only) */}
+            {isJoined && !isCreator && (
+              <div className="flex-shrink-0 px-4 py-4 border-t border-[#e7ded1] flex justify-end">
                 <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2.5 bg-white border border-[#d9d2c5] text-[#787771] rounded-xl text-sm active:scale-95 transition-transform"
+                  onClick={handleLeaveSquad}
+                  disabled={leaving}
+                  className="py-1.5 px-3 bg-red-600 hover:bg-red-700 border border-red-700 text-white rounded-full text-xs active:scale-95 transition-transform disabled:opacity-50"
                   style={{ fontWeight: 600 }}
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteSquad}
-                  disabled={deleting}
-                  className="flex-1 py-2.5 border rounded-xl text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ 
-                    fontWeight: 600,
-                    backgroundColor: '#dc2626',
-                    borderColor: '#b91c1c',
-                    color: 'white'
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {deleting ? 'Deleting...' : 'Delete'}
+                  {leaving ? 'Leaving...' : 'Leave Squad'}
                 </button>
               </div>
-            </div>
+            )}
           </div>
+        </div>
+
+        {/* Leave Squad Bottom Sheet (from Joined button) */}
+        {isJoined && !isCreator && (
+          <>
+            <div
+              className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${showLeaveSheet ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              onClick={() => setShowLeaveSheet(false)}
+              aria-hidden="true"
+            />
+            <div
+              className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-[#e7ded1] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-out px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${
+                showLeaveSheet ? 'translate-y-0' : 'translate-y-full'
+              }`}
+            >
+              <button
+                onClick={async () => {
+                  setShowLeaveSheet(false);
+                  await confirmLeaveSquad();
+                }}
+                disabled={leaving}
+                className="py-1.5 px-3 bg-transparent text-[#27251f] rounded-full text-xs font-medium active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
+              >
+                <MinusCircle className="w-4 h-4" />
+                {leaving ? 'Leaving...' : 'Leave'}
+              </button>
+            </div>
+          </>
         )}
 
-        {/* Mobile Content - Squad feed */}
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-[#FBF9F5]">
-          <HomeFeed
-            embedded
-            squadId={squad.id}
-            squadName="Feed"
-            userId={user?.id}
-            publicName={propsPublicName ?? user?.user_metadata?.public_name ?? user?.email ?? 'You'}
-            userAvatarUrl={propsUserAvatarUrl ?? null}
-            newPostModalOpen={squadFeedNewPostOpen}
-            onNewPostModalOpenChange={setSquadFeedNewPostOpen}
-            onPostDetailChange={setPostDetailOpen}
-            embedHeaderTitle={squad.name}
-            feedRefreshKey={squadFeedRefreshKey}
-            onNewPostSuccess={() => setSquadFeedRefreshKey((k) => k + 1)}
-            initialPostId={initialFeedPostId}
-            onPostChange={onFeedPostChange}
-          />
-        </div>
-      </div>
+        {/* Delete Document Confirmation */}
+        <Sheet open={!!docToDelete} onOpenChange={(open) => { if (!open) setDocToDelete(null); }}>
+          <SheetContent side="bottom" className="bg-[#FBF9F5] border-[#e7ded1] border-t max-w-sm mx-auto p-0 gap-0">
+            <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
+              <SheetTitle className="text-[#27251f]">Delete Document</SheetTitle>
+              <p className="text-sm text-[#787771] mt-1">
+                {docToDelete ? `Delete "${docToDelete.name}"? This cannot be undone.` : ''}
+              </p>
+            </SheetHeader>
+            <SheetFooter className="flex-row gap-2 p-6 pt-4">
+              <button
+                type="button"
+                onClick={() => setDocToDelete(null)}
+                className="flex-1 py-1.5 px-3 rounded-full border border-[#d9d2c5] text-[#787771] text-xs hover:bg-[#f5f3eb]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteDocument}
+                disabled={!!deletingDocumentId}
+                className="flex-1 py-1.5 px-3 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs disabled:opacity-50"
+              >
+                {deletingDocumentId ? 'Deleting...' : 'Delete'}
+              </button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
 
-      {/* Desktop View - Keep existing design */}
-      <div className="hidden md:block h-full overflow-hidden flex flex-col"  >
-        {/* Squad Header - hidden when viewing a post (single header) */}
-        {!postDetailOpen && (
-        <div className="bg-[#fefefc] border-b border-[#e7ded1] px-6 py-4">
-          <button 
-            onClick={onBack}
-            className="text-[13px] text-[#787771] hover:text-[#27251f] mb-2 bg-transparent border-0 cursor-pointer"
-          >
-            ← Back to Squads
-          </button>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              {/* Squad Image Bubble */}
-              <div 
-                className="w-12 h-12 rounded-full bg-[#f8f6f0] border-2 border-[#e7ded1] flex items-center justify-center flex-shrink-0 overflow-hidden hover:border-[#d9d2c5] transition-colors"
+        {/* Delete Squad Confirmation */}
+        <Sheet open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <SheetContent side="bottom" className="bg-[#FBF9F5] border-[#e7ded1] border-t max-w-md mx-auto p-0 gap-0">
+            <SheetHeader className="p-6 pb-4 border-b border-[#e7ded1]">
+              <SheetTitle className="text-[#27251f]">Delete Squad</SheetTitle>
+              <p className="text-sm text-[#787771] mt-2 leading-relaxed">
+                Are you sure you want to delete <strong>{squad.name}</strong>? This action cannot be undone and will delete all squad data, members, and documents.
+              </p>
+            </SheetHeader>
+            <SheetFooter className="flex-row gap-3 p-6 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-1.5 px-3 bg-white border border-[#d9d2c5] text-[#787771] rounded-full text-xs"
+                style={{ fontWeight: 600 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSquad}
+                disabled={deleting}
+                className="flex-1 py-1.5 px-3 border rounded-full text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ fontWeight: 600, backgroundColor: '#dc2626', borderColor: '#b91c1c', color: 'white' }}
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+
+        {/* Mobile Content - single scroll: intro + feed scroll together (not in header); when viewing a post, no outer scroll so post header stays at top */}
+        <div ref={scrollContainerRef} className={`flex-1 min-h-0 flex flex-col bg-[#FBF9F5] ${postDetailOpen ? 'overflow-hidden' : 'overflow-y-auto'}`} style={postDetailOpen ? undefined : { WebkitOverflowScrolling: 'touch' }}>
+          {!postDetailOpen && (
+          <>
+          {/* Squad intro: avatar, member count, Join - scrolls with feed */}
+          <div ref={introRef} className="flex-shrink-0 px-4 py-3 bg-[#FBF9F5] flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden shrink-0"
                 style={{ backgroundColor: squadColor + '20' }}
               >
                 {squad.avatar_url ? (
@@ -1118,79 +1199,231 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                   <span className="text-lg font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
                 )}
               </div>
-              <div className="min-w-0">
-                <h1 
-                  className="text-xl text-[#27251f] truncate"
-                  style={{ fontWeight: 600, lineHeight: 1.2 }}
-                >
-                  {squad.name}
-                </h1>
-                <p className="text-sm text-[#787771]">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[#27251f] truncate">{squad.name}</p>
+                <p className="text-sm text-[#787771] leading-relaxed">
                   {squad.member_count || 0} members
                 </p>
               </div>
+              {!isCreator && !isAdmin && (
+              isJoined ? (
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveSheet(true)}
+                  className="shrink-0 py-1.5 px-3 bg-[#e7ded1] text-[#787771] rounded-full text-xs border border-[#d9d2c5] active:scale-95"
+                  style={{ fontWeight: 600 }}
+                  aria-label="Joined"
+                >
+                  Joined
+                </button>
+              ) : (
+                <button
+                  onClick={handleJoinSquad}
+                  disabled={joining}
+                  className="shrink-0 py-1.5 px-3 bg-[#d47455] text-white rounded-full text-xs active:scale-95 transition-transform flex items-center gap-2 disabled:opacity-50"
+                  style={{ fontWeight: 600 }}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {joining ? 'Joining...' : 'Join'}
+                </button>
+              )
+            )}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0 self-center">
-              {(isJoined || isCreator) && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSquadFeedNewPostOpen(true)}
-                    className="px-3 py-2 bg-white border border-[#e7ded1] text-[#27251f] rounded-lg text-[13px] hover:bg-[#fefefc] hover:border-[#d9d2c5] transition-colors flex items-center gap-1.5"
-                    style={{ fontWeight: 600 }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Post
-                  </button>
-                  <button 
-                    onClick={handleOpenChat}
-                    disabled={!squad.conversation_id}
-                    className="px-3 py-2 bg-white border border-[#e7ded1] text-[#27251f] rounded-lg text-[13px] hover:bg-[#fefefc] hover:border-[#d9d2c5] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ fontWeight: 600 }}
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    Chat
-                  </button>
-                </div>
-              )}
-              {!isJoined && !isCreator && (
+            {squad.info?.trim() && (
+              <p className="text-sm text-[#27251f] line-clamp-2 leading-relaxed min-w-0 overflow-hidden max-w-[calc(100%-1.5rem)]">
+                {squad.info.trim()}
+              </p>
+            )}
+          </div>
+          </>
+          )}
+          <div className={postDetailOpen ? 'flex-1 min-h-0 flex flex-col min-w-0' : undefined}>
+            <HomeFeed
+              embedded
+              scrollWithParent
+              squadId={squad.id}
+              squadName="Feed"
+              userId={user?.id}
+              publicName={propsPublicName ?? user?.user_metadata?.public_name ?? user?.email ?? 'You'}
+              userAvatarUrl={propsUserAvatarUrl ?? null}
+              newPostModalOpen={squadFeedNewPostOpen}
+              onNewPostModalOpenChange={setSquadFeedNewPostOpen}
+              onPostDetailChange={setPostDetailOpen}
+              embedHeaderTitle={squad.name}
+              embedHeaderColor={headerColor}
+                embedHeaderDarkText
+              embedMemberCount={squad.member_count ?? 0}
+              feedRefreshKey={squadFeedRefreshKey}
+              onNewPostSuccess={() => setSquadFeedRefreshKey((k) => k + 1)}
+              initialPostId={initialFeedPostId}
+              onPostChange={onFeedPostChange}
+              onRegisterClosePost={(close) => { closePostRef.current = close; }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop View - Keep existing design */}
+      <div className="hidden md:block h-full overflow-hidden flex flex-col"  >
+        {/* Desktop Header - hidden when viewing a post; post detail view shows its own header */}
+        {!postDetailOpen && (
+        <div className="border-b border-black/10 px-6 py-3 flex items-center justify-between gap-4" style={{ backgroundColor: headerColor }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <button 
+              onClick={postDetailOpen ? () => closePostRef.current() : onBack}
+              className="px-3 py-1.5 rounded-full bg-black/10 text-[#27251f] text-xs hover:bg-black/15 transition-colors cursor-pointer shrink-0 flex items-center gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              {postDetailOpen ? 'Back' : 'Back to Squads'}
+            </button>
+            <h1 
+              className={`text-xl text-[#27251f] truncate transition-opacity duration-300 ${postDetailOpen || !introInView ? 'opacity-100' : 'opacity-0'}`}
+              style={{ fontWeight: 600, lineHeight: 1.2, ...(!postDetailOpen && introInView && { pointerEvents: 'none' as const }) }}
+            >
+              {postDetailOpen ? 'Post' : squad.name}
+            </h1>
+            {!postDetailOpen && (
+              <p 
+                className={`text-sm text-[#787771] truncate transition-opacity duration-300 ${!introInView ? 'opacity-100' : 'opacity-0'}`}
+                style={introInView ? { pointerEvents: 'none' as const } : undefined}
+              >
+                {squad.member_count || 0} members
+              </p>
+            )}
+          </div>
+          {!postDetailOpen && (
+          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+            <div className="relative h-9 flex items-center">
+              {isJoined && !isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveSheet(true)}
+                  className={`shrink-0 px-3 py-2 rounded-full bg-[#e7ded1] text-[#787771] text-[13px] border border-[#d9d2c5] transition-opacity duration-300 hover:bg-[#e0d9cc] ${introInView ? 'opacity-0' : 'opacity-100'}`}
+                  style={{ fontWeight: 600 }}
+                  aria-label="Joined"
+                >
+                  Joined
+                </button>
+              ) : !isCreator && (
                 <button 
                   onClick={handleJoinSquad}
                   disabled={joining}
-                  className="px-3 py-2 bg-[#d97757] text-white rounded-lg text-[13px] hover:bg-[#c06545] transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  className={`absolute right-0 px-3 py-1.5 bg-[#d97757] text-white rounded-full text-xs hover:bg-[#c06545] transition-opacity duration-300 flex items-center gap-1.5 disabled:opacity-50 ${introInView ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                   style={{ fontWeight: 600 }}
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   {joining ? 'Joining...' : 'Join Squad'}
                 </button>
               )}
-              {isAdmin && (
-                <button 
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="px-3 py-2 border rounded-lg text-[13px] transition-colors flex items-center gap-1.5"
-                  style={{ 
-                    fontWeight: 600,
-                    backgroundColor: '#dc2626',
-                    borderColor: '#b91c1c',
-                    color: 'white'
-                  }}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete Squad
-                </button>
-              )}
             </div>
+            {isAdmin && (
+              <button 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-3 py-1.5 border rounded-full text-xs transition-colors flex items-center gap-1.5"
+                style={{ 
+                  fontWeight: 600,
+                  backgroundColor: '#dc2626',
+                  borderColor: '#b91c1c',
+                  color: 'white'
+                }}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Squad
+              </button>
+            )}
+            {(isJoined || isCreator) && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSquadFeedNewPostOpen(true)}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] hover:bg-black/15 transition-colors"
+                  aria-label="New post"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={handleOpenChat}
+                  disabled={!squad.conversation_id}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] hover:bg-black/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Chat"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => setShowInfoMenu(true)}
+              className={`px-3 py-1.5 bg-black/10 border border-black/20 text-[#27251f] rounded-full text-xs hover:bg-black/15 transition-opacity duration-300 flex items-center gap-1.5 ${!introInView && !isJoined && !isCreator ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+              aria-label="Squad info"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
           </div>
+          )}
         </div>
         )}
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden flex bg-[#fefefc]">
-          {/* Left Column - Squad feed */}
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-8 py-6">
-            <div className="max-w-3xl flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Left Column - when viewing a post, no outer scroll so post header stays at top */}
+          <div ref={scrollContainerRefDesktop} className={`flex-1 min-h-0 flex flex-col px-8 py-6 ${postDetailOpen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            {!postDetailOpen && (
+            <>
+            {/* Squad intro: avatar, member count, Join - scrolls with feed */}
+            <div ref={introRefDesktop} className="max-w-3xl flex-shrink-0 mb-4 py-4 px-4 bg-white border border-[#e7ded1] rounded-xl flex flex-col gap-3">
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#e7ded1] shrink-0"
+                  style={{ backgroundColor: squadColor + '20' }}
+                >
+                  {squad.avatar_url ? (
+                    <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-semibold text-[#27251f] truncate">{squad.name}</p>
+                <p className="text-sm text-[#787771] leading-relaxed">
+                  {squad.member_count || 0} members
+                </p>
+              </div>
+                {!isCreator && !isAdmin && (
+                isJoined ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveSheet(true)}
+                    className="shrink-0 px-3 py-1.5 bg-[#e7ded1] text-[#787771] rounded-full text-xs border border-[#d9d2c5] hover:bg-[#e0d9cc] active:scale-95"
+                    style={{ fontWeight: 600 }}
+                    aria-label="Joined"
+                  >
+                    Joined
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleJoinSquad}
+                    disabled={joining}
+                    className="shrink-0 px-3 py-1.5 bg-[#d97757] text-white rounded-full text-xs hover:bg-[#c06545] transition-colors flex items-center gap-2 disabled:opacity-50"
+                    style={{ fontWeight: 600 }}
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    {joining ? 'Joining...' : 'Join Squad'}
+                  </button>
+                )
+              )}
+              </div>
+              {squad.info?.trim() && (
+                <p className="text-sm text-[#27251f] line-clamp-2 leading-relaxed min-w-0 overflow-hidden max-w-[calc(100%-1.5rem)]">
+                  {squad.info.trim()}
+                </p>
+              )}
+            </div>
+            </>
+            )}
+            <div className={postDetailOpen ? 'max-w-3xl flex-1 min-h-0 flex flex-col' : 'max-w-3xl'}>
               <HomeFeed
                 embedded
+                scrollWithParent
                 squadId={squad.id}
                 squadName="Feed"
                 userId={user?.id}
@@ -1200,10 +1433,14 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                 onNewPostModalOpenChange={setSquadFeedNewPostOpen}
                 onPostDetailChange={setPostDetailOpen}
                 embedHeaderTitle={squad.name}
+                embedHeaderColor={headerColor}
+                embedHeaderDarkText
+                embedMemberCount={squad.member_count ?? 0}
                 feedRefreshKey={squadFeedRefreshKey}
                 onNewPostSuccess={() => setSquadFeedRefreshKey((k) => k + 1)}
                 initialPostId={initialFeedPostId}
                 onPostChange={onFeedPostChange}
+                onRegisterClosePost={(close) => { closePostRef.current = close; }}
               />
             </div>
           </div>
@@ -1211,7 +1448,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
           {/* Right Column - Pinned Documents & Info */}
           <div className="w-80 border-l border-[#e7ded1] overflow-y-auto px-6 py-6 bg-[#fefefc]">
             {/* Squad Info */}
-            <div className="mb-6 p-4 bg-white border border-[#e7ded1] rounded-lg">
+            <div className="mb-6 p-4 bg-white border border-[#e7ded1] rounded-xl">
               <div className="flex items-center justify-between mb-3">
                 <h3 
                   className="text-[16px] text-[#27251f]"
@@ -1264,7 +1501,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-[#e7ded1] text-[13px] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
+                      className="w-full px-3 py-2 rounded-xl border border-[#e7ded1] text-[13px] focus:outline-none focus:ring-2 focus:ring-[#d47455]"
                       style={{ color: '#27251f' }}
                       placeholder="Squad name"
                     />
@@ -1275,7 +1512,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       value={editInfo}
                       onChange={(e) => setEditInfo(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 rounded-lg border border-[#e7ded1] text-[13px] focus:outline-none focus:ring-2 focus:ring-[#d47455] resize-none"
+                      className="w-full px-3 py-2 rounded-xl border border-[#e7ded1] text-[13px] focus:outline-none focus:ring-2 focus:ring-[#d47455] resize-none"
                       style={{ color: '#27251f' }}
                       placeholder="Description"
                     />
@@ -1288,7 +1525,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                           key={c.id}
                           type="button"
                           onClick={() => setEditCategory(c.id)}
-                          className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#27251f]'}`}
+                          className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition-colors ${editCategory === c.id ? 'bg-[#d47455] text-white' : 'bg-[#f5f3eb] text-[#27251f]'}`}
                         >
                           {c.label}
                         </button>
@@ -1301,7 +1538,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       <button
                         type="button"
                         onClick={() => setEditType('open')}
-                        className={`flex-1 py-2 rounded-lg border-2 text-[12px] font-medium flex items-center justify-center gap-1.5 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
+                        className={`flex-1 py-2 rounded-full border-2 text-[12px] font-medium flex items-center justify-center gap-1.5 ${editType === 'open' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Globe className="w-3.5 h-3.5" />
                         Public
@@ -1309,7 +1546,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       <button
                         type="button"
                         onClick={() => setEditType('private')}
-                        className={`flex-1 py-2 rounded-lg border-2 text-[12px] font-medium flex items-center justify-center gap-1.5 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
+                        className={`flex-1 py-1.5 px-3 rounded-full border-2 text-xs font-medium flex items-center justify-center gap-1.5 ${editType === 'private' ? 'border-[#d47455] bg-[#d4745510] text-[#27251f]' : 'border-[#e7ded1] bg-white text-[#787771]'}`}
                       >
                         <Lock className="w-3.5 h-3.5" />
                         Private
@@ -1320,7 +1557,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                     <button
                       type="button"
                       onClick={cancelEditingSquad}
-                      className="flex-1 py-2 rounded-lg border border-[#e7ded1] text-[#787771] text-[13px] font-medium"
+                      className="flex-1 py-1.5 px-3 rounded-full border border-[#e7ded1] text-[#787771] text-xs font-medium"
                     >
                       Cancel
                     </button>
@@ -1328,7 +1565,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                       type="button"
                       onClick={handleSaveSquadEdit}
                       disabled={savingSquad}
-                      className="flex-1 py-2 rounded-lg bg-[#d47455] text-white text-[13px] font-medium disabled:opacity-50"
+                      className="flex-1 py-1.5 px-3 rounded-full bg-[#d47455] text-white text-xs font-medium disabled:opacity-50"
                     >
                       {savingSquad ? 'Saving...' : 'Save'}
                     </button>
@@ -1410,12 +1647,12 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                     documents.map(doc => (
                       <div
                         key={doc.id}
-                        className="w-full p-3 bg-white border border-[#e7ded1] rounded-lg hover:border-[#d9d2c5] transition-all flex items-start gap-3"
+                        className="w-full p-3 bg-white border border-[#e7ded1] rounded-xl hover:border-[#d9d2c5] transition-all flex items-start gap-3"
                       >
                         <a
                           href={doc.file_url || '#'}
                           onClick={(e) => handleDownloadDocument(e, doc)}
-                          className="flex-1 flex items-start gap-3 min-w-0 cursor-pointer no-underline hover:bg-[#fefefc] -m-3 p-3 rounded-lg"
+                          className="flex-1 flex items-start gap-3 min-w-0 cursor-pointer no-underline hover:bg-[#fefefc] -m-3 p-3 rounded-xl"
                         >
                           <FileText size={16} className="text-[#787771] mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
@@ -1441,7 +1678,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                             type="button"
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDocument(doc); }}
                             disabled={deletingDocumentId === doc.id}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#787771] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0 mt-0.5"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-[#787771] hover:bg-[#e7ded1] hover:text-[#c06545] active:scale-95 disabled:opacity-50 flex-shrink-0 mt-0.5"
                             aria-label={`Delete ${doc.name}`}
                           >
                             <Trash2 size={16} />
@@ -1514,7 +1751,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                     type="button"
                     onClick={handleAddMembers}
                     disabled={inviteAdding}
-                    className="w-full py-2.5 bg-[#d47455] text-white rounded-xl text-[13px] font-medium hover:bg-[#c06545] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-1.5 px-3 bg-[#d47455] text-white rounded-full text-xs font-medium hover:bg-[#c06545] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <UserPlus className="w-4 h-4" />
                     {inviteAdding ? 'Adding...' : `Add ${inviteSelectedIds.length} member${inviteSelectedIds.length === 1 ? '' : 's'}`}
@@ -1551,7 +1788,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                     return (
                       <div
                         key={member.id}
-                        className="w-full p-3 bg-white border border-[#e7ded1] rounded-lg hover:border-[#d9d2c5] hover:bg-[#fefefc] transition-all flex items-center justify-between gap-3"
+                        className="w-full p-3 bg-white border border-[#e7ded1] rounded-xl hover:border-[#d9d2c5] hover:bg-[#fefefc] transition-all flex items-center justify-between gap-3"
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           {member.profile?.avatar_url ? (
@@ -1597,7 +1834,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                   })}
                   {members.length < (squad.member_count || 0) && (
                     <button 
-                      className="w-full p-3 bg-white border border-[#e7ded1] rounded-lg hover:border-[#d9d2c5] hover:bg-[#fefefc] transition-all text-center cursor-pointer text-[13px] text-[#787771] flex items-center justify-center gap-1" 
+                      className="w-full p-3 bg-white border border-[#e7ded1] rounded-xl hover:border-[#d9d2c5] hover:bg-[#fefefc] transition-all text-center cursor-pointer text-[13px] text-[#787771] flex items-center justify-center gap-1" 
                       style={{ fontWeight: 600 }}
                     >
                       View all {squad.member_count || 0} members

@@ -49,14 +49,7 @@ interface AppSnapshot {
   updatedAt: number;
 }
 
-interface CachedProfile {
-  profile: ProfileData;
-  cachedAt: number;
-}
-
 const APP_SNAPSHOT_KEY = 'hqAppSnapshotV1';
-const PROFILE_CACHE_KEY = 'hqProfileCacheV1';
-const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -138,20 +131,8 @@ export default function App() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [previousView, setPreviousView] = useState<ViewState>(initialState.previous);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [profile, setProfile] = useState<ProfileData | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem(PROFILE_CACHE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as CachedProfile;
-      if (!parsed?.profile || typeof parsed.cachedAt !== 'number') return null;
-      return Date.now() - parsed.cachedAt <= PROFILE_CACHE_TTL_MS ? parsed.profile : null;
-    } catch {
-      return null;
-    }
-  });
-  const [profileLoading, setProfileLoading] = useState(profile === null);
-  const hasCachedProfileRef = useRef(profile !== null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
   const [isMessageInputFocused, setIsMessageInputFocused] = useState(false);
@@ -554,8 +535,7 @@ export default function App() {
         setProfileLoading(false);
         return;
       }
-      // Keep UI responsive on app return; only show blocking loader if we have no cache.
-      setProfileLoading(!hasCachedProfileRef.current);
+      setProfileLoading(true);
 
       try {
         const { data, error } = await supabase
@@ -578,13 +558,6 @@ export default function App() {
           });
         } else {
           setProfile(data);
-          hasCachedProfileRef.current = true;
-          try {
-            const cachedProfile: CachedProfile = { profile: data, cachedAt: Date.now() };
-            localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cachedProfile));
-          } catch {
-            // Ignore cache write failures.
-          }
           if (data?.onboarding_completed) {
             setOnboardingComplete(true);
           }
@@ -673,9 +646,9 @@ export default function App() {
     };
   }, []);
 
-  // Reset feed input focus when leaving dashboard so nav never stays hidden
+  // Reset feed input focus when leaving dashboard/squad-detail so nav never stays hidden
   useEffect(() => {
-    if (currentView !== 'dashboard') {
+    if (currentView !== 'dashboard' && currentView !== 'squad-detail') {
       setIsFeedInputFocused(false);
     }
   }, [currentView]);
@@ -996,7 +969,7 @@ export default function App() {
                   )}
                 </div>
                 <button 
-                  className="text-[12px] text-[#d47455] hover:text-[#c06545] px-3 py-1.5 rounded-lg hover:bg-[#fef9f5]" 
+                  className="text-[12px] text-[#d47455] hover:text-[#c06545] px-3 py-1.5 rounded-full hover:bg-[#fef9f5]" 
                   style={{ fontWeight: 600 }}
                 >
                   Mark all read
@@ -1047,7 +1020,7 @@ export default function App() {
 
             <div className="hidden md:block px-6 py-4 border-t border-[#e8e4db] text-center bg-[#faf9f7]">
               <button 
-                className="text-[13px] text-[#d47455] hover:text-[#c06545] px-4 py-2 rounded-lg hover:bg-white transition-colors" 
+                className="text-xs text-[#d47455] hover:text-[#c06545] px-3 py-1.5 rounded-full hover:bg-white transition-colors" 
                 style={{ fontWeight: 600 }}
               >
                 View all notifications
@@ -1057,7 +1030,7 @@ export default function App() {
             <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[#e8e4db]">
               <button 
                 onClick={() => setShowNotifications(false)}
-                className="w-full py-3 bg-[#d47455] text-white rounded-xl text-[15px]" 
+                className="w-full py-1.5 px-3 bg-[#d47455] text-white rounded-full text-xs" 
                 style={{ fontWeight: 600 }}
               >
                 Close
@@ -1072,14 +1045,12 @@ export default function App() {
   // Clear saved state when user logs out (must be before any early returns)
   useEffect(() => {
     if (!user && typeof window !== 'undefined') {
-      hasCachedProfileRef.current = false;
       setProfile(null);
       sessionStorage.removeItem('currentView');
       sessionStorage.removeItem('previousView');
       sessionStorage.removeItem('selectedCourse');
       sessionStorage.removeItem('selectedSquad');
       localStorage.removeItem(APP_SNAPSHOT_KEY);
-      localStorage.removeItem(PROFILE_CACHE_KEY);
     }
   }, [user]);
 
@@ -1171,19 +1142,19 @@ export default function App() {
         <div className="w-full mt-6 px-0">
           {isSidebarExpanded ? (
             <>
-              <button onClick={handleHomeClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f]" >
+              <button onClick={handleHomeClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f]" >
                 <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Home</span>
               </button>
-              <button onClick={handleSquadsClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
+              <button onClick={handleSquadsClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
                 <Users className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Squads</span>
               </button>
-              <button onClick={handleClassesClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
+              <button onClick={handleClassesClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
                 <BookOpen className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Classes</span>
               </button>
-              <button onClick={handleCalendarClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-xl hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
+              <button onClick={handleCalendarClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
                 <CalendarIcon className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">Calendar</span>
               </button>
@@ -1403,7 +1374,11 @@ export default function App() {
         className="md:hidden fixed bottom-0 left-0 right-0 bg-[#fbf8f7] border-t border-[#e7ded1] z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] transition-transform duration-300 ease-in-out"
         style={{ 
           backgroundColor: '#fbf8f7',
-          transform: (isMessageInputFocused && currentView === 'messaging') || (isFeedInputFocused && currentView === 'dashboard') ? 'translateY(100%)' : 'translateY(0)',
+          transform: (() => {
+            const keyboardHiding = (isMessageInputFocused && currentView === 'messaging') || (isFeedInputFocused && (currentView === 'dashboard' || currentView === 'squad-detail'));
+            const subPageHiding = currentView === 'squad-detail' || currentView === 'course' || (currentView === 'messaging' && !!subpageConversation);
+            return keyboardHiding || subPageHiding ? 'translateY(100%)' : 'translateY(0)';
+          })(),
           willChange: 'transform'
         }}
       >
@@ -1434,7 +1409,7 @@ export default function App() {
               currentView === 'dashboard' ? 'text-[#d47455]' : 'text-[#787771]'
             }`}
           >
-            <LayoutDashboard className="w-6 h-6" />
+            <HouseIcon className="w-6 h-6" />
             <span className="text-[10px]" style={{ fontWeight: 500 }}>Home</span>
           </button>
 
