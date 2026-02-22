@@ -85,6 +85,11 @@ a {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Hide scrollbar for filter carousel */
+.filter-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* All images get rounded corners at any size; avatars use rounded-full, logos use rounded-none */
 img:not(.rounded-full):not(.rounded-none) {
   border-radius: 0.75rem;

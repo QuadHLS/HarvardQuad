@@ -12,6 +12,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { FeedService, type FeedPostWithAuthor, type FeedReplyWithAuthor, type ProfileRow } from '../services/feedService';
+import { toast } from 'sonner';
 import { getEmbedInfo } from '../lib/embedUrl';
 import { NewPostModal, type NewPostModalOptimisticData } from './NewPostModal';
 import { UserProfileView } from './UserProfileView';
@@ -158,15 +159,25 @@ interface PostDetailViewProps {
 
 function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, onOpenUserProfile, headerTitle = 'Home', hideHeader = false, headerColor, headerDarkText, memberCount }: PostDetailViewProps) {
   const [detailPost, setDetailPost] = useState<FeedPostWithAuthor | null>(post);
+  const [replies, setReplies] = useState<FeedReplyWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [replyInput, setReplyInput] = useState('');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomInputRef = useRef<HTMLDivElement>(null);
 
   const loadDetail = useCallback(async () => {
     try {
-      const p = await FeedService.getPost(post.id, userId);
+      const [p, r] = await Promise.all([
+        FeedService.getPost(post.id, userId),
+        FeedService.listReplies(post.id, userId),
+      ]);
       if (p) setDetailPost(p);
+      setReplies(r || []);
     } catch {
       setDetailPost(null);
+      setReplies([]);
     } finally {
       setLoading(false);
     }
@@ -179,6 +190,44 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({ top: 0 });
   }, [post.id]);
+
+  // Realtime: refetch post + replies when they change
+  useEffect(() => {
+    const chReplies = FeedService.subscribeToFeedReplies(post.id, loadDetail);
+    const { unsubscribe: unsubHearts } = FeedService.subscribeToFeedHearts(post.id, loadDetail);
+    return () => {
+      FeedService.unsubscribeFromFeedReplies(chReplies);
+      unsubHearts();
+    };
+  }, [post.id, loadDetail]);
+
+  const handleHeartPost = async () => {
+    if (!userId || !detailPost) return;
+    const next = !detailPost.current_user_hearted;
+    setDetailPost((p) => p ? { ...p, current_user_hearted: next, heart_count: (p.heart_count ?? 0) + (next ? 1 : -1) } : null);
+    try {
+      const { hearted } = await FeedService.toggleHeartPost(post.id, userId);
+      setDetailPost((p) => p ? { ...p, current_user_hearted: hearted } : null);
+      loadDetail();
+    } catch {
+      setDetailPost((p) => p ? { ...p, current_user_hearted: detailPost.current_user_hearted, heart_count: detailPost.heart_count } : null);
+    }
+  };
+
+  const handleSubmitReply = async (parentReplyId?: string | null) => {
+    if (!userId || !replyInput.trim()) return;
+    setSubmitting(true);
+    try {
+      await FeedService.createReply(post.id, userId, replyInput.trim(), parentReplyId ?? null);
+      setReplyInput('');
+      setReplyingTo(null);
+      await loadDetail();
+    } catch {
+      toast.error('Failed to post reply. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading || !detailPost) {
     return (
@@ -257,12 +306,210 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-24"
       >
-        <div className="px-4 max-w-3xl mx-auto w-full py-6">
-          {/* Post content area – reserved for redesign */}
+        <div className="px-4 max-w-3xl mx-auto w-full py-4">
+          {/* Post card */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+            <div className="p-4">
+              <div className="flex items-start gap-3 mb-3">
+                {detailPost.override_author_name?.trim() ? (
+                  <AuthorAvatar
+                    profile={{ id: '', public_name: FeedService.postAuthorName(detailPost), full_name: '', avatar_url: QUADLY_AVATAR_URL } as ProfileRow}
+                    color="#d47455"
+                    initials={FeedService.postInitials(detailPost)}
+                    sizeClass="w-10 h-10 shrink-0"
+                  />
+                ) : detailPost.author_id !== userId && onOpenUserProfile ? (
+                  <AuthorAvatar
+                    profile={detailPost.author}
+                    color={FeedService.avatarColor(detailPost.author_id)}
+                    initials={FeedService.initials(detailPost.author)}
+                    sizeClass="w-10 h-10 shrink-0"
+                    asButton
+                    onClick={(e) => { e.preventDefault(); onOpenUserProfile(detailPost.author_id); }}
+                    onPointerDown={(e) => { e.preventDefault(); onOpenUserProfile(detailPost.author_id); }}
+                    aria-label={`View ${FeedService.postAuthorName(detailPost)}'s profile`}
+                  />
+                ) : (
+                  <AuthorAvatar
+                    profile={detailPost.author}
+                    color={FeedService.avatarColor(detailPost.author_id)}
+                    initials={FeedService.initials(detailPost.author)}
+                    sizeClass="w-10 h-10 shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#27251f]">{FeedService.postAuthorName(detailPost)}</p>
+                  <p className="text-xs text-[#787771]">{FeedService.timeAgo(detailPost.created_at)}</p>
+                </div>
+              </div>
+              <h2 className="text-lg font-semibold text-[#27251f] mb-2">{detailPost.title}</h2>
+              {detailPost.post_type === 'poll' && detailPost.poll_options && detailPost.poll_options.length > 0 ? (
+                <div className="space-y-2">
+                  {detailPost.poll_options.map((opt) => {
+                    const total = detailPost.poll_options!.reduce((s, o) => s + (o.vote_count ?? 0), 0);
+                    const pct = total > 0 ? Math.round(((opt.vote_count ?? 0) / total) * 100) : 0;
+                    const isSelected = detailPost.current_user_vote_option_id === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={async () => {
+                          if (!userId) return;
+                          try {
+                            await FeedService.votePoll(post.id, opt.id, userId);
+                            await loadDetail();
+                          } catch {
+                            toast.error('Failed to vote. Please try again.');
+                          }
+                        }}
+                        className={`w-full text-left rounded-lg border-2 px-3 py-2 transition-colors ${isSelected ? 'border-[#d47455] bg-[#fff3e0]' : 'border-[#e7ded1] hover:border-[#d9d2c5]'}`}
+                      >
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-sm font-medium text-[#27251f]">{opt.option_text}</span>
+                          <span className="text-xs text-[#787771]">{opt.vote_count ?? 0} ({pct}%)</span>
+                        </div>
+                        <div className="mt-1 h-1.5 rounded-full bg-[#F1EFE7] overflow-hidden">
+                          <div className="h-full rounded-full bg-[#d47455]" style={{ width: `${pct}%` }} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
+                  {detailPost.content && (
+                    <p className="text-sm text-[#27251f] leading-relaxed whitespace-pre-wrap mb-3">{detailPost.content}</p>
+                  )}
+                  {detailPost.image_path && (
+                    <div className="rounded-xl overflow-hidden max-h-80 mb-3 bg-[#f5f3eb]">
+                      <img src={detailPost.image_path} alt="" className="w-full h-auto object-contain" />
+                    </div>
+                  )}
+                  {detailPost.url && <EmbedBlock url={detailPost.url} className="mb-3" />}
+                </>
+              )}
+            </div>
+            <div className="border-t border-[#f0ede5] px-4 py-2.5 flex items-center gap-4">
+              <button
+                type="button"
+                onClick={handleHeartPost}
+                className="flex items-center gap-1.5 py-1 active:scale-95 transition-transform"
+              >
+                <Heart size={18} className={detailPost.current_user_hearted ? 'text-[#d47455]' : 'text-[#787771]'} fill={detailPost.current_user_hearted ? '#d47455' : 'none'} />
+                <span className="text-sm font-semibold" style={{ color: detailPost.current_user_hearted ? '#d47455' : '#27251f' }}>
+                  {detailPost.heart_count ?? 0}
+                </span>
+              </button>
+              <span className="flex items-center gap-1.5 text-[#787771]">
+                <MessageSquare size={18} />
+                <span className="text-sm">{detailPost.reply_count ?? 0} replies</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Replies */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-[#27251f]">Replies</h3>
+            {replies.length === 0 ? (
+              <p className="text-sm text-[#787771] py-4">No replies yet. Be the first to reply!</p>
+            ) : (
+              replies.map((r) => (
+                <ReplyBlock
+                  key={r.id}
+                  reply={r}
+                  userId={userId}
+                  onReply={setReplyingTo ? () => setReplyingTo(r.id) : () => {}}
+                  onHeart={async () => {
+                    if (!userId) return;
+                    await FeedService.toggleHeartReply(r.id, userId);
+                    loadDetail();
+                  }}
+                  onReplySubmit={() => {}}
+                  refreshReplies={loadDetail}
+                  isTopLevel={true}
+                  replyingTo={replyingTo}
+                  replyInput={replyInput}
+                  setReplyInput={setReplyInput}
+                  setReplyingTo={setReplyingTo}
+                  onSubmitReply={() => handleSubmitReply(r.id)}
+                  submitting={submitting}
+                  userDisplayName={userDisplayName}
+                  userAvatarUrl={userAvatarUrl}
+                  onOpenUserProfile={onOpenUserProfile}
+                  useBottomBarOnly
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Bottom input bar */}
+      {userId && (
+        <div
+          ref={bottomInputRef}
+          className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#e7ded1] px-4 py-3"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+        >
+          <div className="max-w-3xl mx-auto">
+            {replyingTo && (() => {
+              const flatten = (rs: FeedReplyWithAuthor[]): FeedReplyWithAuthor[] =>
+                rs.flatMap((r) => [r, ...flatten(r.replies || [])]);
+              const target = flatten(replies).find((x) => x.id === replyingTo);
+              const replyingToName = target ? FeedService.displayName(target.author) : '';
+              return (
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs text-[#787771]">Replying to {replyingToName}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setReplyingTo(null); setReplyInput(''); }}
+                    className="text-xs text-[#d47455] hover:text-[#c06545] font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              );
+            })()}
+            <div className="flex items-end gap-2">
+              <AuthorAvatar
+                profile={{ id: userId, public_name: userDisplayName ?? '', full_name: userDisplayName ?? '', avatar_url: userAvatarUrl ?? null }}
+                color={FeedService.avatarColor(userId)}
+                initials={userDisplayName ? FeedService.initials({ public_name: userDisplayName, full_name: userDisplayName } as ProfileRow) : '?'}
+                sizeClass="w-9 h-9 shrink-0"
+              />
+              <div className="flex-1 flex items-end gap-2 bg-[#FBF9F5] rounded-xl border-2 border-[#e7ded1] focus-within:border-[#d47455] px-3 py-2 min-h-[44px] transition-colors">
+                <textarea
+                  value={replyInput}
+                  onChange={(e) => setReplyInput(e.target.value)}
+                  onFocus={() => window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: true } }))}
+                  onBlur={() => window.dispatchEvent(new CustomEvent('feedInputFocused', { detail: { focused: false } }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmitReply(replyingTo);
+                    }
+                  }}
+                  placeholder={replyingTo ? 'Write your reply...' : 'Add a reply...'}
+                  className="flex-1 min-w-0 bg-transparent text-sm text-[#27251f] resize-none focus:outline-none placeholder:text-[#787771]"
+                  rows={1}
+                  style={{ maxHeight: 100 }}
+                  disabled={submitting}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSubmitReply(replyingTo)}
+                  disabled={!replyInput.trim() || submitting}
+                  className="px-4 py-1.5 rounded-lg bg-[#d47455] text-white text-xs font-semibold disabled:opacity-50 shrink-0 hover:bg-[#c06545] transition-colors"
+                >
+                  {submitting ? '…' : 'Post'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </SwipeBackContainer>
   );
 }
@@ -292,6 +539,8 @@ interface ReplyBlockProps {
   onReplyInputFocusChange?: (focused: boolean) => void;
   /** When avatar is clicked, open this user's profile */
   onOpenUserProfile?: (userId: string) => void;
+  /** When true, do not show inline reply form (use external bottom bar instead) */
+  useBottomBarOnly?: boolean;
 }
 
 function InlineReplyForm({
@@ -388,6 +637,7 @@ function ReplyBlock({
   parentReply,
   onReplyInputFocusChange,
   onOpenUserProfile,
+  useBottomBarOnly = false,
 }: ReplyBlockProps) {
   const name = FeedService.displayName(reply.author);
   const initials = FeedService.initials(reply.author);
@@ -399,7 +649,7 @@ function ReplyBlock({
     await FeedService.toggleHeartReply(replyId, userId);
     refreshReplies?.();
   };
-  const showInlineForm = replyingTo != null && setReplyInput && setReplyingTo && onSubmitReply;
+  const showInlineForm = !useBottomBarOnly && replyingTo != null && setReplyInput && setReplyingTo && onSubmitReply;
   const isFlat = depth >= 3;
   const indentClass =
     depth === 0
@@ -517,6 +767,7 @@ function ReplyBlock({
               parentReply={reply}
               onReplyInputFocusChange={onReplyInputFocusChange}
               onOpenUserProfile={onOpenUserProfile}
+              useBottomBarOnly={useBottomBarOnly}
             />
           ))}
         </div>

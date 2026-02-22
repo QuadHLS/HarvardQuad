@@ -684,7 +684,7 @@ export default function App() {
       window.removeEventListener('resize', setNavHeightVar);
       window.visualViewport?.removeEventListener('resize', setNavHeightVar);
     };
-  }, [currentView, isMessageInputFocused, isFeedInputFocused]);
+  }, [currentView, isMessageInputFocused, isFeedInputFocused, subpageConversation, subpagePost]);
 
   // Reset onboarding when user logs out so next login shows it again (must be before any conditional returns)
   useEffect(() => {
@@ -1376,7 +1376,7 @@ export default function App() {
           backgroundColor: '#fbf8f7',
           transform: (() => {
             const keyboardHiding = (isMessageInputFocused && currentView === 'messaging') || (isFeedInputFocused && (currentView === 'dashboard' || currentView === 'squad-detail'));
-            const subPageHiding = currentView === 'squad-detail' || currentView === 'course' || (currentView === 'messaging' && !!subpageConversation);
+            const subPageHiding = currentView === 'squad-detail' || currentView === 'course' || (currentView === 'messaging' && !!subpageConversation) || (currentView === 'dashboard' && !!subpagePost);
             return keyboardHiding || subPageHiding ? 'translateY(100%)' : 'translateY(0)';
           })(),
           willChange: 'transform'
