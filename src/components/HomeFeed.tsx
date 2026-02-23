@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   Plus,
 } from 'lucide-react';
+import { PostCard } from './reddit/PostCard';
 import { FeedService, type FeedPostWithAuthor, type FeedReplyWithAuthor, type ProfileRow } from '../services/feedService';
 import { toast } from 'sonner';
 import { getEmbedInfo } from '../lib/embedUrl';
@@ -310,7 +311,7 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
       >
         <div className="px-4 max-w-3xl mx-auto w-full py-4">
           {/* Post card */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+          <div className="bg-white rounded-xl border border-[#e4e4e4] shadow-sm overflow-hidden mb-4">
             <div className="p-4">
               <div className="flex items-start gap-3 mb-3">
                 {detailPost.override_author_name?.trim() ? (
@@ -391,27 +392,28 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
                 </>
               )}
             </div>
-            <div className="border-t border-[#f0ede5] px-4 py-2.5 flex items-center gap-4">
+            <div className="border-t border-[#e4e4e4] px-4 py-2 flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleHeartPost}
-                className="flex items-center gap-1.5 py-1 active:scale-95 transition-transform"
+                className="flex items-center gap-1 py-1.5 px-2.5 rounded-full border border-[#e4e4e4] bg-transparent text-[#7c7c7c] hover:text-[#ff4500] hover:border-[#ff4500]/80 transition-colors"
               >
-                <Heart size={18} className={detailPost.current_user_hearted ? 'text-[#d47455]' : 'text-[#787771]'} fill={detailPost.current_user_hearted ? '#d47455' : 'none'} />
-                <span className="text-sm font-semibold" style={{ color: detailPost.current_user_hearted ? '#d47455' : '#27251f' }}>
-                  {detailPost.heart_count ?? 0}
-                </span>
+                <Heart
+                  size={18}
+                  className={detailPost.current_user_hearted ? 'text-[#ff4500]' : ''}
+                  fill={detailPost.current_user_hearted ? '#ff4500' : 'none'}
+                />
+                <span className="text-sm font-medium text-[#1c1c1c]">{detailPost.heart_count ?? 0}</span>
               </button>
-              <span className="flex items-center gap-1.5 text-[#787771]">
+              <span className="flex items-center gap-1 py-1.5 px-2.5 rounded-full border border-[#e4e4e4] bg-transparent text-[#7c7c7c]">
                 <MessageSquare size={18} />
-                <span className="text-sm">{detailPost.reply_count ?? 0} replies</span>
+                <span className="text-sm font-medium text-[#1c1c1c]">{detailPost.reply_count ?? 0}</span>
               </span>
             </div>
           </div>
 
           {/* Replies */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-[#27251f]">Replies</h3>
             {replies.length === 0 ? (
               <p className="text-sm text-[#787771] py-4">No replies yet. Be the first to reply!</p>
             ) : (
@@ -815,6 +817,22 @@ export interface HomeFeedProps {
   scrollWithParent?: boolean;
   /** When provided (e.g. embedded), parent can register a function to close the post detail from outside. */
   onRegisterClosePost?: (close: () => void) => void;
+  /** When provided (e.g. embedded), parent can register a function to open a post by id. */
+  onRegisterOpenPostById?: (open: (id: string) => void) => void;
+  /** When provided (e.g. embedded), called with pinned posts for HighlightsSection. */
+  onPinnedPostsReady?: (posts: FeedPostWithAuthor[]) => void;
+  /** When provided (e.g. embedded), parent can register handlers for pinned post actions. */
+  onRegisterPinnedHandlers?: (handlers: {
+    onOpen: (post: FeedPostWithAuthor) => void;
+    onVote: (e: React.MouseEvent, post: FeedPostWithAuthor) => void;
+    onPin: (e: React.MouseEvent, post: FeedPostWithAuthor) => void;
+  }) => void;
+  /** When 'reddit', render post cards in Reddit community style. */
+  cardVariant?: 'default' | 'reddit';
+  /** Sort order for feed: hearts (best), replies (most replied), earliest (oldest first). */
+  sortBy?: 'hearts' | 'replies' | 'earliest';
+  /** Filter posts by title (case-insensitive). */
+  searchQuery?: string;
 }
 
 export function HomeFeed({
@@ -839,6 +857,12 @@ export function HomeFeed({
   onPostChange,
   scrollWithParent = false,
   onRegisterClosePost,
+  onRegisterOpenPostById,
+  onPinnedPostsReady,
+  onRegisterPinnedHandlers,
+  cardVariant = 'default',
+  sortBy = 'hearts',
+  searchQuery = '',
 }: HomeFeedProps) {
   const [posts, setPosts] = useState<FeedPostWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -847,6 +871,8 @@ export function HomeFeed({
   const [internalNewPostOpen, setInternalNewPostOpen] = useState(false);
   const [optimisticNewPost, setOptimisticNewPost] = useState<FeedPostWithAuthor | null>(null);
   const hasRestoredPostRef = useRef(false);
+  const postsRef = useRef<FeedPostWithAuthor[]>([]);
+  postsRef.current = optimisticNewPost ? [optimisticNewPost, ...posts] : posts;
   const isControlled = controlledNewPostOpen !== undefined && onControlledNewPostOpenChange !== undefined;
   const newPostModalOpen = isControlled ? controlledNewPostOpen : internalNewPostOpen;
   const setNewPostModalOpen = isControlled ? onControlledNewPostOpenChange : setInternalNewPostOpen;
@@ -890,6 +916,41 @@ export function HomeFeed({
     });
     return () => onRegisterClosePost?.(() => {});
   }, [onRegisterClosePost, onPostChange]);
+
+  useEffect(() => {
+    const open = (id: string) => {
+      const all = optimisticNewPost ? [optimisticNewPost, ...posts] : posts;
+      const p = all.find((x) => x.id === id);
+      if (p && !p.id.startsWith('opt-')) {
+        setSelectedPost(p);
+        onPostChange?.(p.id);
+      }
+    };
+    onRegisterOpenPostById?.(open);
+  }, [onRegisterOpenPostById, posts, optimisticNewPost, onPostChange]);
+
+  useEffect(() => {
+    const pinned = (optimisticNewPost ? [optimisticNewPost, ...posts] : posts)
+      .filter((p) => p.current_user_pinned && !p.id.startsWith('opt-'));
+    onPinnedPostsReady?.(pinned);
+  }, [posts, optimisticNewPost, onPinnedPostsReady]);
+
+  useEffect(() => {
+    onRegisterPinnedHandlers?.({
+      onOpen: (post) => {
+        setSelectedPost(post);
+        onPostChange?.(post.id);
+      },
+      onVote: (e, post) => {
+        const p = postsRef.current.find((x) => x.id === post.id);
+        if (p) handleHeartPost(e, p);
+      },
+      onPin: (e, post) => {
+        const p = postsRef.current.find((x) => x.id === post.id);
+        if (p) handlePinPost(e, p);
+      },
+    });
+  }, [onRegisterPinnedHandlers, posts, optimisticNewPost, onPostChange]);
 
   // Restore opened post when returning to the page (from URL/sessionStorage). Reset ref when initialPostId is cleared so a new restore can run later.
   useEffect(() => {
@@ -998,8 +1059,8 @@ export function HomeFeed({
     ? 'flex flex-col min-h-0'
     : 'flex-1 min-h-0 flex flex-col overflow-hidden';
   const listWrapperClass = scrollWithParent
-    ? 'overflow-x-hidden bg-[#FBF9F5] px-2 py-4 pb-24 md:pb-4'
-    : 'flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FBF9F5] px-2 py-4 pb-24 md:pb-4';
+    ? `overflow-x-hidden py-4 pb-24 md:pb-4 ${cardVariant === 'reddit' ? 'bg-white px-4' : 'bg-[#FBF9F5] px-2'}`
+    : `flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 pb-24 md:pb-4 ${cardVariant === 'reddit' ? 'bg-white px-4' : 'bg-[#FBF9F5] px-2'}`;
 
   return (
     <div className={rootClass}>
@@ -1047,11 +1108,27 @@ export function HomeFeed({
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
           </div>
-        ) : (optimisticNewPost ? [optimisticNewPost, ...posts] : posts).length === 0 ? (
+        ) : (() => {
+          const allPosts = optimisticNewPost ? [optimisticNewPost, ...posts] : posts;
+          let feedPosts = onPinnedPostsReady ? allPosts.filter((p) => !p.current_user_pinned) : allPosts;
+          if (searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            feedPosts = feedPosts.filter((p) => (p.title ?? '').toLowerCase().includes(q));
+          }
+          feedPosts = [...feedPosts].sort((a, b) => {
+            if (sortBy === 'hearts') {
+              return (b.heart_count ?? 0) - (a.heart_count ?? 0);
+            }
+            if (sortBy === 'replies') {
+              return (b.reply_count ?? 0) - (a.reply_count ?? 0);
+            }
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          });
+          return feedPosts.length === 0 ? (
           <div className="py-12" />
         ) : (
-          <div className="space-y-3">
-            {(optimisticNewPost ? [optimisticNewPost, ...posts] : posts).map((post) => {
+          <div className={`space-y-3 ${cardVariant === 'reddit' ? 'max-w-3xl mx-auto' : ''}`}>
+            {feedPosts.map((post) => {
               const authorName = FeedService.postAuthorName(post);
               const authorInitials = FeedService.postInitials(post);
               const authorColor = FeedService.avatarColor(post.author_id);
@@ -1063,6 +1140,25 @@ export function HomeFeed({
                   onPostChange?.(post.id);
                 }
               };
+              if (cardVariant === 'reddit') {
+                return (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    authorName={authorName}
+                    authorInitials={authorInitials}
+                    authorColor={authorColor}
+                    authorProfile={post.author}
+                    timeStr={timeStr}
+                    timeShort={timeStr.replace(/\s*ago$/, '')}
+                    onOpen={openPost}
+                    onVote={(e) => handleHeartPost(e, post)}
+                    onPin={userId ? (e) => handlePinPost(e, post) : undefined}
+                    onOpenUserProfile={(id) => id !== userId && setViewingUserId(id)}
+                    userId={userId}
+                  />
+                );
+              }
               return (
                 <div
                   key={post.id}
@@ -1221,7 +1317,8 @@ export function HomeFeed({
               );
             })}
           </div>
-        )}
+        );
+      })()}
       </div>
 
       {userId && (

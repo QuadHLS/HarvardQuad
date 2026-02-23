@@ -1305,12 +1305,12 @@ export default function App() {
             </div>
           )}
           {mountedKeepAliveViews.squads && (
-            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'squads' ? '' : 'hidden'}`}>
+            <div className={`bg-white md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'squads' ? '' : 'hidden'}`}>
               <SquadsPage onSquadClick={handleSquadDetailClick} />
             </div>
           )}
           {currentView === 'squad-detail' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
+            <div className="bg-white md:rounded-tl-2xl md:rounded-tr-2xl h-full">
               <SquadDetailPage 
                 squadId={selectedSquad} 
                 onBack={handleBackFromSquadDetail} 
