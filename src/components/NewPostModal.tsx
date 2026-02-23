@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from './ui/sheet';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from './ui/drawer';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -173,10 +173,9 @@ export function NewPostModal({
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="w-full max-w-none bg-[#FBF9F5] border-0 p-0 gap-0 flex flex-col"
+    <Drawer open={open} onOpenChange={handleOpenChange} direction="bottom">
+      <DrawerContent
+        className="w-full max-w-none bg-[#FBF9F5] border-0 p-0 gap-0 flex flex-col !mt-0 !max-h-none min-h-[100dvh] h-[100dvh] rounded-t-2xl"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
         <div className="flex flex-col flex-1 min-h-0">
@@ -343,7 +342,7 @@ export function NewPostModal({
             </div>
           </form>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 }

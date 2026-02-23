@@ -1,6 +1,10 @@
-import { UserPlus, MessageCircle, Users as UsersIcon, ChevronLeft, ChevronDown, MoreVertical, X, Globe, Lock, Users, FileText, Image, Trash2, Search, Check, Plus, Pencil, Upload, MinusCircle } from 'lucide-react';
+import { UserPlus, MessageCircle, Users as UsersIcon, ChevronLeft, ChevronDown, MoreHorizontal, X, Globe, Lock, Users, FileText, Image, Trash2, Search, Check, Plus, Pencil, Upload, MinusCircle } from 'lucide-react';
+import { CommunityHeader } from './reddit/CommunityHeader';
+import { FeedFiltersRow, type FeedSortBy } from './reddit/FeedFiltersRow';
+import { HighlightsSection } from './reddit/HighlightsSection';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SquadsService, Squad, SquadMember, SquadDocument } from '../services/squadsService';
+import type { FeedPostWithAuthor } from '../services/feedService';
 import { MessagingService } from '../services/messagingService';
 import { useAuth } from '../contexts/AuthContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
@@ -11,8 +15,8 @@ import { useIsMobile } from './ui/use-mobile';
 
 type InviteSearchResult = { id: string; email: string; full_name: string | null };
 
-/** Footer (bottom nav) color – squad header matches this when viewing a squad */
-const SQUAD_HEADER_FOOTER_COLOR = '#fbf8f7';
+/** Reddit-style white top nav */
+const SQUAD_HEADER_BG = '#ffffff';
 
 interface SquadDetailPageProps {
   squadId: string;
@@ -30,7 +34,7 @@ interface SquadDetailPageProps {
 
 export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId, onFeedPostChange, userAvatarUrl: propsUserAvatarUrl, publicName: propsPublicName }: SquadDetailPageProps) {
   const { user } = useAuth();
-  const headerColor = SQUAD_HEADER_FOOTER_COLOR;
+  const headerColor = SQUAD_HEADER_BG;
   const [squad, setSquad] = useState<Squad | null>(null);
   const [members, setMembers] = useState<SquadMember[]>([]);
   const [documents, setDocuments] = useState<SquadDocument[]>([]);
@@ -70,6 +74,15 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
   const [squadFeedNewPostOpen, setSquadFeedNewPostOpen] = useState(false);
   const [squadFeedRefreshKey, setSquadFeedRefreshKey] = useState(0);
   const [postDetailOpen, setPostDetailOpen] = useState(false);
+  const [feedSortBy, setFeedSortBy] = useState<FeedSortBy>('hearts');
+  const [feedSearchQuery, setFeedSearchQuery] = useState('');
+  const [pinnedPosts, setPinnedPosts] = useState<FeedPostWithAuthor[]>([]);
+  const pinnedHandlersRef = useRef<{
+    onOpen: (post: FeedPostWithAuthor) => void;
+    onVote: (e: React.MouseEvent, post: FeedPostWithAuthor) => void;
+    onPin: (e: React.MouseEvent, post: FeedPostWithAuthor) => void;
+  } | null>(null);
+  const openPostByIdRef = useRef<((id: string) => void) | null>(null);
   const [introInViewMobile, setIntroInViewMobile] = useState(true);
   const [introInViewDesktop, setIntroInViewDesktop] = useState(true);
   const introRef = useRef<HTMLDivElement>(null);
@@ -415,7 +428,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] h-full flex items-center justify-center bg-[#FBF9F5] pt-[18vh]">
+      <div className="min-h-[60vh] h-full flex items-center justify-center bg-white pt-[18vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
       </div>
     );
@@ -423,7 +436,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
 
   if (loadError && !squad) {
     return (
-      <SwipeBackContainer onBack={onBack} className="min-h-[60vh] h-full flex flex-col items-center justify-center bg-[#FBF9F5] pt-[18vh] px-4 gap-4">
+      <SwipeBackContainer onBack={onBack} className="min-h-[60vh] h-full flex flex-col items-center justify-center bg-white pt-[18vh] px-4 gap-4">
         <p className="text-[#27251f] text-center" >
           Could not load squad. It may have been deleted or you may not have access.
         </p>
@@ -441,7 +454,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
 
   if (!squad) {
     return (
-      <div className="min-h-[60vh] h-full flex items-center justify-center bg-[#FBF9F5] pt-[18vh]">
+      <div className="min-h-[60vh] h-full flex items-center justify-center bg-white pt-[18vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d47455]"></div>
       </div>
     );
@@ -495,7 +508,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
   };
 
   return (
-    <SwipeBackContainer onBack={onBack} className="h-full overflow-hidden flex flex-col bg-[#FBF9F5]">
+    <SwipeBackContainer onBack={onBack} className="h-full overflow-hidden flex flex-col bg-white">
       <input
         ref={fileInputRef}
         type="file"
@@ -554,82 +567,81 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
       <div className="md:hidden h-full flex flex-col">
         {/* Mobile Header - hidden when viewing a post; post detail view shows its own header */}
         {!postDetailOpen && (
-        <div className="border-b border-black/10 px-4 py-2.5 flex-shrink-0 flex items-center gap-2" style={{ backgroundColor: headerColor }}>
+        <div className="border-b border-[#e4e4e4] px-4 py-2 flex-shrink-0 flex items-center gap-2 bg-white">
           <button
             onClick={postDetailOpen ? () => closePostRef.current() : onBack}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] shrink-0 active:scale-95 transition-transform hover:bg-black/15"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-[#1c1c1c] shrink-0 active:scale-95 transition-transform hover:bg-[#f5f5f5]"
             aria-label="Back"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <h1 
-              className={`text-lg truncate transition-opacity duration-300 text-[#27251f] ${postDetailOpen || !introInView ? 'opacity-100' : 'opacity-0'}`}
-              style={{ fontWeight: 600, ...(!postDetailOpen && introInView && { pointerEvents: 'none' as const }) }}
-            >
-              {postDetailOpen ? 'Post' : squad.name}
-            </h1>
-            {!postDetailOpen && (
-              <p 
-                className={`text-xs text-[#787771] truncate transition-opacity duration-300 ${!introInView ? 'opacity-100' : 'opacity-0'}`}
-                style={introInView ? { pointerEvents: 'none' as const } : undefined}
-              >
-                {squad.member_count || 0} members
-              </p>
-            )}
+          <div
+            className={`shrink-0 transition-opacity duration-300 overflow-hidden ${introInView ? 'opacity-0 pointer-events-none w-0 max-h-0' : 'opacity-100'}`}
+          >
+            <div className="flex flex-col pl-1">
+              <span className="text-sm font-bold text-[#1c1c1c] truncate">{squad.name}</span>
+              <span className="text-xs text-[#7c7c7c]">
+                {(squad.member_count ?? 0) === 1 ? '1 member' : `${squad.member_count ?? 0} members`}
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 flex justify-center">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787771]" />
+              <input
+                type="search"
+                placeholder="Search posts..."
+                value={feedSearchQuery}
+                onChange={(e) => setFeedSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-full border border-[#e4e4e4] bg-[#fafafa] focus:outline-none focus:ring-2 focus:ring-[#d47455]/30 focus:border-[#d47455]"
+              />
+            </div>
           </div>
           {!postDetailOpen && (
-          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            <div className="relative w-14 h-8 flex items-center justify-end">
-              {isJoined && !isAdmin ? (
-                <button
-                  type="button"
-                  onClick={() => setShowLeaveSheet(true)}
-                  className={`shrink-0 px-2.5 py-1.5 rounded-full bg-[#e7ded1] text-[#787771] text-xs border border-[#d9d2c5] transition-opacity duration-300 active:scale-95 ${introInView ? 'opacity-0' : 'opacity-100'}`}
-                  style={{ fontWeight: 600 }}
-                  aria-label="Joined"
-                >
-                  Joined
-                </button>
-              ) : !isCreator && (
-                <button
-                  onClick={handleJoinSquad}
-                  disabled={joining}
-                  className={`absolute right-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#d47455] text-white text-xs transition-opacity duration-300 ${introInView ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                  style={{ fontWeight: 600 }}
-                  aria-label="Join squad"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  {joining ? '…' : 'Join'}
-                </button>
+          <div className="flex items-center gap-1 shrink-0">
+              {!isCreator && !isJoined && (
+                <div className="min-w-[3.5rem] h-8 flex items-center justify-center">
+                  <button
+                    onClick={handleJoinSquad}
+                    disabled={joining}
+                    className={`flex items-center justify-center px-2.5 py-1.5 rounded-full bg-[#d47455] text-white text-xs font-semibold transition-opacity duration-300 ${introInView ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    style={{ fontWeight: 600 }}
+                    aria-label="Join squad"
+                  >
+                    {joining ? '…' : 'Join'}
+                  </button>
+                </div>
               )}
-            </div>
-            {(isJoined || isCreator) && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setSquadFeedNewPostOpen(true)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] active:scale-95 transition-transform hover:bg-black/15 disabled:opacity-50"
-                  aria-label="New post"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleOpenChat}
-                  disabled={!squad.conversation_id}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] active:scale-95 transition-transform hover:bg-black/15 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Chat"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => setShowInfoMenu(true)}
-              className={`w-8 h-8 flex items-center justify-center rounded-full text-[#27251f] transition-opacity duration-300 ${!introInView && !isJoined && !isCreator ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-              aria-label="Squad info"
-            >
-              <MoreVertical className="w-5 h-5" />
+              {(isJoined || isCreator) && (
+                <>
+                  <div
+                    className={`shrink-0 transition-opacity duration-300 overflow-hidden ${introInView ? 'opacity-0 pointer-events-none w-0 max-h-0' : 'opacity-100'}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSquadFeedNewPostOpen(true)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-[#7c7c7c] bg-transparent text-[#1c1c1c] text-xs font-semibold hover:bg-[#f5f5f5]"
+                      aria-label="New post"
+                    >
+                      <Plus className="w-4 h-4 shrink-0" />
+                      Post
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleOpenChat}
+                    className="w-9 h-9 flex items-center justify-center rounded-full text-[#1c1c1c] hover:bg-[#f5f5f5]"
+                    aria-label="Chat"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowInfoMenu(true)}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-[#1c1c1c] hover:bg-[#f5f5f5] transition-opacity"
+                aria-label="Squad info"
+              >
+                <MoreHorizontal className="w-5 h-5" />
             </button>
           </div>
           )}
@@ -1050,40 +1062,27 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                 })}
               </div>
             </div>
-
-            {/* Delete Squad Section (Admin only) - At the bottom */}
-            {isAdmin && (
-              <div className="px-4 py-4 border-t border-[#e7ded1] mt-auto">
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full py-3 border rounded-full text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
-                  style={{ 
-                    fontWeight: 600,
-                    backgroundColor: '#dc2626',
-                    borderColor: '#b91c1c',
-                    color: 'white'
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete Squad
-                </button>
-                <p 
-                  className="text-xs mt-2 text-center"
-                  style={{ color: '#787771' }}
-                >
-                  This action cannot be undone
-                </p>
-              </div>
-            )}
             </div>
 
-            {/* Leave Squad - bottom right (Non-Creator Members Only) */}
+            {/* Delete Squad (Admin) / Leave Squad (Member) - same size and location */}
+            {isAdmin && (
+              <div className="flex-shrink-0 px-4 py-4 border-t border-[#e7ded1] flex justify-end">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="py-1.5 px-3 bg-red-600 hover:bg-red-700 border border-red-700 text-white rounded-full text-xs active:scale-95 transition-transform flex items-center gap-2"
+                  style={{ fontWeight: 600 }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Squad
+                </button>
+              </div>
+            )}
             {isJoined && !isCreator && (
               <div className="flex-shrink-0 px-4 py-4 border-t border-[#e7ded1] flex justify-end">
                 <button
                   onClick={handleLeaveSquad}
                   disabled={leaving}
-                  className="py-1.5 px-3 bg-red-600 hover:bg-red-700 border border-red-700 text-white rounded-full text-xs active:scale-95 transition-transform disabled:opacity-50"
+                  className="py-1.5 px-3 bg-transparent border border-[#7c7c7c] text-[#1c1c1c] rounded-full text-xs active:scale-95 transition-transform disabled:opacity-50 hover:bg-[#f5f5f5]"
                   style={{ fontWeight: 600 }}
                 >
                   {leaving ? 'Leaving...' : 'Leave Squad'}
@@ -1102,7 +1101,7 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
               aria-hidden="true"
             />
             <div
-              className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-[#e7ded1] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-out px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${
+              className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl border-t border-[#e7ded1] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-out px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] ${
                 showLeaveSheet ? 'translate-y-0' : 'translate-y-full'
               }`}
             >
@@ -1112,10 +1111,11 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                   await confirmLeaveSquad();
                 }}
                 disabled={leaving}
-                className="py-1.5 px-3 bg-transparent text-[#27251f] rounded-full text-xs font-medium active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
+                className="py-1.5 px-3 bg-transparent border border-[#7c7c7c] text-[#1c1c1c] rounded-full text-xs active:scale-95 transition-transform disabled:opacity-50 hover:bg-[#f5f5f5] flex items-center gap-2"
+                style={{ fontWeight: 600 }}
               >
                 <MinusCircle className="w-4 h-4" />
-                {leaving ? 'Leaving...' : 'Leave'}
+                {leaving ? 'Leaving...' : 'Leave Squad'}
               </button>
             </div>
           </>
@@ -1192,57 +1192,28 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
         )}
 
         {/* Mobile Content - single scroll: intro + feed scroll together (not in header); when viewing a post, no outer scroll so post header stays at top */}
-        <div ref={scrollContainerRef} className={`flex-1 min-h-0 flex flex-col bg-[#FBF9F5] ${postDetailOpen ? 'overflow-hidden' : 'overflow-y-auto'}`} style={postDetailOpen ? undefined : { WebkitOverflowScrolling: 'touch' }}>
+        <div ref={scrollContainerRef} className={`flex-1 min-h-0 flex flex-col bg-white overflow-x-hidden ${postDetailOpen ? 'overflow-hidden' : 'overflow-y-auto'}`} style={postDetailOpen ? undefined : { WebkitOverflowScrolling: 'touch' }}>
           {!postDetailOpen && (
           <>
-          {/* Squad intro: avatar, member count, Join - scrolls with feed */}
-          <div ref={introRef} className="flex-shrink-0 px-4 py-3 bg-[#FBF9F5] flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden shrink-0"
-                style={{ backgroundColor: squadColor + '20' }}
-              >
-                {squad.avatar_url ? (
-                  <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-lg font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#27251f] truncate">{squad.name}</p>
-                <p className="text-sm text-[#787771] leading-relaxed">
-                  {squad.member_count || 0} members
-                </p>
-              </div>
-              {!isCreator && !isAdmin && (
-              isJoined ? (
-                <button
-                  type="button"
-                  onClick={() => setShowLeaveSheet(true)}
-                  className="shrink-0 py-1.5 px-3 bg-[#e7ded1] text-[#787771] rounded-full text-xs border border-[#d9d2c5] active:scale-95"
-                  style={{ fontWeight: 600 }}
-                  aria-label="Joined"
-                >
-                  Joined
-                </button>
-              ) : (
-                <button
-                  onClick={handleJoinSquad}
-                  disabled={joining}
-                  className="shrink-0 py-1.5 px-3 bg-[#d47455] text-white rounded-full text-xs active:scale-95 transition-transform flex items-center gap-2 disabled:opacity-50"
-                  style={{ fontWeight: 600 }}
-                >
-                  <UserPlus className="w-4 h-4" />
-                  {joining ? 'Joining...' : 'Join'}
-                </button>
-              )
-            )}
-            </div>
-            {squad.info?.trim() && (
-              <p className="text-sm text-[#27251f] line-clamp-2 leading-relaxed min-w-0 overflow-hidden max-w-[calc(100%-1.5rem)]">
-                {squad.info.trim()}
-              </p>
-            )}
+          <div ref={introRef} className="flex-shrink-0 px-4 pb-4">
+            <CommunityHeader
+              squad={squad}
+              squadColor={squadColor}
+              isJoined={isJoined}
+              isCreator={isCreator}
+              isAdmin={isAdmin}
+              joining={joining}
+              onJoin={handleJoinSquad}
+              onLeave={() => setShowLeaveSheet(true)}
+              onNewPost={() => setSquadFeedNewPostOpen(true)}
+              onSeeMore={() => setShowInfoMenu(true)}
+            />
+            <HighlightsSection
+              pinnedPosts={pinnedPosts}
+              pinnedHandlersRef={pinnedHandlersRef}
+              userId={user?.id}
+            />
+            <FeedFiltersRow sortBy={feedSortBy} onSortChange={setFeedSortBy} />
           </div>
           </>
           )}
@@ -1260,13 +1231,19 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
               onPostDetailChange={setPostDetailOpen}
               embedHeaderTitle={squad.name}
               embedHeaderColor={headerColor}
-                embedHeaderDarkText
+              embedHeaderDarkText
               embedMemberCount={squad.member_count ?? 0}
               feedRefreshKey={squadFeedRefreshKey}
               onNewPostSuccess={() => setSquadFeedRefreshKey((k) => k + 1)}
               initialPostId={initialFeedPostId}
               onPostChange={onFeedPostChange}
               onRegisterClosePost={(close) => { closePostRef.current = close; }}
+              onRegisterOpenPostById={(open) => { openPostByIdRef.current = open; }}
+              onPinnedPostsReady={setPinnedPosts}
+              onRegisterPinnedHandlers={(h) => { pinnedHandlersRef.current = h; }}
+              sortBy={feedSortBy}
+              searchQuery={feedSearchQuery}
+              cardVariant="reddit"
             />
           </div>
         </div>
@@ -1276,65 +1253,55 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
       <div className="hidden md:block h-full overflow-hidden flex flex-col"  >
         {/* Desktop Header - hidden when viewing a post; post detail view shows its own header */}
         {!postDetailOpen && (
-        <div className="border-b border-black/10 px-6 py-3 flex items-center justify-between gap-4" style={{ backgroundColor: headerColor }}>
-          <div className="flex items-center gap-3 min-w-0">
-            <button 
-              onClick={postDetailOpen ? () => closePostRef.current() : onBack}
-              className="px-3 py-1.5 rounded-full bg-black/10 text-[#27251f] text-xs hover:bg-black/15 transition-colors cursor-pointer shrink-0 flex items-center gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              {postDetailOpen ? 'Back' : 'Back to Squads'}
-            </button>
-            <h1 
-              className={`text-xl text-[#27251f] truncate transition-opacity duration-300 ${postDetailOpen || !introInView ? 'opacity-100' : 'opacity-0'}`}
-              style={{ fontWeight: 600, lineHeight: 1.2, ...(!postDetailOpen && introInView && { pointerEvents: 'none' as const }) }}
-            >
-              {postDetailOpen ? 'Post' : squad.name}
-            </h1>
-            {!postDetailOpen && (
-              <p 
-                className={`text-sm text-[#787771] truncate transition-opacity duration-300 ${!introInView ? 'opacity-100' : 'opacity-0'}`}
-                style={introInView ? { pointerEvents: 'none' as const } : undefined}
-              >
-                {squad.member_count || 0} members
-              </p>
-            )}
+        <div className="border-b border-[#e4e4e4] px-6 py-2 flex items-center gap-4 bg-white">
+          <button 
+            onClick={postDetailOpen ? () => closePostRef.current() : onBack}
+            className="px-3 py-1.5 rounded-full text-[#1c1c1c] text-xs hover:bg-[#f5f5f5] transition-colors cursor-pointer shrink-0 flex items-center gap-1"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {postDetailOpen ? 'Back' : 'Back to Squads'}
+          </button>
+          <div
+            className={`shrink-0 transition-opacity duration-300 overflow-hidden ${introInView ? 'opacity-0 pointer-events-none w-0 max-h-0' : 'opacity-100'}`}
+          >
+            <div className="flex flex-col pl-1">
+              <span className="text-sm font-bold text-[#1c1c1c] truncate">{squad.name}</span>
+              <span className="text-xs text-[#7c7c7c]">
+                {(squad.member_count ?? 0) === 1 ? '1 member' : `${squad.member_count ?? 0} members`}
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 flex justify-center">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787771]" />
+              <input
+                type="search"
+                placeholder="Search posts..."
+                value={feedSearchQuery}
+                onChange={(e) => setFeedSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-full border border-[#e4e4e4] bg-[#fafafa] focus:outline-none focus:ring-2 focus:ring-[#d47455]/30 focus:border-[#d47455]"
+              />
+            </div>
           </div>
           {!postDetailOpen && (
           <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-            <div className="relative h-9 flex items-center">
-              {isJoined && !isAdmin ? (
+            {!isCreator && !isJoined && (
+              <div className="min-w-[4.5rem] h-9 flex items-center justify-center">
                 <button
-                  type="button"
-                  onClick={() => setShowLeaveSheet(true)}
-                  className={`shrink-0 px-3 py-2 rounded-full bg-[#e7ded1] text-[#787771] text-[13px] border border-[#d9d2c5] transition-opacity duration-300 hover:bg-[#e0d9cc] ${introInView ? 'opacity-0' : 'opacity-100'}`}
-                  style={{ fontWeight: 600 }}
-                  aria-label="Joined"
-                >
-                  Joined
-                </button>
-              ) : !isCreator && (
-                <button 
                   onClick={handleJoinSquad}
                   disabled={joining}
-                  className={`absolute right-0 px-3 py-1.5 bg-[#d97757] text-white rounded-full text-xs hover:bg-[#c06545] transition-opacity duration-300 flex items-center gap-1.5 disabled:opacity-50 ${introInView ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                  className={`flex items-center justify-center px-3 py-1.5 bg-[#d47455] text-white rounded-full text-xs hover:bg-[#c06545] transition-opacity duration-300 disabled:opacity-50 ${introInView ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                   style={{ fontWeight: 600 }}
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  {joining ? 'Joining...' : 'Join Squad'}
+                  {joining ? 'Joining...' : 'Join'}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             {isAdmin && (
               <button 
                 onClick={() => setShowDeleteConfirm(true)}
-                className="px-3 py-1.5 border rounded-full text-xs transition-colors flex items-center gap-1.5"
-                style={{ 
-                  fontWeight: 600,
-                  backgroundColor: '#dc2626',
-                  borderColor: '#b91c1c',
-                  color: 'white'
-                }}
+                className="px-3 py-1.5 border border-red-500/50 rounded-md text-xs transition-colors flex items-center gap-1.5 text-red-600 hover:bg-red-50"
+                style={{ fontWeight: 600 }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete Squad
@@ -1342,18 +1309,22 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
             )}
             {(isJoined || isCreator) && (
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSquadFeedNewPostOpen(true)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] hover:bg-black/15 transition-colors"
-                  aria-label="New post"
+                <div
+                  className={`shrink-0 transition-opacity duration-300 overflow-hidden ${introInView ? 'opacity-0 pointer-events-none w-0 max-h-0' : 'opacity-100'}`}
                 >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button 
+                  <button
+                    type="button"
+                    onClick={() => setSquadFeedNewPostOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#7c7c7c] bg-transparent text-[#1c1c1c] text-xs font-semibold hover:bg-[#f5f5f5]"
+                    aria-label="New post"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    Post
+                  </button>
+                </div>
+                <button
                   onClick={handleOpenChat}
-                  disabled={!squad.conversation_id}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[#27251f] hover:bg-black/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-9 h-9 flex items-center justify-center rounded-full text-[#1c1c1c] hover:bg-[#f5f5f5] transition-colors"
                   aria-label="Chat"
                 >
                   <MessageCircle className="w-4 h-4" />
@@ -1362,10 +1333,10 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
             )}
             <button
               onClick={() => setShowInfoMenu(true)}
-              className={`px-3 py-1.5 bg-black/10 border border-black/20 text-[#27251f] rounded-full text-xs hover:bg-black/15 transition-opacity duration-300 flex items-center gap-1.5 ${!introInView && !isJoined && !isCreator ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+              className="px-3 py-1.5 text-[#1c1c1c] rounded-full text-xs hover:bg-[#f5f5f5] transition-opacity flex items-center gap-1.5"
               aria-label="Squad info"
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreHorizontal className="w-4 h-4" />
             </button>
           </div>
           )}
@@ -1373,59 +1344,30 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
         )}
 
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden flex bg-[#fefefc]">
+        <div className="flex-1 overflow-hidden flex bg-white">
           {/* Left Column - when viewing a post, no outer scroll so post header stays at top */}
-          <div ref={scrollContainerRefDesktop} className={`flex-1 min-h-0 flex flex-col px-8 py-6 ${postDetailOpen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          <div ref={scrollContainerRefDesktop} className={`flex-1 min-h-0 flex flex-col px-8 py-6 overflow-x-hidden ${postDetailOpen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
             {!postDetailOpen && (
             <>
-            {/* Squad intro: avatar, member count, Join - scrolls with feed */}
-            <div ref={introRefDesktop} className="max-w-3xl flex-shrink-0 mb-4 py-4 px-4 bg-white border border-[#e7ded1] rounded-xl flex flex-col gap-3">
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#e7ded1] shrink-0"
-                  style={{ backgroundColor: squadColor + '20' }}
-                >
-                  {squad.avatar_url ? (
-                    <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xl font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-semibold text-[#27251f] truncate">{squad.name}</p>
-                <p className="text-sm text-[#787771] leading-relaxed">
-                  {squad.member_count || 0} members
-                </p>
-              </div>
-                {!isCreator && !isAdmin && (
-                isJoined ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowLeaveSheet(true)}
-                    className="shrink-0 px-3 py-1.5 bg-[#e7ded1] text-[#787771] rounded-full text-xs border border-[#d9d2c5] hover:bg-[#e0d9cc] active:scale-95"
-                    style={{ fontWeight: 600 }}
-                    aria-label="Joined"
-                  >
-                    Joined
-                  </button>
-                ) : (
-                  <button 
-                    onClick={handleJoinSquad}
-                    disabled={joining}
-                    className="shrink-0 px-3 py-1.5 bg-[#d97757] text-white rounded-full text-xs hover:bg-[#c06545] transition-colors flex items-center gap-2 disabled:opacity-50"
-                    style={{ fontWeight: 600 }}
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    {joining ? 'Joining...' : 'Join Squad'}
-                  </button>
-                )
-              )}
-              </div>
-              {squad.info?.trim() && (
-                <p className="text-sm text-[#27251f] line-clamp-2 leading-relaxed min-w-0 overflow-hidden max-w-[calc(100%-1.5rem)]">
-                  {squad.info.trim()}
-                </p>
-              )}
+            <div ref={introRefDesktop} className="max-w-3xl flex-shrink-0 mb-4">
+              <CommunityHeader
+                squad={squad}
+                squadColor={squadColor}
+                isJoined={isJoined}
+                isCreator={isCreator}
+                isAdmin={isAdmin}
+                joining={joining}
+                onJoin={handleJoinSquad}
+                onLeave={() => setShowLeaveSheet(true)}
+                onNewPost={() => setSquadFeedNewPostOpen(true)}
+                onSeeMore={() => setShowInfoMenu(true)}
+              />
+              <HighlightsSection
+                pinnedPosts={pinnedPosts}
+                pinnedHandlersRef={pinnedHandlersRef}
+                userId={user?.id}
+              />
+              <FeedFiltersRow sortBy={feedSortBy} onSortChange={setFeedSortBy} />
             </div>
             </>
             )}
@@ -1449,13 +1391,19 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                 onNewPostSuccess={() => setSquadFeedRefreshKey((k) => k + 1)}
                 initialPostId={initialFeedPostId}
                 onPostChange={onFeedPostChange}
-                onRegisterClosePost={(close) => { closePostRef.current = close; }}
-              />
+              onRegisterClosePost={(close) => { closePostRef.current = close; }}
+              onRegisterOpenPostById={(open) => { openPostByIdRef.current = open; }}
+              onPinnedPostsReady={setPinnedPosts}
+              onRegisterPinnedHandlers={(h) => { pinnedHandlersRef.current = h; }}
+              sortBy={feedSortBy}
+              searchQuery={feedSearchQuery}
+              cardVariant="reddit"
+            />
             </div>
           </div>
 
           {/* Right Column - Pinned Documents & Info */}
-          <div className="w-80 border-l border-[#e7ded1] overflow-y-auto px-6 py-6 bg-[#fefefc]">
+          <div className="w-80 border-l border-[#e4e4e4] overflow-y-auto px-6 py-6 bg-white">
             {/* Squad Info */}
             <div className="mb-6 p-4 bg-white border border-[#e7ded1] rounded-xl">
               <div className="flex items-center justify-between mb-3">
