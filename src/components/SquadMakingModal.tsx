@@ -223,7 +223,7 @@ export function SquadMakingModal({
                 className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#e7ded1] bg-[#f5f3eb] hover:border-[#d9d2c5] transition-colors shrink-0"
               >
                 {newSquadAvatarPreview ? (
-                  <img src={newSquadAvatarPreview} alt="" className="w-full h-full object-cover" />
+                  <img src={newSquadAvatarPreview} alt="Squad avatar preview" className="w-full h-full object-cover" />
                 ) : (
                   <ImageIcon className="w-7 h-7 text-[#787771]" />
                 )}

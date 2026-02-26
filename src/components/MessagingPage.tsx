@@ -17,7 +17,6 @@ interface MessagingPageProps {
   initialConversationId?: string | null;
   /** Called when user selects or clears conversation so parent can persist subpage. */
   onConversationChange?: (conversationId: string | null) => void;
-  onCourseClick?: (courseId: string) => void;
   /** If returns true, caller handled back (e.g. navigated to squad). Else messaging clears selection. */
   onBackToSquad?: () => boolean | void;
 }
@@ -304,7 +303,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[0].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[0].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 "
                   />
                 ) : (
@@ -321,7 +320,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[1].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[1].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 "
                   />
                 ) : (
@@ -341,7 +340,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[0].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[0].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                   />
                 ) : (
@@ -358,7 +357,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[1].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[1].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                   />
                 ) : (
@@ -375,7 +374,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[2].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[2].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                   />
                 ) : (
@@ -395,7 +394,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[0].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[0].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                   />
                 ) : (
@@ -412,7 +411,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[1].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[1].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                   />
                 ) : (
@@ -429,7 +428,7 @@ const ConversationItem = memo(function ConversationItem({
                 {conv.memberAvatars[2].avatarUrl ? (
                   <img
                     src={conv.memberAvatars[2].avatarUrl}
-                    alt=""
+                    alt="Member"
                     className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 "
                   />
                 ) : (
@@ -447,7 +446,7 @@ const ConversationItem = memo(function ConversationItem({
                   conv.memberAvatars[3].avatarUrl ? (
                     <img
                       src={conv.memberAvatars[3].avatarUrl}
-                      alt=""
+                      alt="Member"
                       className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                     />
                   ) : (
@@ -591,7 +590,7 @@ const ConversationItem = memo(function ConversationItem({
   );
 });
 
-export function MessagingPage({ initialConversationId, onConversationChange, onCourseClick, onBackToSquad }: MessagingPageProps) {
+export function MessagingPage({ initialConversationId, onConversationChange, onBackToSquad }: MessagingPageProps) {
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const didConsumeStoredConversationRef = useRef(false);
@@ -1697,7 +1696,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {hasAvatar ? (
                               <img
                                 src={userResult.avatar_url!}
-                                alt=""
+                                alt="Member"
                                 className="w-full h-full rounded-full object-cover"
                                 onError={(e) => {
                                   const t = e.target as HTMLImageElement;
@@ -1992,7 +1991,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[0].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
@@ -2009,7 +2008,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[1].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                               />
                             ) : (
@@ -2029,7 +2028,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[0].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
@@ -2046,7 +2045,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[1].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
@@ -2063,7 +2062,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[2].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                               />
                             ) : (
@@ -2083,7 +2082,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[0].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
@@ -2100,7 +2099,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[1].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
@@ -2117,7 +2116,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[2].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 "
                               />
                             ) : (
@@ -2135,7 +2134,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                               selectedConv.memberAvatars[3].avatarUrl ? (
                                 <img
                                   src={selectedConv.memberAvatars[3].avatarUrl}
-                                  alt=""
+                                  alt="Member"
                                   className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 "
                                 />
                               ) : (
@@ -2698,7 +2697,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                         >
                           <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden relative flex items-center justify-center">
                             {uHasAvatar ? (
-                              <img src={u.avatar_url!} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
+                              <img src={u.avatar_url!} alt={u.full_name || u.email?.split('@')[0] || 'User'} className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
                             ) : null}
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ backgroundColor: avatarColor, fontWeight: 600, display: uHasAvatar ? 'none' : 'flex' }}>
                               {avatar}
@@ -2730,7 +2729,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                       <div key={m.id} className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5f3eb] border border-[#e7ded1]">
                         <div className="w-6 h-6 rounded-full flex-shrink-0 overflow-hidden relative flex items-center justify-center">
                           {mHasAvatar ? (
-                            <img src={m.avatar_url!} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
+                            <img src={m.avatar_url!} alt={m.full_name || m.email?.split('@')[0] || 'Member'} className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
                           ) : null}
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px]" style={{ backgroundColor: avatarColor, fontWeight: 600, display: mHasAvatar ? 'none' : 'flex' }}>
                             {avatar}
@@ -2958,7 +2957,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                         >
                           <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden relative flex items-center justify-center">
                             {uHasAvatar ? (
-                              <img src={u.avatar_url!} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
+                              <img src={u.avatar_url!} alt={u.full_name || u.email?.split('@')[0] || 'User'} className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
                             ) : null}
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style={{ backgroundColor: avatarColor, fontWeight: 600, display: uHasAvatar ? 'none' : 'flex' }}>
                               {avatar}
@@ -3084,7 +3083,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[0].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[0].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                             />
                           ) : (
@@ -3101,7 +3100,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[1].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[1].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                             />
                           ) : (
@@ -3121,7 +3120,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[0].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[0].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                             />
                           ) : (
@@ -3138,7 +3137,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[1].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[1].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                             />
                           ) : (
@@ -3155,7 +3154,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[2].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[2].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                             />
                           ) : (
@@ -3175,7 +3174,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[0].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[0].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-5 h-5 rounded-full object-cover absolute top-0 left-0 "
                             />
                           ) : (
@@ -3192,7 +3191,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[1].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[1].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-5 h-5 rounded-full object-cover absolute top-0 right-0 "
                             />
                           ) : (
@@ -3209,7 +3208,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                           {conv.memberAvatars[2].avatarUrl ? (
                             <img
                               src={conv.memberAvatars[2].avatarUrl}
-                              alt=""
+                              alt="Member"
                               className="w-5 h-5 rounded-full object-cover absolute bottom-0 left-0 "
                             />
                           ) : (
@@ -3227,7 +3226,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             conv.memberAvatars[3].avatarUrl ? (
                               <img
                                 src={conv.memberAvatars[3].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-5 h-5 rounded-full object-cover absolute bottom-0 right-0 "
                               />
                             ) : (
@@ -3343,7 +3342,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[0].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-7 h-7 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
@@ -3360,7 +3359,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[1].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-7 h-7 rounded-full object-cover absolute bottom-0 right-0 "
                               />
                             ) : (
@@ -3380,7 +3379,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[0].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
@@ -3397,7 +3396,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[1].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
@@ -3414,7 +3413,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[2].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-1/2 -translate-x-1/2 "
                               />
                             ) : (
@@ -3434,7 +3433,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[0].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[0].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute top-0 left-0 "
                               />
                             ) : (
@@ -3451,7 +3450,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[1].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[1].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute top-0 right-0 "
                               />
                             ) : (
@@ -3468,7 +3467,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                             {selectedConv.memberAvatars[2].avatarUrl ? (
                               <img
                                 src={selectedConv.memberAvatars[2].avatarUrl}
-                                alt=""
+                                alt="Member"
                                 className="w-6 h-6 rounded-full object-cover absolute bottom-0 left-0 "
                               />
                             ) : (
@@ -3486,7 +3485,7 @@ export function MessagingPage({ initialConversationId, onConversationChange, onC
                               selectedConv.memberAvatars[3].avatarUrl ? (
                                 <img
                                   src={selectedConv.memberAvatars[3].avatarUrl}
-                                  alt=""
+                                  alt="Member"
                                   className="w-6 h-6 rounded-full object-cover absolute bottom-0 right-0 "
                                 />
                               ) : (

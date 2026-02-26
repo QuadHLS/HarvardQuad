@@ -26,11 +26,13 @@ function AuthorAvatar({
   color,
   initials,
   avatarUrl,
+  authorName,
 }: {
   profile: ProfileRow | null | undefined;
   color: string;
   initials: string;
   avatarUrl?: string | null;
+  authorName?: string;
 }) {
   const [imgError, setImgError] = React.useState(false);
   const url = avatarUrl ?? profile?.avatar_url?.trim();
@@ -44,7 +46,7 @@ function AuthorAvatar({
       {showImg ? (
         <img
           src={url!}
-          alt=""
+          alt={profile?.full_name || authorName || initials || 'Author'}
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
         />
@@ -124,6 +126,7 @@ export function PostCard({
                   color={post.override_author_name ? '#d47455' : authorColor}
                   initials={authorInitials}
                   avatarUrl={post.override_author_name ? QUADLY_AVATAR_URL : undefined}
+                  authorName={authorName}
                 />
                 <span className="text-sm text-[#7c7c7c] truncate">{authorName}</span>
                 <span className="text-xs text-[#7c7c7c] shrink-0">{displayTime}</span>
@@ -135,6 +138,7 @@ export function PostCard({
                   color={post.override_author_name ? '#d47455' : authorColor}
                   initials={authorInitials}
                   avatarUrl={post.override_author_name ? QUADLY_AVATAR_URL : undefined}
+                  authorName={authorName}
                 />
                 <span className="text-sm text-[#7c7c7c] truncate">{authorName}</span>
                 <span className="text-xs text-[#7c7c7c] shrink-0">{displayTime}</span>
@@ -188,7 +192,7 @@ export function PostCard({
               <div className="rounded-lg overflow-hidden max-h-64 mb-2 bg-[#f5f3eb]">
                 <img
                   src={post.image_path}
-                  alt=""
+                  alt="Post image"
                   className="w-full max-h-64 object-contain"
                 />
               </div>

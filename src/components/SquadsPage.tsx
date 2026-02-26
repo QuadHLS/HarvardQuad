@@ -237,7 +237,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                         style={{ backgroundColor: `${squadColor}20`, borderRadius: '50%' }}
                       >
                         {squad.avatar_url ? (
-                          <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                          <img src={squad.avatar_url} alt={squad.name} className="w-full h-full object-cover" />
                         ) : (
                           <Users className="w-5 h-5" style={{ color: squadColor }} />
                         )}
@@ -395,7 +395,7 @@ export function SquadsPage({ onSquadClick }: SquadsPageProps) {
                       style={{ backgroundColor: `${squadColor}20`, borderRadius: '50%' }}
                     >
                       {squad.avatar_url ? (
-                        <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                        <img src={squad.avatar_url} alt={squad.name} className="w-full h-full object-cover" />
                       ) : (
                         <Users className="w-6 h-6" style={{ color: squadColor }} />
                       )}

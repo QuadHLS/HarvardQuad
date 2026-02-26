@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 
 export function IconButton({ 
   icon: Icon, 
@@ -8,7 +8,7 @@ export function IconButton({
   className = "",
   tooltipPosition = "bottom"
 }: { 
-  icon: any; 
+  icon: ComponentType<{ className?: string }>;
   label: string; 
   onClick?: () => void;
   hasNotification?: boolean;

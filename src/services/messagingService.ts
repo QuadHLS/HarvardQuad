@@ -53,6 +53,32 @@ export interface MessageAttachment {
   url?: string; // Public URL for the file
 }
 
+interface DbMessageRow {
+  id: string;
+  sender_id: string;
+  [key: string]: unknown;
+}
+
+interface DbProfileRow {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+}
+
+interface DbAttachmentRow {
+  message_id: string;
+  file_path: string;
+  storage_bucket: string;
+  [key: string]: unknown;
+}
+
+interface DbParticipantRow {
+  conversation_id: string;
+  joined_at: string;
+  last_read_at?: string | null;
+}
+
 export class MessagingService {
   // Get all conversations for the current user
   static async getConversations(): Promise<Conversation[]> {
@@ -99,21 +125,21 @@ export class MessagingService {
     );
 
     // Create a map of conversation_id -> last message
-    const lastMessagesByConvId = new Map<string, any>();
+    const lastMessagesByConvId = new Map<string, DbMessageRow & { sender?: DbProfileRow | null }>();
     lastMessagesResults.forEach((result) => {
       if (result.lastMessage) {
-        lastMessagesByConvId.set(result.conversationId, result.lastMessage);
+        lastMessagesByConvId.set(result.conversationId, result.lastMessage as DbMessageRow & { sender?: DbProfileRow | null });
       }
     });
 
     // Get all unique sender IDs from last messages
     const senderIds = Array.from(lastMessagesByConvId.values())
-      .map((msg: any) => msg.sender_id)
-      .filter((id: string) => id);
+      .map((msg) => msg.sender_id)
+      .filter((id): id is string => !!id);
     const uniqueSenderIds = [...new Set(senderIds)];
 
     // Batch fetch all sender profiles in one query
-    const profilesBySenderId = new Map<string, any>();
+    const profilesBySenderId = new Map<string, DbProfileRow>();
     if (uniqueSenderIds.length > 0) {
       const { data: allProfiles } = await supabase
         .from('profiles')
@@ -121,14 +147,14 @@ export class MessagingService {
         .in('id', uniqueSenderIds);
 
       if (allProfiles) {
-        allProfiles.forEach((profile: any) => {
+        (allProfiles as DbProfileRow[]).forEach((profile) => {
           profilesBySenderId.set(profile.id, profile);
         });
       }
     }
 
     // Attach sender profiles to last messages
-    lastMessagesByConvId.forEach((lastMessage, convId) => {
+    lastMessagesByConvId.forEach((lastMessage) => {
       if (lastMessage.sender_id) {
         const senderProfile = profilesBySenderId.get(lastMessage.sender_id);
         if (senderProfile) {
@@ -147,11 +173,8 @@ export class MessagingService {
         const lastMessage = lastMessagesByConvId.get(conv.id);
         
         // Get unread count - messages created after last_read_at (or joined_at if never read)
-        const participant = participants.find(p => p.conversation_id === conv.id);
-        // Use last_read_at if available, otherwise fall back to joined_at
-        const lastReadAt = (participant as any)?.last_read_at 
-          ? (participant as any).last_read_at 
-          : (participant?.joined_at || '1970-01-01');
+        const participant = participants.find(p => p.conversation_id === conv.id) as DbParticipantRow | undefined;
+        const lastReadAt = participant?.last_read_at ?? participant?.joined_at ?? '1970-01-01';
         
         const { count: unreadCount } = await supabase
           .from('messages')
@@ -185,16 +208,16 @@ export class MessagingService {
     if (!messages || messages.length === 0) return [];
 
     // Get attachments for all messages in one query
-    const messageIds = messages.map((m: any) => m.id);
+    const messageIds = (messages as DbMessageRow[]).map((m) => m.id);
     const { data: allAttachments } = await supabase
       .from('message_attachments')
       .select('*')
       .in('message_id', messageIds);
 
     // Group attachments by message_id
-    const attachmentsByMessageId = new Map<string, any[]>();
+    const attachmentsByMessageId = new Map<string, (DbAttachmentRow & { url?: string })[]>();
     if (allAttachments) {
-      allAttachments.forEach((att: any) => {
+      (allAttachments as DbAttachmentRow[]).forEach((att) => {
         if (!attachmentsByMessageId.has(att.message_id)) {
           attachmentsByMessageId.set(att.message_id, []);
         }
@@ -203,29 +226,27 @@ export class MessagingService {
     }
 
     // Get all unique sender IDs and fetch all profiles in one query
-    const uniqueSenderIds = [...new Set(messages.map((m: any) => m.sender_id))];
+    const uniqueSenderIds = [...new Set((messages as DbMessageRow[]).map((m) => m.sender_id))];
     const { data: allProfiles } = await supabase
       .from('profiles')
       .select('id, full_name, email, avatar_url')
       .in('id', uniqueSenderIds);
 
     // Create a map of sender_id -> profile for quick lookup
-    const profilesBySenderId = new Map<string, any>();
+    const profilesBySenderId = new Map<string, DbProfileRow>();
     if (allProfiles) {
-      allProfiles.forEach((profile: any) => {
+      (allProfiles as DbProfileRow[]).forEach((profile) => {
         profilesBySenderId.set(profile.id, profile);
       });
     }
 
     // Build messages with profiles and attachments
-    const messagesWithSenders = messages.map((msg: any) => {
-      // Get sender profile from map
+    const messagesWithSenders = (messages as DbMessageRow[]).map((msg) => {
       const profile = profilesBySenderId.get(msg.sender_id) || null;
 
-      // Get attachments for this message
       let attachmentsWithUrls = attachmentsByMessageId.get(msg.id) || [];
       if (attachmentsWithUrls.length > 0) {
-        attachmentsWithUrls = attachmentsWithUrls.map((att: any) => {
+        attachmentsWithUrls = attachmentsWithUrls.map((att) => {
           const { data } = supabase.storage
             .from(att.storage_bucket)
             .getPublicUrl(att.file_path);
@@ -826,7 +847,7 @@ export class MessagingService {
             let attachmentsWithUrls = fullMessage.attachments || [];
             if (attachmentsWithUrls.length > 0) {
               attachmentsWithUrls = await Promise.all(
-                attachmentsWithUrls.map(async (att: any) => {
+                attachmentsWithUrls.map(async (att: DbAttachmentRow) => {
                   const { data } = supabase.storage
                     .from(att.storage_bucket)
                     .getPublicUrl(att.file_path);
