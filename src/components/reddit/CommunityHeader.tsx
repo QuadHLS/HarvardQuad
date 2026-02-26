@@ -43,7 +43,7 @@ export function CommunityHeader({
             style={{ backgroundColor: squadColor + '20' }}
           >
             {squad.avatar_url ? (
-              <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+              <img src={squad.avatar_url} alt={squad.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-lg font-semibold" style={{ color: squadColor }}>
                 {squad.name.charAt(0).toUpperCase()}

@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
-import { Menu, Search, Calendar as CalendarIcon, Bell, MessageCircle, LayoutDashboard, Briefcase, Store, HomeIcon as HouseIcon, BookOpen, Users } from 'lucide-react';
+import { Menu, Search, Calendar as CalendarIcon, MessageCircle, LayoutDashboard, HomeIcon as HouseIcon, Users } from 'lucide-react';
 import { MessagingPage } from './components/MessagingPage';
-import { CoursePage } from './components/CoursePage';
 import { ProfilePage } from './components/ProfilePage';
-import { ClassesPage } from './components/ClassesPage';
 import { SquadsPage } from './components/SquadsPage';
 import { SquadDetailPage } from './components/SquadDetailPage';
 import { CalendarPage } from './components/CalendarPage';
@@ -19,8 +17,8 @@ import { useAuth } from './contexts/AuthContext';
 import { navigateWithoutReload } from './lib/navigation';
 import { supabase } from './lib/supabase';
 
-type ViewState = 'dashboard' | 'messaging' | 'course' | 'profile' | 'classes' | 'squads' | 'squad-detail' | 'calendar';
-type KeepAliveView = 'dashboard' | 'messaging' | 'profile' | 'classes' | 'squads' | 'calendar';
+type ViewState = 'dashboard' | 'messaging' | 'profile' | 'squads' | 'squad-detail' | 'calendar';
+type KeepAliveView = 'dashboard' | 'messaging' | 'profile' | 'squads' | 'calendar';
 
 interface ProfileData {
   full_name: string | null;
@@ -36,12 +34,10 @@ interface ProfileData {
 
 interface AppSnapshot {
   view: ViewState;
-  course: string;
   squad: string;
   previous: ViewState;
   conversation: string;
   post: string;
-  classesTab: string;
   squadPost: string;
   calendarMonth: string;
   calendarDate: string;
@@ -58,7 +54,6 @@ export default function App() {
   const SUBPAGE_KEYS = {
     conversation: 'subpageConversation',
     post: 'subpagePost',
-    classesTab: 'subpageClassesTab',
     squadPost: 'subpageSquadPost',
     calendarMonth: 'subpageCalendarMonth',
     calendarDate: 'subpageCalendarDate',
@@ -69,12 +64,10 @@ export default function App() {
     if (typeof window === 'undefined') {
       return {
         view: 'dashboard' as ViewState,
-        course: '',
         squad: '',
         previous: 'dashboard' as ViewState,
         conversation: '',
         post: '',
-        classesTab: 'overview',
         squadPost: '',
         calendarMonth: '',
         calendarDate: '',
@@ -94,36 +87,29 @@ export default function App() {
     }
     const params = new URLSearchParams(window.location.search);
     const view = params.get('view') || sessionStorage.getItem('currentView') || snapshot.view || 'dashboard';
-    const course = params.get('course') || sessionStorage.getItem('selectedCourse') || snapshot.course || '';
     const squad = params.get('squad') || sessionStorage.getItem('selectedSquad') || snapshot.squad || '';
     const previous = params.get('previous') || sessionStorage.getItem('previousView') || snapshot.previous || 'dashboard';
     const conversation = params.get('conversation') || sessionStorage.getItem(SUBPAGE_KEYS.conversation) || sessionStorage.getItem('selectedConversationId') || snapshot.conversation || '';
     const post = params.get('post') || sessionStorage.getItem(SUBPAGE_KEYS.post) || snapshot.post || '';
-    const classesTab = params.get('classesTab') || sessionStorage.getItem(SUBPAGE_KEYS.classesTab) || snapshot.classesTab || 'overview';
     const squadPost = params.get('squadPost') || sessionStorage.getItem(SUBPAGE_KEYS.squadPost) || snapshot.squadPost || '';
     const calendarMonth = params.get('calendarMonth') || sessionStorage.getItem(SUBPAGE_KEYS.calendarMonth) || snapshot.calendarMonth || '';
     const calendarDate = params.get('calendarDate') || sessionStorage.getItem(SUBPAGE_KEYS.calendarDate) || snapshot.calendarDate || '';
-    const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
-    const validClassesTabs = ['overview', 'schedule', 'assignments'];
+    const validViews: ViewState[] = ['dashboard', 'messaging', 'profile', 'squads', 'squad-detail', 'calendar'];
     return {
       view: (validViews.includes(view as ViewState) ? view : 'dashboard') as ViewState,
-      course,
       squad,
       previous: (validViews.includes(previous as ViewState) ? previous : 'dashboard') as ViewState,
       conversation,
       post,
-      classesTab: validClassesTabs.includes(classesTab) ? classesTab : 'overview',
       squadPost,
       calendarMonth,
       calendarDate,
     };
   }, []); // Only calculate once on mount
   const [currentView, setCurrentView] = useState<ViewState>(initialState.view);
-  const [selectedCourse, setSelectedCourse] = useState<string>(initialState.course);
   const [selectedSquad, setSelectedSquad] = useState<string>(initialState.squad);
   const [subpageConversation, setSubpageConversation] = useState<string>(initialState.conversation);
   const [subpagePost, setSubpagePost] = useState<string>(initialState.post);
-  const [subpageClassesTab, setSubpageClassesTab] = useState<string>(initialState.classesTab);
   const [subpageSquadPost, setSubpageSquadPost] = useState<string>(initialState.squadPost);
   const [subpageCalendarMonth, setSubpageCalendarMonth] = useState<string>(initialState.calendarMonth);
   const [subpageCalendarDate, setSubpageCalendarDate] = useState<string>(initialState.calendarDate);
@@ -138,12 +124,11 @@ export default function App() {
   const [isFeedInputFocused, setIsFeedInputFocused] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const bottomNavRef = useRef<HTMLDivElement | null>(null);
-  const keepAliveViews: KeepAliveView[] = ['dashboard', 'messaging', 'profile', 'classes', 'squads', 'calendar'];
+  const keepAliveViews: KeepAliveView[] = ['dashboard', 'messaging', 'profile', 'squads', 'calendar'];
   const [mountedKeepAliveViews, setMountedKeepAliveViews] = useState<Record<KeepAliveView, boolean>>({
     dashboard: initialState.view === 'dashboard',
     messaging: initialState.view === 'messaging',
     profile: initialState.view === 'profile',
-    classes: initialState.view === 'classes',
     squads: initialState.view === 'squads',
     calendar: initialState.view === 'calendar',
   });
@@ -198,34 +183,29 @@ export default function App() {
   // Update URL and sessionStorage when view/subpage changes
   const updateURL = useCallback((
     view: ViewState,
-    course?: string,
     squad?: string,
     previous?: ViewState,
-    subpage?: { conversation?: string; post?: string; classesTab?: string; squadPost?: string; calendarMonth?: string; calendarDate?: string }
+    subpage?: { conversation?: string; post?: string; squadPost?: string; calendarMonth?: string; calendarDate?: string }
   ) => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
     params.set('view', view);
-    if (course) params.set('course', course);
     if (squad) params.set('squad', squad);
     if (previous) params.set('previous', previous);
     if (subpage?.conversation) params.set('conversation', subpage.conversation);
     if (subpage?.post) params.set('post', subpage.post);
-    if (subpage?.classesTab) params.set('classesTab', subpage.classesTab);
     if (subpage?.squadPost) params.set('squadPost', subpage.squadPost);
     if (subpage?.calendarMonth) params.set('calendarMonth', subpage.calendarMonth);
     if (subpage?.calendarDate) params.set('calendarDate', subpage.calendarDate);
     const state = {
-      view, course: course ?? '', squad: squad ?? '', previous: previous ?? 'dashboard' as ViewState,
-      conversation: subpage?.conversation ?? '', post: subpage?.post ?? '', classesTab: subpage?.classesTab ?? '',
+      view, squad: squad ?? '', previous: previous ?? 'dashboard' as ViewState,
+      conversation: subpage?.conversation ?? '', post: subpage?.post ?? '',
       squadPost: subpage?.squadPost ?? '', calendarMonth: subpage?.calendarMonth ?? '', calendarDate: subpage?.calendarDate ?? '',
     };
     const newURL = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState(state, '', newURL);
     sessionStorage.setItem('currentView', view);
     if (previous) sessionStorage.setItem('previousView', previous);
-    if (course) sessionStorage.setItem('selectedCourse', course);
-    else sessionStorage.removeItem('selectedCourse');
     if (squad) sessionStorage.setItem('selectedSquad', squad);
     else sessionStorage.removeItem('selectedSquad');
     // Only update sessionStorage for keys present in subpage (don't clear other views' data)
@@ -242,10 +222,6 @@ export default function App() {
       if ('post' in subpage) {
         if (subpage.post) sessionStorage.setItem(SUBPAGE_KEYS.post, subpage.post);
         else sessionStorage.removeItem(SUBPAGE_KEYS.post);
-      }
-      if ('classesTab' in subpage) {
-        if (subpage.classesTab) sessionStorage.setItem(SUBPAGE_KEYS.classesTab, subpage.classesTab);
-        else sessionStorage.removeItem(SUBPAGE_KEYS.classesTab);
       }
       if ('squadPost' in subpage) {
         if (subpage.squadPost) sessionStorage.setItem(SUBPAGE_KEYS.squadPost, subpage.squadPost);
@@ -269,12 +245,10 @@ export default function App() {
       }
       const snapshot: AppSnapshot = {
         view,
-        course: course ?? '',
         squad: squad ?? '',
         previous: previous ?? 'dashboard',
         conversation: subpage && 'conversation' in subpage ? subpage.conversation ?? '' : existingSnapshot.conversation ?? '',
         post: subpage && 'post' in subpage ? subpage.post ?? '' : existingSnapshot.post ?? '',
-        classesTab: subpage && 'classesTab' in subpage ? subpage.classesTab ?? 'overview' : existingSnapshot.classesTab ?? 'overview',
         squadPost: subpage && 'squadPost' in subpage ? subpage.squadPost ?? '' : existingSnapshot.squadPost ?? '',
         calendarMonth: subpage && 'calendarMonth' in subpage ? subpage.calendarMonth ?? '' : existingSnapshot.calendarMonth ?? '',
         calendarDate: subpage && 'calendarDate' in subpage ? subpage.calendarDate ?? '' : existingSnapshot.calendarDate ?? '',
@@ -291,12 +265,10 @@ export default function App() {
   const hasInitializedURL = useRef(false);
   const latestAppSnapshotRef = useRef<AppSnapshot>({
     view: initialState.view,
-    course: initialState.course,
     squad: initialState.squad,
     previous: initialState.previous,
     conversation: initialState.conversation,
     post: initialState.post,
-    classesTab: initialState.classesTab,
     squadPost: initialState.squadPost,
     calendarMonth: initialState.calendarMonth,
     calendarDate: initialState.calendarDate,
@@ -306,18 +278,16 @@ export default function App() {
   useEffect(() => {
     latestAppSnapshotRef.current = {
       view: currentView,
-      course: selectedCourse,
       squad: selectedSquad,
       previous: previousView,
       conversation: subpageConversation,
       post: subpagePost,
-      classesTab: subpageClassesTab,
       squadPost: subpageSquadPost,
       calendarMonth: subpageCalendarMonth,
       calendarDate: subpageCalendarDate,
       updatedAt: Date.now(),
     };
-  }, [currentView, selectedCourse, selectedSquad, previousView, subpageConversation, subpagePost, subpageClassesTab, subpageSquadPost, subpageCalendarMonth, subpageCalendarDate]);
+  }, [currentView, selectedSquad, previousView, subpageConversation, subpagePost, subpageSquadPost, subpageCalendarMonth, subpageCalendarDate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -368,24 +338,20 @@ export default function App() {
       const state = event.state;
       const params = new URLSearchParams(window.location.search);
       const view = state?.view ?? params.get('view');
-      const course = state?.course ?? params.get('course') ?? '';
       const squad = state?.squad ?? params.get('squad') ?? '';
       const previous = state?.previous ?? params.get('previous');
       const conversation = state?.conversation ?? params.get('conversation') ?? '';
       const post = state?.post ?? params.get('post') ?? '';
-      const classesTab = state?.classesTab ?? params.get('classesTab') ?? '';
       const squadPost = state?.squadPost ?? params.get('squadPost') ?? '';
       const calendarMonth = state?.calendarMonth ?? params.get('calendarMonth') ?? '';
       const calendarDate = state?.calendarDate ?? params.get('calendarDate') ?? '';
       if (view) {
-        const validViews: ViewState[] = ['dashboard', 'messaging', 'course', 'profile', 'classes', 'squads', 'squad-detail', 'calendar'];
+        const validViews: ViewState[] = ['dashboard', 'messaging', 'profile', 'squads', 'squad-detail', 'calendar'];
         if (validViews.includes(view as ViewState)) {
           setCurrentView(view as ViewState);
-          setSelectedCourse(course);
           setSelectedSquad(squad);
           setSubpageConversation(conversation);
           setSubpagePost(post);
-          setSubpageClassesTab(classesTab === 'schedule' || classesTab === 'assignments' ? classesTab : 'overview');
           setSubpageSquadPost(squadPost);
           setSubpageCalendarMonth(calendarMonth);
           setSubpageCalendarDate(calendarDate);
@@ -412,7 +378,6 @@ export default function App() {
     // Get current values from state (they're in the closure from initial render)
     // Since we only run this once when user becomes available, the values are correct
     const currentViewValue = initialState.view;
-    const currentCourseValue = initialState.course;
     const currentSquadValue = initialState.squad;
     const currentPreviousValue = initialState.previous;
     
@@ -420,24 +385,20 @@ export default function App() {
     if (urlView !== currentViewValue) {
       const state = {
         view: currentViewValue,
-        course: currentCourseValue,
         squad: currentSquadValue,
         previous: currentPreviousValue,
         conversation: initialState.conversation,
         post: initialState.post,
-        classesTab: initialState.classesTab,
         squadPost: initialState.squadPost,
         calendarMonth: initialState.calendarMonth,
         calendarDate: initialState.calendarDate,
       };
       const newParams = new URLSearchParams();
       newParams.set('view', currentViewValue);
-      if (currentCourseValue) newParams.set('course', currentCourseValue);
       if (currentSquadValue) newParams.set('squad', currentSquadValue);
       if (currentPreviousValue) newParams.set('previous', currentPreviousValue);
       if (initialState.conversation) newParams.set('conversation', initialState.conversation);
       if (initialState.post) newParams.set('post', initialState.post);
-      if (initialState.classesTab) newParams.set('classesTab', initialState.classesTab);
       if (initialState.squadPost) newParams.set('squadPost', initialState.squadPost);
       if (initialState.calendarMonth) newParams.set('calendarMonth', initialState.calendarMonth);
       if (initialState.calendarDate) newParams.set('calendarDate', initialState.calendarDate);
@@ -445,8 +406,9 @@ export default function App() {
     }
     
     hasInitializedURL.current = true;
+    // Intentionally run once when user becomes available to sync URL with initial state; full deps would re-run on every state change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Only run when user changes
+  }, [user]);
 
   // Update URL when state changes (but not on initial mount). Only pass current view's subpage so we don't clear other views' persisted data.
   useEffect(() => {
@@ -458,13 +420,12 @@ export default function App() {
       const subpage =
         currentView === 'messaging' ? { conversation: subpageConversation || undefined } :
         currentView === 'dashboard' ? { post: subpagePost || undefined } :
-        currentView === 'classes' ? { classesTab: subpageClassesTab } :
         currentView === 'squad-detail' ? { squadPost: subpageSquadPost || undefined } :
         currentView === 'calendar' ? { calendarMonth: subpageCalendarMonth || undefined, calendarDate: subpageCalendarDate || undefined } :
         undefined;
-      updateURL(currentView, selectedCourse || undefined, selectedSquad || undefined, previousView, subpage);
+      updateURL(currentView, selectedSquad || undefined, previousView, subpage);
     }
-  }, [currentView, selectedCourse, selectedSquad, previousView, subpageConversation, subpagePost, subpageClassesTab, subpageSquadPost, subpageCalendarMonth, subpageCalendarDate, user, updateURL]);
+  }, [currentView, selectedSquad, previousView, subpageConversation, subpagePost, subpageSquadPost, subpageCalendarMonth, subpageCalendarDate, user, updateURL]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -742,37 +703,16 @@ export default function App() {
   const greeting = getGreeting(currentTime);
   const isMessagingView = currentView === 'messaging';
 
-  const handleCourseClick = (courseId: string) => {
-    const newPrevious = currentView;
-    setPreviousView(newPrevious);
-    setSelectedCourse(courseId);
-    setCurrentView('course');
-    setIsSidebarExpanded(false);
-    updateURL('course', courseId, undefined, newPrevious);
-  };
-
-  const handleBackFromCourse = () => {
-    setCurrentView(previousView);
-    setSelectedCourse('');
-    updateURL(previousView, undefined, undefined, previousView);
-  };
-
   const handleHomeClick = () => {
     setCurrentView('dashboard');
     setIsSidebarExpanded(false);
-    updateURL('dashboard', undefined, undefined, previousView);
+    updateURL('dashboard', undefined, previousView);
   };
 
   const handleProfileClick = () => {
     setCurrentView('profile');
     setIsSidebarExpanded(false);
-    updateURL('profile', undefined, undefined, previousView);
-  };
-
-  const handleClassesClick = () => {
-    setCurrentView('classes');
-    setIsSidebarExpanded(false);
-    updateURL('classes', undefined, undefined, previousView);
+    updateURL('profile', undefined, previousView);
   };
 
   const handleSquadsClick = () => {
@@ -780,10 +720,10 @@ export default function App() {
     // If we were viewing a squad, return to that squad detail (remember subpage)
     if (selectedSquad) {
       setCurrentView('squad-detail');
-      updateURL('squad-detail', undefined, selectedSquad, previousView);
+      updateURL('squad-detail', selectedSquad, previousView);
     } else {
       setCurrentView('squads');
-      updateURL('squads', undefined, undefined, previousView);
+      updateURL('squads', undefined, previousView);
     }
   };
 
@@ -793,7 +733,7 @@ export default function App() {
     setSelectedSquad(squadId);
     setCurrentView('squad-detail');
     setIsSidebarExpanded(false);
-    updateURL('squad-detail', undefined, squadId, newPrevious);
+    updateURL('squad-detail', squadId, newPrevious);
   };
 
   const handleBackFromSquadDetail = () => {
@@ -801,203 +741,20 @@ export default function App() {
     setSelectedSquad('');
     setSubpageSquadPost('');
     sessionStorage.removeItem(SUBPAGE_KEYS.squadPost);
-    updateURL(previousView, undefined, undefined, previousView);
+    updateURL(previousView, undefined, previousView);
   };
 
   const handleCalendarClick = () => {
     setCurrentView('calendar');
     setIsSidebarExpanded(false);
-    updateURL('calendar', undefined, undefined, previousView);
+    updateURL('calendar', undefined, previousView);
   };
 
   const handleMessagingClick = () => {
     setCurrentView('messaging');
     setIsSidebarExpanded(false);
-    updateURL('messaging', undefined, undefined, previousView);
+    updateURL('messaging', undefined, previousView);
   };
-
-  function NotificationDropdown() {
-    const [showNotifications, setShowNotifications] = useState(false);
-    const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      function handleClickOutside(event: MouseEvent) {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-          setShowNotifications(false);
-        }
-      }
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleNotificationClick = () => {
-      setShowNotifications(!showNotifications);
-      if (!showNotifications) {
-        setHasUnreadNotifications(false);
-      }
-    };
-
-    const notifications = [
-      {
-        id: 1,
-        type: 'exchange',
-        title: 'Exchange listing responded to',
-        message: 'Sarah M. is interested in your Contracts textbook',
-        time: '5m ago',
-        unread: true,
-        icon: Store
-      },
-      {
-        id: 2,
-        type: 'mention',
-        title: 'Mentioned in class group chat',
-        message: 'Alex mentioned you in Property Law Study Group',
-        time: '1h ago',
-        unread: true,
-        icon: MessageCircle
-      },
-      {
-        id: 3,
-        type: 'assignment',
-        title: 'Assignment due soon',
-        message: 'Case Brief: Hawkins v. McGee due tomorrow at 9:00 AM',
-        time: '2h ago',
-        unread: true,
-        icon: BookOpen
-      },
-      {
-        id: 4,
-        type: 'connect',
-        title: 'New review posted',
-        message: 'New review for Kirkland & Ellis on Connect',
-        time: '3h ago',
-        unread: false,
-        icon: Briefcase
-      },
-      {
-        id: 5,
-        type: 'rent',
-        title: 'Housing listing update',
-        message: 'New summer sublet available in Cambridge',
-        time: '5h ago',
-        unread: false,
-        icon: HouseIcon
-      },
-      {
-        id: 6,
-        type: 'squads',
-        title: 'New member joined your squad',
-        message: 'Jordan P. joined Run Club',
-        time: '1d ago',
-        unread: false,
-        icon: Users
-      }
-    ];
-
-    const unreadCount = notifications.filter(n => n.unread).length;
-
-    return (
-      <div className="relative" ref={dropdownRef}>
-        <button 
-          className="p-2 hover:bg-[#e8e5dc] rounded-xl transition-colors relative"
-          onClick={handleNotificationClick}
-        >
-          <Bell className="w-5 h-5 md:w-5 md:h-5 text-[#27251f]" />
-          {hasUnreadNotifications && unreadCount > 0 && (
-            <span className="absolute top-1 right-1 min-w-[16px] h-[16px] bg-[#d47455] text-white rounded-full flex items-center justify-center text-[9px] px-1" style={{ fontWeight: 600 }}>
-              {unreadCount}
-            </span>
-          )}
-        </button>
-
-        {showNotifications && (
-          <div className="fixed md:absolute top-0 md:top-full left-0 md:left-auto right-0 md:right-0 md:mt-2 bg-white md:rounded-2xl shadow-2xl z-50 md:w-[420px] border-0 md:border md:border-[#e8e4db] h-full md:h-auto">
-            <div className="px-4 md:px-6 py-4 border-b border-[#e8e4db] bg-gradient-to-r from-[#faf9f7] to-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-[18px] text-[#27251f] m-0" style={{ fontWeight: 600 }}>
-                    Notifications
-                  </h3>
-                  {unreadCount > 0 && (
-                    <p className="text-[12px] text-[#787771] mt-0.5 m-0" >
-                      {unreadCount} unread
-                    </p>
-                  )}
-                </div>
-                <button 
-                  className="text-[12px] text-[#d47455] hover:text-[#c06545] px-3 py-1.5 rounded-full hover:bg-[#fef9f5]" 
-                  style={{ fontWeight: 600 }}
-                >
-                  Mark all read
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
-              {notifications.map((notification, index) => {
-                const Icon = notification.icon;
-                return (
-                  <div
-                    key={notification.id}
-                    className={`px-4 md:px-6 py-4 hover:bg-[#faf9f7] cursor-pointer transition-colors ${
-                      notification.unread ? 'bg-[#fef9f5]' : 'bg-white'
-                    } ${index !== notifications.length - 1 ? 'border-b border-[#f0ede5]' : ''}`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div 
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                          notification.unread ? 'bg-[#d47455]' : 'bg-[#f5f3eb]'
-                        }`}
-                      >
-                        <Icon className={`w-5 h-5 ${notification.unread ? 'text-white' : 'text-[#787771]'}`} />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h4 className="text-[14px] text-[#27251f] m-0 leading-snug" style={{ fontWeight: 600 }}>
-                            {notification.title}
-                          </h4>
-                          {notification.unread && (
-                            <div className="w-2 h-2 rounded-full bg-[#d47455] flex-shrink-0 mt-1.5"></div>
-                          )}
-                        </div>
-                        <p className="text-[13px] text-[#787771] mb-2 m-0 leading-relaxed" >
-                          {notification.message}
-                        </p>
-                        <span className="text-[11px] text-[#787771]" style={{ fontWeight: 500 }}>
-                          {notification.time}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="hidden md:block px-6 py-4 border-t border-[#e8e4db] text-center bg-[#faf9f7]">
-              <button 
-                className="text-xs text-[#d47455] hover:text-[#c06545] px-3 py-1.5 rounded-full hover:bg-white transition-colors" 
-                style={{ fontWeight: 600 }}
-              >
-                View all notifications
-              </button>
-            </div>
-
-            <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[#e8e4db]">
-              <button 
-                onClick={() => setShowNotifications(false)}
-                className="w-full py-1.5 px-3 bg-[#d47455] text-white rounded-full text-xs" 
-                style={{ fontWeight: 600 }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Clear saved state when user logs out (must be before any early returns)
   useEffect(() => {
@@ -1005,7 +762,6 @@ export default function App() {
       setProfile(null);
       sessionStorage.removeItem('currentView');
       sessionStorage.removeItem('previousView');
-      sessionStorage.removeItem('selectedCourse');
       sessionStorage.removeItem('selectedSquad');
       localStorage.removeItem(APP_SNAPSHOT_KEY);
     }
@@ -1069,7 +825,7 @@ export default function App() {
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
-      {/* Desktop Sidebar Overlay */}
+      {/* Mobile overlay when sidebar open */}
       {isSidebarExpanded && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -1077,100 +833,104 @@ export default function App() {
         />
       )}
 
-      <div className="hidden md:block fixed top-2 left-0 z-50" style={{ width: '50px' }}>
-        <div className="w-full flex justify-center">
-          <IconButton 
-            icon={Menu} 
-            label="Menu"
+      {/* Desktop sidebar - single fixed panel */}
+      <aside
+        className={`hidden md:flex flex-col bg-[#F1EFE7] border-r border-[#e8e4db] fixed left-0 top-[env(safe-area-inset-top)] bottom-[env(safe-area-inset-bottom)] z-40 transition-all duration-300 ease-in-out ${
+          isSidebarExpanded ? 'w-[200px]' : 'w-[64px]'
+        }`}
+      >
+        <div className="flex-shrink-0 p-2 flex justify-center">
+          <IconButton
+            icon={Menu}
+            label={isSidebarExpanded ? 'Collapse' : 'Expand'}
             onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
             tooltipPosition="right"
           />
         </div>
-      </div>
-
-      <div 
-        className={`hidden md:flex bg-[#F1EFE7] flex-col items-start py-2 transition-all duration-300 fixed h-full z-40 overflow-hidden ${
-          isSidebarExpanded ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
-        style={{ width: isSidebarExpanded ? '200px' : '50px' }}
-      >
-        <div style={{ height: '40px' }} />
-        
-        <div className="w-full mt-6 px-0">
+        <nav className="flex-1 flex flex-col gap-1 px-2 py-2 overflow-y-auto">
           {isSidebarExpanded ? (
             <>
-              <button onClick={handleHomeClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f]" >
+              <button
+                onClick={handleHomeClick}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                  currentView === 'dashboard' ? 'bg-[#e8e5dc] text-[#d47455]' : 'text-[#27251f] hover:bg-[#e8e5dc]'
+                }`}
+              >
                 <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">Home</span>
+                <span>Home</span>
               </button>
-              <button onClick={handleSquadsClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
+              <button
+                onClick={handleSquadsClick}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                  currentView === 'squads' || currentView === 'squad-detail' ? 'bg-[#e8e5dc] text-[#d47455]' : 'text-[#27251f] hover:bg-[#e8e5dc]'
+                }`}
+              >
                 <Users className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">Squads</span>
+                <span>Squads</span>
               </button>
-              <button onClick={handleClassesClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
-                <BookOpen className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">Classes</span>
+              <button
+                onClick={handleMessagingClick}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                  currentView === 'messaging' ? 'bg-[#e8e5dc] text-[#d47455]' : 'text-[#27251f] hover:bg-[#e8e5dc]'
+                }`}
+              >
+                <MessageCircle className="w-5 h-5 flex-shrink-0" />
+                <span>Messages</span>
               </button>
-              <button onClick={handleCalendarClick} className="w-full flex items-center gap-3 px-3 py-3 mx-3 rounded-full hover:bg-[#e8e5dc] transition-colors text-[#27251f] mt-1" >
+              <button
+                onClick={handleCalendarClick}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                  currentView === 'calendar' ? 'bg-[#e8e5dc] text-[#d47455]' : 'text-[#27251f] hover:bg-[#e8e5dc]'
+                }`}
+              >
                 <CalendarIcon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">Calendar</span>
+                <span>Calendar</span>
               </button>
             </>
           ) : (
-            <>
-              <div className="w-full flex justify-center">
+            <div className="flex flex-col gap-1">
+              <div className={`flex justify-center rounded-lg ${currentView === 'dashboard' ? 'bg-[#e8e5dc]' : ''}`}>
                 <IconButton icon={LayoutDashboard} label="Home" onClick={handleHomeClick} tooltipPosition="right" />
               </div>
-              <div className="w-full flex justify-center mt-1">
+              <div className={`flex justify-center rounded-lg ${currentView === 'squads' || currentView === 'squad-detail' ? 'bg-[#e8e5dc]' : ''}`}>
                 <IconButton icon={Users} label="Squads" onClick={handleSquadsClick} tooltipPosition="right" />
               </div>
-              <div className="w-full flex justify-center mt-1">
-                <IconButton icon={BookOpen} label="Classes" onClick={handleClassesClick} tooltipPosition="right" />
+              <div className={`flex justify-center rounded-lg ${currentView === 'messaging' ? 'bg-[#e8e5dc]' : ''}`}>
+                <IconButton icon={MessageCircle} label="Messages" onClick={handleMessagingClick} tooltipPosition="right" />
               </div>
-              <div className="w-full flex justify-center mt-1">
+              <div className={`flex justify-center rounded-lg ${currentView === 'calendar' ? 'bg-[#e8e5dc]' : ''}`}>
                 <IconButton icon={CalendarIcon} label="Calendar" onClick={handleCalendarClick} tooltipPosition="right" />
               </div>
-            </>
+            </div>
           )}
-        </div>
-      </div>
+        </nav>
+      </aside>
 
-      <div 
-        className="flex-1 flex flex-col min-h-0 ml-0 md:min-w-0 transition-all duration-300"
-        style={{ 
-          marginLeft: window.innerWidth >= 768 ? (isSidebarExpanded ? '200px' : '70px') : '0'
-        }}
+      <div
+        className={`flex-1 flex flex-col min-h-0 min-w-0 ml-0 transition-all duration-300 ease-in-out ${
+          isSidebarExpanded ? 'md:ml-[200px]' : 'md:ml-[64px]'
+        }`}
       >
-        <div 
-          className="bg-[#F1EFE7] hidden md:flex items-center justify-between px-4 md:pr-8 py-3 md:py-2"
-          style={{ paddingLeft: window.innerWidth >= 768 ? '32px' : '16px' }}
-        >
-          <div 
-            className="flex-1 max-w-md"
-            style={{ paddingLeft: window.innerWidth >= 768 ? '24px' : '0' }}
-          >
+        <div className="bg-[#F1EFE7] hidden md:flex items-center justify-between px-6 md:px-8 py-3 md:py-2">
+          <div className="flex-1 max-w-md pl-6">
             <div className="md:hidden">
               <h1 className="text-[20px] text-[#27251f] m-0" style={{ fontWeight: 600 }}>
-                Law School
+                TheQuad
               </h1>
             </div>
             <div className="hidden md:block relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787771]" />
               <input
                 type="text"
-                placeholder="Search courses, assignments, peers…"
-                className="w-full pl-10 pr-4 py-2 bg-white/70 rounded-lg border-0 text-sm text-[#787771] placeholder:text-[#787771]/50"
+                placeholder="Search squads, people…"
+                readOnly
+                title="Search coming soon"
+                className="w-full pl-10 pr-4 py-2 bg-white/70 rounded-lg border-0 text-sm text-[#787771] placeholder:text-[#787771]/50 cursor-not-allowed"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 ml-auto">
-            <div className="hidden md:flex items-center gap-4">
-              <IconButton icon={CalendarIcon} label="Calendar" onClick={handleCalendarClick} />
-              <IconButton icon={BookOpen} label="Classes" onClick={handleClassesClick} />
-            </div>
-            <NotificationDropdown />
-            <div className="hidden md:block h-8 w-px bg-[#e4e0e0]"></div>
             <div className="flex items-center gap-2 md:gap-3">
               <div className="text-right hidden md:block">
                 <div className="text-sm text-[#27251f]" style={{ fontWeight: 400 }}>{profileLoading ? 'Loading...' : getDisplayNameShort()}</div>
@@ -1213,11 +973,6 @@ export default function App() {
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {currentView === 'course' && (
-            <div className="bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full">
-              <CoursePage courseId={selectedCourse} onBack={handleBackFromCourse} previousView={previousView} />
-            </div>
-          )}
           {mountedKeepAliveViews.messaging && (
             <div className={`bg-[#fbf8f7] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'messaging' ? '' : 'hidden'}`}>
               <MessagingPage
@@ -1232,12 +987,11 @@ export default function App() {
                     sessionStorage.removeItem(SUBPAGE_KEYS.conversation);
                   }
                 }}
-                onCourseClick={handleCourseClick}
                 onBackToSquad={() => {
                   if (typeof window !== 'undefined' && sessionStorage.getItem('messagingReturnTo') === 'squad-detail') {
                     sessionStorage.removeItem('messagingReturnTo');
                     setCurrentView('squad-detail');
-                    updateURL('squad-detail', undefined, selectedSquad, 'messaging');
+                    updateURL('squad-detail', selectedSquad, 'messaging');
                     return true;
                   }
                   return false;
@@ -1246,19 +1000,8 @@ export default function App() {
             </div>
           )}
           {mountedKeepAliveViews.profile && (
-            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'profile' ? '' : 'hidden'}`}>
+            <div className={`bg-white md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'profile' ? '' : 'hidden'}`}>
               <ProfilePage />
-            </div>
-          )}
-          {mountedKeepAliveViews.classes && (
-            <div className={`bg-[#FBF9F5] md:rounded-tl-2xl md:rounded-tr-2xl h-full ${currentView === 'classes' ? '' : 'hidden'}`}>
-              <ClassesPage
-                initialTab={subpageClassesTab as 'overview' | 'schedule' | 'assignments'}
-                onTabChange={(tab) => {
-                  setSubpageClassesTab(tab);
-                  sessionStorage.setItem(SUBPAGE_KEYS.classesTab, tab);
-                }}
-              />
             </div>
           )}
           {mountedKeepAliveViews.squads && (
@@ -1333,7 +1076,7 @@ export default function App() {
           backgroundColor: '#fbf8f7',
           transform: (() => {
             const keyboardHiding = (isMessageInputFocused && currentView === 'messaging') || (isFeedInputFocused && (currentView === 'dashboard' || currentView === 'squad-detail'));
-            const subPageHiding = currentView === 'squad-detail' || currentView === 'course' || (currentView === 'messaging' && !!subpageConversation) || (currentView === 'dashboard' && !!subpagePost);
+            const subPageHiding = currentView === 'squad-detail' || (currentView === 'messaging' && !!subpageConversation) || (currentView === 'dashboard' && !!subpagePost);
             return keyboardHiding || subPageHiding ? 'translateY(100%)' : 'translateY(0)';
           })(),
           willChange: 'transform'
@@ -1343,7 +1086,7 @@ export default function App() {
           <button
             onClick={handleCalendarClick}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-              currentView === 'calendar' || currentView === 'classes' ? 'text-[#d47455]' : 'text-[#787771]'
+              currentView === 'calendar' ? 'text-[#d47455]' : 'text-[#787771]'
             }`}
           >
             <CalendarIcon className="w-6 h-6" />

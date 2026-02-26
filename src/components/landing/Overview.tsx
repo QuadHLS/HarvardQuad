@@ -30,25 +30,9 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Dark palette — uses the brand text black (#27251f) as the campus hub background.
- * Radial gradients add subtle depth while staying in the same warm dark family.
+ * Dark palette — solid dark background for the campus hub section.
  */
-const DARK_COLORS = {
-  base: '#27251f', // brand dark black (quad-primary)
-  mid: '#2e2c26',  // slightly lighter for center glow
-  edge: '#36342e', // vignette edges
-  warmAccent: 'rgba(39, 37, 31, 0.5)',
-} as const;
-
-/**
- * The full dark background — mostly base (#27251f), with a small center glow and subtle edge vignettes.
- */
-const DARK_BACKGROUND = `
-  radial-gradient(ellipse 80% 50% at 50% 40%, ${DARK_COLORS.mid}, transparent 45%),
-  radial-gradient(ellipse 80% 80% at 20% 85%, ${DARK_COLORS.warmAccent}, transparent 35%),
-  radial-gradient(ellipse 80% 80% at 80% 85%, ${DARK_COLORS.warmAccent}, transparent 35%),
-  ${DARK_COLORS.base}
-`;
+const DARK_BACKGROUND = '#1a1815';
 
 /**
  * Scroll thresholds for background transition.
@@ -166,7 +150,6 @@ interface OrbitalPhoneProps {
   index: number;
   baseAngle: number;
   rotationOffset: MotionValue<number>;
-  glowIntensity: number;
 }
 
 /**
@@ -175,7 +158,7 @@ interface OrbitalPhoneProps {
  * 
  * z-index is applied to the outer positioned element for correct stacking.
  */
-const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, index, baseAngle, rotationOffset, glowIntensity }) => {
+const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, index, baseAngle, rotationOffset }) => {
   // Combine base angle with scroll-driven rotation
   const angle = useTransform(rotationOffset, (rotation) => baseAngle + rotation);
   
@@ -213,7 +196,7 @@ const OrbitalPhone = memo<OrbitalPhoneProps>(({ phone, index, baseAngle, rotatio
         willChange: 'transform, opacity, z-index',
       }}
     >
-      <PhoneFrame scale={1} glowIntensity={glowIntensity}>
+      <PhoneFrame scale={1} glowIntensity={0}>
         {id === 'chat' ? (
           <Screen {...(props as { variant: 'group'; onConversationComplete?: () => void })} />
         ) : (
@@ -279,18 +262,6 @@ const OrbitalCarousel = memo<OrbitalCarouselProps>(({ scrollProgress }) => {
   const dragStartValue = useRef<number>(0);
   const isDraggingRef = useRef(false);
   
-  // Calculate glow intensity from scroll progress (matches background transition)
-  const glowIntensity = useTransform(
-    scrollProgress,
-    BG_SCROLL_THRESHOLDS.input,
-    BG_SCROLL_THRESHOLDS.output
-  );
-  const [currentGlow, setCurrentGlow] = useState(0);
-  
-  useEffect(() => {
-    const unsubscribe = glowIntensity.on('change', setCurrentGlow);
-    return () => unsubscribe();
-  }, [glowIntensity]);
   const lastMoveX = useRef<number>(0);
   const lastMoveTime = useRef<number>(0);
   const moveHistoryRef = useRef<{ x: number; t: number }[]>([]);
@@ -522,7 +493,6 @@ const OrbitalCarousel = memo<OrbitalCarouselProps>(({ scrollProgress }) => {
             index={index}
             baseAngle={index * ANGLE_STEP}
             rotationOffset={totalRotation}
-            glowIntensity={currentGlow}
           />
         ))}
       </div>
@@ -554,11 +524,7 @@ const SWIPE_THRESHOLD = 50;
 const AUTO_ADVANCE_DELAY_MS = 1200;
 const INITIAL_DELAY_MS = 800;
 
-interface MobileCarouselProps {
-  scrollProgress: MotionValue<number>;
-}
-
-const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
+const MobileCarousel = memo(() => {
   const [currentIndex, setCurrentIndex] = useState(0);
   // Track swipe direction: 1 = forward (swipe left), -1 = backward (swipe right)
   const [direction, setDirection] = useState(1);
@@ -568,19 +534,6 @@ const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
   const hasAutoAdvanced = useRef(false);
 
   const isInView = useInView(containerRef, { once: true, amount: 0.4 });
-  
-  // Calculate glow intensity from scroll progress (matches background transition)
-  const glowIntensity = useTransform(
-    scrollProgress,
-    BG_SCROLL_THRESHOLDS.input,
-    BG_SCROLL_THRESHOLDS.output
-  );
-  const [currentGlow, setCurrentGlow] = useState(0);
-  
-  useEffect(() => {
-    const unsubscribe = glowIntensity.on('change', setCurrentGlow);
-    return () => unsubscribe();
-  }, [glowIntensity]);
 
   const goTo = (index: number, dir?: number) => {
     const clampedIndex = Math.max(0, Math.min(index, MOBILE_SCREENS.length - 1));
@@ -663,7 +616,7 @@ const MobileCarousel = memo<MobileCarouselProps>(({ scrollProgress }) => {
               willChange: 'transform, opacity',
             }}
           >
-            <PhoneFrame scale={0.85} glowIntensity={currentGlow}>
+            <PhoneFrame scale={0.85} glowIntensity={0}>
               {currentScreen.id === 'chat' ? (
                 <currentScreen.Screen variant="group" />
               ) : (
@@ -920,7 +873,7 @@ export const Overview = memo(() => {
 
           {/* Mobile: Swipe carousel */}
           <div className="md:hidden">
-            <MobileCarousel scrollProgress={scrollYProgress} />
+            <MobileCarousel />
           </div>
 
           {/* Desktop: Auto-spin orbital carousel */}

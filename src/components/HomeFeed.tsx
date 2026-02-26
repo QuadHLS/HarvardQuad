@@ -56,7 +56,7 @@ function AuthorAvatar({
       {showImg ? (
         <img
           src={avatarUrl!}
-          alt=""
+          alt={profile?.full_name || initials || 'Author'}
           className="absolute inset-0 w-full h-full rounded-full object-cover"
           onError={() => setImgError(true)}
         />
@@ -385,7 +385,7 @@ function PostDetailView({ post, userId, userDisplayName, userAvatarUrl, onBack, 
                   )}
                   {detailPost.image_path && (
                     <div className="rounded-xl overflow-hidden max-h-80 mb-3 bg-[#f5f3eb]">
-                      <img src={detailPost.image_path} alt="" className="w-full h-auto object-contain" />
+                      <img src={detailPost.image_path} alt="Post image" className="w-full h-auto object-contain" />
                     </div>
                   )}
                   {detailPost.url && <EmbedBlock url={detailPost.url} className="mb-3" />}
@@ -1282,7 +1282,7 @@ export function HomeFeed({
                           )}
                           {post.image_path && (
                             <div className="w-full flex justify-center rounded-xl overflow-hidden max-h-48 mb-2 bg-muted/30">
-                              <img src={post.image_path} alt="" className="max-w-full max-h-48 w-auto h-auto object-contain" />
+                              <img src={post.image_path} alt="Post image" className="max-w-full max-h-48 w-auto h-auto object-contain" />
                             </div>
                           )}
                           {post.url && (

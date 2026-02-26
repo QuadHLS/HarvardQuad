@@ -718,9 +718,9 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                   style={{ backgroundColor: squadColor + '20' }}
                 >
                   {editAvatarPreview ? (
-                    <img src={editAvatarPreview} alt="" className="w-full h-full object-cover" />
+                    <img src={editAvatarPreview} alt="Squad avatar preview" className="w-full h-full object-cover" />
                   ) : squad.avatar_url ? (
-                    <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                    <img src={squad.avatar_url} alt={squad.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-xl font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
                   )}
@@ -1432,9 +1432,9 @@ export function SquadDetailPage({ squadId, onBack, onOpenChat, initialFeedPostId
                   style={{ backgroundColor: squadColor + '20' }}
                 >
                   {editAvatarPreview ? (
-                    <img src={editAvatarPreview} alt="" className="w-full h-full object-cover" />
+                    <img src={editAvatarPreview} alt="Squad avatar preview" className="w-full h-full object-cover" />
                   ) : squad.avatar_url ? (
-                    <img src={squad.avatar_url} alt="" className="w-full h-full object-cover" />
+                    <img src={squad.avatar_url} alt={squad.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-xl font-semibold" style={{ color: squadColor }}>{squad.name.charAt(0).toUpperCase()}</span>
                   )}

@@ -20,30 +20,13 @@ interface ProfileData {
   classes?: unknown[];
 }
 
-// Stable background gradient style
 const PROFILE_PAGE_BACKGROUND = {
-  background: `
-    radial-gradient(ellipse 100% 80% at 10% 30%, rgba(255, 218, 190, 0.9), transparent 65%),
-    radial-gradient(ellipse 85% 100% at 88% 50%, rgba(252, 198, 168, 0.88), transparent 60%),
-    radial-gradient(ellipse 95% 75% at 50% 90%, rgba(253, 208, 178, 0.85), transparent 55%),
-    radial-gradient(ellipse 75% 95% at 72% 12%, rgba(254, 218, 192, 0.88), transparent 58%),
-    #fbf2eb
-  `,
+  background: '#ffffff',
   minHeight: 'var(--app-height, 100vh)',
 };
 
-// Glassmorphic surface styles
-const GLASS_SURFACE_STRONG = {
-  background: 'rgba(255, 255, 255, 0.72)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-};
-
-const GLASS_SURFACE_LIGHT = {
-  background: 'rgba(255, 255, 255, 0.65)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
-};
+const CARD_SURFACE = { background: '#f5f5f5' };
+const CARD_SURFACE_LIGHT = { background: '#fafafa' };
 
 // Helper: Get avatar color from name
 function getAvatarColor(name: string): string {
@@ -365,7 +348,7 @@ export function ProfilePage() {
         <div className="mx-4 mt-2 mb-5">
           <div 
             className="rounded-[20px] px-5 py-5"
-            style={GLASS_SURFACE_STRONG}
+            style={CARD_SURFACE}
           >
             <div className="flex items-center gap-4">
               {/* Avatar + Roll again (same UI as onboarding step 3) */}
@@ -556,7 +539,7 @@ export function ProfilePage() {
             </h2>
             <div 
               className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
-              style={GLASS_SURFACE_LIGHT}
+              style={CARD_SURFACE_LIGHT}
             >
               {/* Email */}
               <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
@@ -617,7 +600,7 @@ export function ProfilePage() {
             </h2>
             <div 
               className="rounded-2xl divide-y divide-[#27251f]/[0.06]"
-              style={GLASS_SURFACE_LIGHT}
+              style={CARD_SURFACE_LIGHT}
             >
               {/* Major */}
               <div className="flex items-center gap-3 px-4 py-3 min-h-[52px]">
@@ -718,31 +701,27 @@ export function ProfilePage() {
             </div>
           </section>
 
-          {/* Sign Out - Minimal destructive */}
-          <section className="pt-4">
-            <button
-              type="button"
-              onClick={async () => {
-                const { error } = await signOut();
-                const isSessionMissing =
-                  error?.message?.toLowerCase().includes('session missing') ||
-                  (error as { name?: string })?.name === 'AuthSessionMissingError';
-                if (error && !isSessionMissing) {
-                  console.error('Error signing out:', error);
-                  toast.error('Failed to sign out. Please try again.');
-                  return;
-                }
-                navigateWithoutReload('/');
-              }}
-              className="w-full py-1.5 px-3 rounded-full text-xs font-medium text-[#c94a3a] active:bg-[#c94a3a]/10 transition-colors"
-              style={{ 
-                background: 'rgba(201, 74, 58, 0.08)',
-              }}
-              aria-label="Sign out of your account"
-            >
-              Sign Out
-            </button>
-          </section>
+          {/* Sign Out - Small, bottom right */}
+          <button
+            type="button"
+            onClick={async () => {
+              const { error } = await signOut();
+              const isSessionMissing =
+                error?.message?.toLowerCase().includes('session missing') ||
+                (error as { name?: string })?.name === 'AuthSessionMissingError';
+              if (error && !isSessionMissing) {
+                console.error('Error signing out:', error);
+                toast.error('Failed to sign out. Please try again.');
+                return;
+              }
+              navigateWithoutReload('/');
+            }}
+            className="fixed bottom-24 right-4 z-10 flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium text-[#c94a3a] bg-white/90 border border-[#e7ded1] active:opacity-80 transition-opacity"
+            aria-label="Sign out of your account"
+          >
+            <LogOut className="w-3 h-3 shrink-0" />
+            Sign Out
+          </button>
         </div>
       </div>
 
@@ -1100,8 +1079,8 @@ export function ProfilePage() {
 
             </div>
             
-            {/* Sign Out Button - Bottom Right */}
-            <div className="absolute bottom-6 right-6 z-10">
+            {/* Sign Out - Small, bottom right */}
+            <div className="absolute bottom-4 right-4 z-10">
               <button
                 type="button"
                 onClick={async () => {
@@ -1116,16 +1095,11 @@ export function ProfilePage() {
                   }
                   navigateWithoutReload('/');
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-[#e7ded1] text-xs hover:bg-[#fef3ef] transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium text-[#d47455] bg-white border border-[#e7ded1] hover:bg-[#fef9f5] transition-colors"
                 aria-label="Sign out of your account"
               >
-                <LogOut className="w-4 h-4 text-[#d47455] shrink-0" aria-hidden="true" />
-                <span 
-                  className="text-xs"
-                  style={{ color: '#d47455', fontWeight: 600 }}
-                >
-                  Sign Out
-                </span>
+                <LogOut className="w-3 h-3 shrink-0" />
+                Sign Out
               </button>
             </div>
           </div>
