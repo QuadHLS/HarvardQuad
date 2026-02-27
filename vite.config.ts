@@ -59,6 +59,7 @@
     server: {
       port: 3000,
       host: '0.0.0.0',
-      open: true,
+      // Disable auto-open: Vercel preview env has no xdg-open, causes spawn ENOENT
+      open: false,
     },
   });
