@@ -9,6 +9,12 @@ const usePolling = process.env.VITE_USE_POLLING === "1"
 export default defineConfig({
   root: __dirname,
   publicDir: path.join(__dirname, "public"),
+  // Vite defaults to globbing **/*.html for dep pre-bundling; that pulls in
+  // ios/App/App/public (Capacitor sync output) and static public/*.html, which
+  // breaks or times out the scanner. Only the SPA entry needs scanning.
+  optimizeDeps: {
+    entries: [path.join(__dirname, "index.html")],
+  },
   plugins: [tailwindcss(), react()],
   resolve: {
     extensions: [".mjs", ".js", ".jsx", ".ts", ".tsx", ".json"],
