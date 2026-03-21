@@ -1,9 +1,11 @@
 import React, { useState, useEffect, Component, ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
-import { TermsPage } from "./components/TermsPage";
-import { PrivacyPage } from "./components/PrivacyPage";
+import { TermsPage } from "@/components/pages/terms-page"
+import { PrivacyPage } from "@/components/pages/privacy-page"
+import { UserGuidePage } from "@/components/pages/user-guide-page"
 import { Toaster } from "./components/ui/sonner";
+import { ThemeProvider } from "./components/theme-provider";
 import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -47,8 +49,9 @@ function Root() {
     return () => window.removeEventListener("popstate", handler);
   }, []);
 
-  if (pathname === "/terms") return <TermsPage />;
-  if (pathname === "/privacy") return <PrivacyPage />;
+  if (pathname === "/terms") return <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange><TermsPage /></ThemeProvider>;
+  if (pathname === "/privacy") return <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange><PrivacyPage /></ThemeProvider>;
+  if (pathname === "/user-guide") return <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange><UserGuidePage /></ThemeProvider>;
   return <App />;
 }
 

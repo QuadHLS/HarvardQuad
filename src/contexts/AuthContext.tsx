@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(!cachedAuth);
 
   useEffect(() => {
-    const fallback = setTimeout(() => setLoading(false), 5000);
+    const fallback = setTimeout(() => setLoading(false), 3000);
 
     const {
       data: { subscription },

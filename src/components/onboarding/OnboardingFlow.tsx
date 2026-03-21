@@ -23,18 +23,8 @@ interface OnboardingFlowProps {
 // Steps shown in the flow
 const TOTAL_STEPS = 3;
 
-/** DiceBear 9.x style names (API kebab-case). One is chosen at random when rolling. */
-const DICEBEAR_STYLES = [
-  'adventurer',
-  'avataaars',
-  'croodles',
-  'adventurer-neutral',
-  'big-smile',
-  'lorelei',
-  'miniavs',
-  'pixel-art',
-  'pixel-art-neutral',
-] as const;
+/** DiceBear 9.x style names for rolling. Only Croodles and Notionists. */
+const DICEBEAR_STYLES = ['croodles', 'notionists'] as const;
 
 function generateAvatarSeed(): string {
   return Math.random().toString(36).substring(2, 12);
@@ -752,7 +742,7 @@ function StepSquadsInterests({ formData, setFormData }: {
                     {squad.name}
                   </div>
                   <div className="text-xs text-[#787771]" >
-                    {squad.members} members · {squad.category}
+                    {squad.members} {squad.members === 1 ? "member" : "members"} · {squad.category}
                   </div>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${

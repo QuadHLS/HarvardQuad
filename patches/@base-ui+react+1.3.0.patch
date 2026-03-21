@@ -1,0 +1,30 @@
+diff --git a/node_modules/@base-ui/react/combobox/popup/ComboboxPopup.js b/node_modules/@base-ui/react/combobox/popup/ComboboxPopup.js
+index 655b519..ece24a1 100644
+--- a/node_modules/@base-ui/react/combobox/popup/ComboboxPopup.js
++++ b/node_modules/@base-ui/react/combobox/popup/ComboboxPopup.js
+@@ -95,7 +95,9 @@ const ComboboxPopup = exports.ComboboxPopup = /*#__PURE__*/React.forwardRef(func
+   } else {
+     resolvedFinalFocus = inputInsidePopup ? undefined : false;
+   }
+-  const focusManagerModal = !inputInsidePopup || modal;
++  // When the input lives outside the portaled popup (typical shadcn layout), avoid modal focus
++  // trapping so typing does not jump focus to the popup / dialog close controls.
++  const focusManagerModal = inputInsidePopup ? modal : false;
+   return /*#__PURE__*/(0, _jsxRuntime.jsx)(_floatingUiReact.FloatingFocusManager, {
+     context: floatingRootContext,
+     disabled: !mounted,
+diff --git a/node_modules/@base-ui/react/esm/combobox/popup/ComboboxPopup.js b/node_modules/@base-ui/react/esm/combobox/popup/ComboboxPopup.js
+index c44603f..6023fdf 100644
+--- a/node_modules/@base-ui/react/esm/combobox/popup/ComboboxPopup.js
++++ b/node_modules/@base-ui/react/esm/combobox/popup/ComboboxPopup.js
+@@ -89,7 +89,9 @@ export const ComboboxPopup = /*#__PURE__*/React.forwardRef(function ComboboxPopu
+   } else {
+     resolvedFinalFocus = inputInsidePopup ? undefined : false;
+   }
+-  const focusManagerModal = !inputInsidePopup || modal;
++  // When the input lives outside the portaled popup (typical shadcn layout), avoid modal focus
++  // trapping so typing does not jump focus to the popup / dialog close controls.
++  const focusManagerModal = inputInsidePopup ? modal : false;
+   return /*#__PURE__*/_jsx(FloatingFocusManager, {
+     context: floatingRootContext,
+     disabled: !mounted,
