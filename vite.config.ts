@@ -23,7 +23,8 @@ export default defineConfig({
   server: {
     port: 3000,
     host: "localhost",
-    open: true,
+    // Avoid xdg-open / browser launch on CI, Vercel, and headless environments
+    open: !(process.env.CI || process.env.VERCEL),
     watch: usePolling ? { usePolling: true, interval: 300 } : undefined,
   },
 })
