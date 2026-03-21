@@ -1,47 +1,30 @@
+# TheQuad
 
-  # TheQuad
+Private repository. Internal use only.
 
-  ## Setup
+## Setup
 
-  ### Installation
+```bash
+npm i
+```
 
-  Run `npm i` to install the dependencies.
+Create `.env` with:
 
-  ### Environment Variables
+```
+VITE_SUPABASE_URL=<project_url>
+VITE_SUPABASE_ANON_KEY=<anon_key>
+```
 
-  Create a `.env` file in the root directory with the following variables:
+Values from Supabase: Project Settings → API.
 
-  ```
-  VITE_SUPABASE_URL=your_supabase_project_url
-  VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-  ```
+## Run
 
-  Get these values from your Supabase project settings: https://app.supabase.com/project/_/settings/api
+```bash
+npm run dev
+```
 
-  ### Running the code
+## Stack
 
-  Run `npm run dev` to start the development server.
-
-  ## Deployment
-
-  ### Vercel
-
-  This project is configured for Vercel deployment. The `vercel.json` file contains the necessary configuration.
-
-  To deploy:
-  1. Connect your GitHub repository to Vercel
-  2. Add environment variables in Vercel dashboard (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY)
-  3. Deploy automatically on push to main branch
-
-  ### GitHub
-
-  The repository is connected to: https://github.com/QuadHLS/TheQuad.git
-
-  ### Supabase
-
-  Supabase client is configured in `src/lib/supabase.ts`. Import and use it in your components:
-
-  ```typescript
-  import { supabase } from '@/lib/supabase';
-  ```
-  
+- React + Vite + TypeScript
+- Supabase (auth, db, storage, realtime)
+- Tailwind CSS

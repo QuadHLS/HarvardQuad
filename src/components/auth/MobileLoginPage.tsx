@@ -426,7 +426,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
               </p>
             )}
             {successMessage && (
-              <p className="text-sm text-green-600 mb-5" >
+              <p className="text-sm text-primary mb-5" >
                 {successMessage}
               </p>
             )}
