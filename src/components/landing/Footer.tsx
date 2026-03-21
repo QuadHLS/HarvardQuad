@@ -23,6 +23,7 @@ const COMPANY_LINKS = [
 const LEGAL_LINKS = [
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms', href: '/terms' },
+  { label: 'User Guide', href: '/user-guide' },
 ] as const;
 
 const SCROLL_OFFSET = 80;

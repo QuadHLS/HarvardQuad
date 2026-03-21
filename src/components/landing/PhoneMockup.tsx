@@ -870,7 +870,7 @@ const GroupItem = memo<{
     </div>
     <div className="flex-1 min-w-0">
       <div className="text-[10px] font-semibold text-[#27251f]">{name}</div>
-      <div className="text-[8px] text-[#787771]">{members} members</div>
+      <div className="text-[8px] text-[#787771]">{members} {members === 1 ? "member" : "members"}</div>
     </div>
     <svg className="w-3 h-3 text-[#c7bcaa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1247,7 +1247,7 @@ const ConversationItem = memo<{
       <div className="flex items-center justify-between gap-1">
         <div className="text-[8px] text-[#787771] truncate">{preview}</div>
         {unread > 0 && (
-          <div className="w-4 h-4 rounded-full bg-[#d47455] text-white text-[7px] font-semibold flex items-center justify-center flex-shrink-0" role="status" aria-label={`${unread} unread messages`}>
+          <div className="w-4 h-4 rounded-full bg-[#d47455] text-white text-[7px] font-semibold flex items-center justify-center flex-shrink-0" role="status" aria-label={`${unread} unread ${unread === 1 ? "message" : "messages"}`}>
             {unread}
           </div>
         )}

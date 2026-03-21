@@ -1,6 +1,6 @@
 /**
  * In-app navigation without full page reload.
- * Use instead of window.location.href for routes handled by the SPA (/, /terms, /privacy, etc.).
+ * Use instead of window.location.href for routes handled by the SPA (/, /terms, /privacy, /user-guide, etc.).
  */
 export function navigateWithoutReload(path: string): void {
   window.history.pushState({}, "", path);

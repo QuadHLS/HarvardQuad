@@ -1,10 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,200..900;1,200..900&display=swap");
 @import "tailwindcss" source("./");
+@import "tw-animate-css";
 
-/* App: Inter for UI. Shared palette (landing + in-app). */
+/* Tailwind v4: class-based dark mode for next-themes */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* App: Reddit Sans for UI. Shared palette (landing + in-app). */
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Reddit Sans", system-ui, sans-serif;
   --color-landing-primary: #27251f;
+  --breakpoint-md: 34.375rem; /* 550px - mobile below this */
 }
 
 /* Design tokens: use across landing and app pages for consistency */
@@ -16,40 +21,208 @@
   --quad-bg-app: #F1EFE7;       /* app shell background (slightly cooler) */
   --quad-border: #e8e4db;       /* borders, dividers */
   --quad-accent: #d47455;       /* accent/orange (notifications, links) */
+  --quad-green: #00962c;       /* green base (primary, success, campus tag) */
+  --quad-blue: #0078c5;       /* squad/club tag */
+  --quad-red: #f71417;
+  --quad-yellow: #ffb100;
   --quad-tracking: -0.01em;
   --quad-leading-tight: 1.1;
+  /* New design theme (for AppShell) */
+  --background: oklch(0.98 0.002 260);
+  --foreground: oklch(0.13 0.005 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.13 0.005 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.13 0.005 260);
+  --primary: #00962c;
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.94 0.004 260);
+  --secondary-foreground: oklch(0.25 0.006 260);
+  --muted: oklch(0.94 0.004 260);
+  --muted-foreground: oklch(0.5 0.01 260);
+  --accent: oklch(0.91 0.006 260);
+  --accent-foreground: oklch(0.18 0.006 260);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.88 0.006 260);
+  --input: oklch(0.94 0.004 260);
+  --ring: #00962c;
+  --radius: 0.75rem;
+  --sidebar: oklch(0.96 0.003 260);
+  --sidebar-foreground: oklch(0.13 0.005 260);
+  --sidebar-primary: #00962c;
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.91 0.006 260);
+  --sidebar-accent-foreground: oklch(0.18 0.006 260);
+  --sidebar-border: oklch(0.88 0.006 260);
+  --sidebar-ring: #00962c;
+  --chart-1: #00962c;
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
 }
+
+/* Dark mode overrides (next-themes adds class="dark" to html) */
+.dark {
+  --background: oklch(0.13 0.005 260);
+  --foreground: oklch(0.98 0.002 260);
+  --card: oklch(0.18 0.006 260);
+  --card-foreground: oklch(0.98 0.002 260);
+  --popover: oklch(0.18 0.006 260);
+  --popover-foreground: oklch(0.98 0.002 260);
+  --primary: #00962c;
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.22 0.006 260);
+  --secondary-foreground: oklch(0.9 0.004 260);
+  --muted: oklch(0.22 0.006 260);
+  --muted-foreground: oklch(0.6 0.01 260);
+  --accent: oklch(0.25 0.006 260);
+  --accent-foreground: oklch(0.95 0.004 260);
+  --border: oklch(0.28 0.006 260);
+  --input: oklch(0.22 0.006 260);
+  --ring: #00962c;
+  --sidebar: oklch(0.18 0.006 260);
+  --sidebar-foreground: oklch(0.98 0.002 260);
+  --sidebar-primary: #00962c;
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.25 0.006 260);
+  --sidebar-accent-foreground: oklch(0.95 0.004 260);
+  --sidebar-border: oklch(0.28 0.006 260);
+  --sidebar-ring: #00962c;
+  --chart-1: #00962c;
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --success: #00962c;
+  --success-foreground: oklch(0.98 0 0);
+  --warning: oklch(0.75 0.15 80);
+  --warning-foreground: oklch(0.13 0.005 260);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-quad-green: var(--quad-green);
+  --color-quad-blue: var(--quad-blue);
+  --color-quad-red: var(--quad-red);
+  --color-quad-yellow: var(--quad-yellow);
+}
+
+@utility pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+@utility pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+@utility pl-safe { padding-left: env(safe-area-inset-left, 0px); }
+@utility pr-safe { padding-right: env(safe-area-inset-right, 0px); }
+@utility mt-safe { margin-top: env(safe-area-inset-top, 0px); }
+@utility mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+@utility top-safe { top: env(safe-area-inset-top, 0px); }
+@utility bottom-safe { bottom: env(safe-area-inset-bottom, 0px); }
+@utility h-safe-top { height: env(safe-area-inset-top, 0px); }
+@utility h-safe-bottom { height: env(safe-area-inset-bottom, 0px); }
+@utility pb-nav-safe { padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px) + 0.5rem); }
+@utility gpu-accelerated { will-change: transform; transform: translateZ(0); }
 
 /* Safari iOS: fix sizing and touch/drag issues app-wide */
 html {
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   min-height: -webkit-fill-available;
   overscroll-behavior: none;
+  overflow-x: hidden;
+  max-width: 100vw;
+  scroll-behavior: smooth;
   /* Fill safe-area strips so background isn't cut at top/bottom on notched devices */
   background: #F1EFE7;
 }
+html.dark {
+  background: #0f0f11;
+}
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Reddit Sans', sans-serif;
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: -0.01em;
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  max-width: 100vw;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
   overscroll-behavior: none;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   /* No padding here so full-screen wrappers can extend background to edges; they use safe-area padding instead */
   /* Match app shell so any visible area shows app color */
   background: #F1EFE7;
+}
+html.dark body {
+  background: #0f0f11;
 }
 
 /* Match landing page typography: tight heading line-height */
 h1, h2, h3, h4, h5, h6 {
   line-height: 1.1;
   letter-spacing: -0.01em;
+}
+/* Mouse focus: no ring; keyboard: visible focus (components may add ring via box-shadow) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+input:focus,
+textarea:focus,
+[contenteditable="true"]:focus,
+.ProseMirror:focus {
+  outline: none;
+}
+/* Do not strip box-shadow on focus-visible — allows Input/button focus rings */
+/* Native buttons without shadcn slot: keyboard ring */
+button:focus-visible:not([data-slot="button"]) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 /* Allow text selection in inputs and editable content */
 input,
@@ -66,16 +239,27 @@ a {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-  /* Remove tap delay on Safari iOS */
   touch-action: manipulation;
 }
+button:not(:disabled):active,
+[role="button"]:not(:disabled):active {
+  transform: scale(0.98);
+}
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-/* Safari iOS: prevent zoom on input focus (inputs < 16px trigger zoom on mobile) */
-@media (max-width: 768px) {
+/* Mobile: match desktop text size (no 16px zoom fix - use same sizes as desktop) */
+@media (max-width: 550px) {
   input,
   textarea,
   select {
-    font-size: 16px !important;
+    font-size: 0.875rem; /* text-sm */
+  }
+  input.input-text-xs {
+    font-size: 0.75rem; /* text-xs */
   }
 }
 
@@ -85,9 +269,42 @@ a {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Hide scrollbar for filter carousel */
-.filter-scroll::-webkit-scrollbar {
+/* Safari: sticky fallback */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Hide scrollbar for filter carousel and inline horizontal scrollers */
+.filter-scroll::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Scrollbar polish on desktop */
+@media (min-width: 550px) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 3px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
 }
 
 /* All images get rounded corners at any size; avatars use rounded-full, logos use rounded-none */
@@ -117,6 +334,173 @@ img:not(.rounded-full):not(.rounded-none) {
     transform: translateY(0);
   }
 }
+
+/* Tiptap/ProseMirror editor: allow selection, visible highlight */
+.tiptap,
+.ProseMirror {
+  -webkit-user-select: text;
+  user-select: text;
+  line-height: 1.625;
+}
+.tiptap::selection,
+.tiptap *::selection,
+.ProseMirror::selection,
+.ProseMirror *::selection {
+  background: rgb(0 150 44 / 0.35);
+}
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+  height: 0;
+}
+.tiptap p {
+  margin: 0;
+}
+.tiptap p + p {
+  margin-top: 0;
+}
+.tiptap p:empty {
+  min-height: 1.5em;
+}
+.tiptap strong {
+  font-weight: 600;
+}
+.tiptap em {
+  font-style: italic;
+}
+.tiptap s {
+  text-decoration: line-through;
+}
+.tiptap u {
+  text-decoration: underline;
+}
+.tiptap a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.tiptap a:hover {
+  color: #1d4ed8;
+}
+.tiptap ul,
+.tiptap ol {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+}
+.tiptap ul {
+  list-style-type: disc;
+}
+.tiptap ol {
+  list-style-type: decimal;
+}
+.tiptap li {
+  margin: 0.125em 0;
+}
+.tiptap li p {
+  margin: 0;
+}
+.tiptap .mention,
+.post-content .mention {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* Mention list popup - z-[9999] above Sheet (z-50) so it's clickable/scrollable when editor is in bottom sheet */
+.mention-list {
+  position: fixed;
+  z-index: 9999;
+  max-height: 200px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  min-width: 160px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-popover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.mention-list .mention-item {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.mention-list .mention-item:hover,
+.mention-list .mention-item.selected {
+  background: var(--color-accent);
+}
+.mention-list .mention-item.empty {
+  color: var(--color-muted-foreground);
+  cursor: default;
+}
+
+/* Rendered post content (same as editor) */
+/* Reddit-style: rows same height, Enter = 1 line, blank line = visible */
+.post-content {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.625;
+}
+.post-content p {
+  margin: 0;
+}
+.post-content p + p {
+  margin-top: 0;
+}
+.post-content p:empty {
+  min-height: 1.5em;
+}
+.post-content strong {
+  font-weight: 600;
+}
+.post-content em {
+  font-style: italic;
+}
+.post-content s {
+  text-decoration: line-through;
+}
+.post-content u {
+  text-decoration: underline;
+}
+.post-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.post-content a:hover {
+  color: #1d4ed8;
+}
+.post-content ul,
+.post-content ol {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+}
+.post-content ul {
+  list-style-type: disc;
+}
+.post-content ol {
+  list-style-type: decimal;
+}
+.post-content li {
+  margin: 0.125em 0;
+}
+.post-content li p {
+  margin: 0;
+}
+
+/* Compact emoji picker: smaller cells, tighter spacing */
+.emoji-picker-dropdown .EmojiPickerReact,
+.emoji-picker-dropdown aside.EmojiPickerReact {
+  --epr-emoji-size: 22px;
+  --epr-emoji-padding: 2px;
+  --epr-search-input-height: 32px;
+  --epr-category-navigation-button-size: 24px;
+  --epr-category-label-height: 28px;
+  --epr-preview-height: 0;
+  --epr-horizontal-padding: 6px;
+  --epr-header-padding: 6px var(--epr-horizontal-padding);
+  --epr-picker-border-color: #e5e5e5;
+}
+
 
 /* Landing-style background: warm gradient on cream (sign-in, onboarding, landing) */
 .landing-bg {
