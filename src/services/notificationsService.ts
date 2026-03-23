@@ -71,7 +71,7 @@ export const NotificationsService = {
     if (!rows?.length) return [];
 
     const actorIds = [...new Set((rows as NotificationRow[]).map((r) => r.actor_id).filter(Boolean))] as string[];
-    let profileMap = new Map<string, { full_name: string | null; public_name: string | null; avatar_url: string | null }>();
+    const profileMap = new Map<string, { full_name: string | null; public_name: string | null; avatar_url: string | null }>();
     if (actorIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')

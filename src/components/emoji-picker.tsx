@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ComponentProps } from "react"
 import EmojiPickerLib from "emoji-picker-react"
 import { type EmojiClickData, Categories, Theme } from "emoji-picker-react"
 import {
@@ -49,16 +49,18 @@ export function EmojiPicker({
             searchPlaceHolder="Search emoji..."
             autoFocusSearch={false}
             previewConfig={{ showPreview: false }}
-            categories={[
-              Categories.SMILEYS_PEOPLE,
-              Categories.ANIMALS_NATURE,
-              Categories.FOOD_DRINK,
-              Categories.TRAVEL_PLACES,
-              Categories.ACTIVITIES,
-              Categories.OBJECTS,
-              Categories.SYMBOLS,
-              Categories.FLAGS,
-            ]}
+            categories={
+              [
+                Categories.SMILEYS_PEOPLE,
+                Categories.ANIMALS_NATURE,
+                Categories.FOOD_DRINK,
+                Categories.TRAVEL_PLACES,
+                Categories.ACTIVITIES,
+                Categories.OBJECTS,
+                Categories.SYMBOLS,
+                Categories.FLAGS,
+              ] as unknown as ComponentProps<typeof EmojiPickerLib>["categories"]
+            }
           />
       </DropdownMenuContent>
     </DropdownMenu>

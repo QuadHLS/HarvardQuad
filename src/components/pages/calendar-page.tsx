@@ -17,13 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
+import { MobileBottomDrawer } from "@/components/ui/mobile-bottom-drawer"
 import {
   Tooltip,
   TooltipContent,
@@ -2092,6 +2086,7 @@ function CalendarPageContent() {
           onSubmit,
           onDelete,
           onCancel,
+          isMobile: isMobileLayout,
         }: {
           event: CalendarEvent | null
           defaultStart?: Date
@@ -2099,6 +2094,7 @@ function CalendarPageContent() {
           onSubmit: (d: Omit<CalendarEvent, "id">) => void
           onDelete?: () => void
           onCancel: () => void
+          isMobile: boolean
         }) => {
           const [isLoading, setIsLoading] = useState(false)
           const [formData, setFormData] = useState({
@@ -2145,7 +2141,7 @@ function CalendarPageContent() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="title" className="text-sm font-medium">Title</label>
-                <Input id="title" placeholder="Event title" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} autoFocus />
+                <Input id="title" placeholder="Event title" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} autoFocus={!isMobileLayout} />
               </div>
               <div className="space-y-2">
                 <label htmlFor="event-type-trigger" className="text-sm font-medium">
@@ -2230,6 +2226,7 @@ function CalendarPageContent() {
             event={editingEvent}
             defaultStart={newEventStart}
             defaultEnd={newEventEnd}
+            isMobile={isMobile}
             onSubmit={(data) => {
               handleSubmitEvent(data)
               setEventDialogOpen(false)
@@ -2241,14 +2238,19 @@ function CalendarPageContent() {
 
         if (isMobile) {
           return (
-            <Sheet open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
-              <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-                <SheetHeader>
-                  <SheetTitle>{editingEvent ? "Edit Event" : "New Event"}</SheetTitle>
-                </SheetHeader>
-                <div className="px-4 pb-6 overflow-y-auto">{formContent}</div>
-              </SheetContent>
-            </Sheet>
+            <MobileBottomDrawer
+              open={eventDialogOpen}
+              onOpenChange={setEventDialogOpen}
+              title={editingEvent ? "Edit Event" : "New Event"}
+              description={
+                editingEvent ? "Edit the details of your event" : "Create a new event on your calendar"
+              }
+              descriptionClassName="sr-only"
+              variant="form"
+              maxHeightClassName="max-h-[80dvh]"
+            >
+              {formContent}
+            </MobileBottomDrawer>
           )
         }
         return (
@@ -2267,7 +2269,15 @@ function CalendarPageContent() {
 
       {/* Post Event Dialog */}
       {(() => {
-        const PostEventFormInner = ({ onSubmit, onCancel }: { onSubmit: (d: Omit<PostedEvent, "id" | "signedUpCount" | "signedUpUsers" | "authorId" | "authorName" | "createdAt">) => void; onCancel: () => void }) => {
+        const PostEventFormInner = ({
+          onSubmit,
+          onCancel,
+          isMobile: isMobileLayout,
+        }: {
+          onSubmit: (d: Omit<PostedEvent, "id" | "signedUpCount" | "signedUpUsers" | "authorId" | "authorName" | "createdAt">) => void
+          onCancel: () => void
+          isMobile: boolean
+        }) => {
           const [isLoading, setIsLoading] = useState(false)
           const [formData, setFormData] = useState({
             title: "",
@@ -2313,7 +2323,7 @@ function CalendarPageContent() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <label htmlFor="post-title" className="text-sm font-medium">Event Title</label>
-                <Input id="post-title" placeholder="What's happening?" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} autoFocus className="text-base" />
+                <Input id="post-title" placeholder="What's happening?" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} autoFocus={!isMobileLayout} className="text-base" />
               </div>
               <div className="space-y-2">
                 <label htmlFor="post-message" className="text-sm font-medium">Message</label>
@@ -2410,17 +2420,17 @@ function CalendarPageContent() {
 
         if (isMobile) {
           return (
-            <Sheet open={postDialogOpen} onOpenChange={setPostDialogOpen}>
-              <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-                <SheetHeader>
-                  <SheetTitle>Post an Event</SheetTitle>
-                  <SheetDescription className="sr-only">Create an event to share with your campus or squads</SheetDescription>
-                </SheetHeader>
-                <div className="px-4 pb-6 overflow-y-auto">
-                  <PostEventFormInner onSubmit={handleSubmit} onCancel={handleCancel} />
-                </div>
-              </SheetContent>
-            </Sheet>
+            <MobileBottomDrawer
+              open={postDialogOpen}
+              onOpenChange={setPostDialogOpen}
+              title="Post an Event"
+              description="Create an event to share with your campus or squads"
+              descriptionClassName="sr-only"
+              variant="form"
+              maxHeightClassName="max-h-[80dvh]"
+            >
+              <PostEventFormInner isMobile={isMobile} onSubmit={handleSubmit} onCancel={handleCancel} />
+            </MobileBottomDrawer>
           )
         }
         return (
@@ -2431,7 +2441,7 @@ function CalendarPageContent() {
             srDescription="Create an event to share with your campus or squads"
             wide
           >
-            <PostEventFormInner onSubmit={handleSubmit} onCancel={handleCancel} />
+            <PostEventFormInner isMobile={isMobile} onSubmit={handleSubmit} onCancel={handleCancel} />
           </CalendarDesktopFloatingPanel>
         )
       })()}
@@ -2495,14 +2505,17 @@ function CalendarPageContent() {
         )
         if (isMobile) {
           return (
-            <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-              <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-                <SheetHeader>
-                  <SheetTitle className="text-left">{detailEvent.title}</SheetTitle>
-                </SheetHeader>
-                <div className="px-4 pb-6 overflow-y-auto">{content}</div>
-              </SheetContent>
-            </Sheet>
+            <MobileBottomDrawer
+              open={detailOpen}
+              onOpenChange={setDetailOpen}
+              title={detailEvent.title}
+              titleClassName="break-words line-clamp-3"
+              description="View event details and manage this event"
+              descriptionClassName="sr-only"
+              maxHeightClassName="max-h-[80dvh]"
+            >
+              {content}
+            </MobileBottomDrawer>
           )
         }
         return (

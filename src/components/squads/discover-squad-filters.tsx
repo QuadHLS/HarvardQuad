@@ -281,7 +281,7 @@ export function DiscoverSingleCombobox({
             className={cn(
               discoverFilterControlClass,
               "flex items-center justify-between gap-2 font-normal",
-              "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+              "focus-visible:border-ring focus-visible:ring-inset focus-visible:ring-[3px] focus-visible:ring-ring/50",
               "hover:bg-accent/30 data-popup-open:bg-accent/20"
             )}
           >

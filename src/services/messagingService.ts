@@ -518,7 +518,7 @@ export class MessagingService {
 
     const prefix = messageType === 'image' ? 'images' : messageType === 'video' ? 'videos' : 'files';
     // Supabase Storage rejects [ ] and some other chars in object keys
-    const safeName = file.name.replace(/[\[\]{}|\\<>~`"#%^]/g, '-').replace(/-+/g, '-');
+    const safeName = file.name.replace(/[\u005b\u005d{}|\\<>~`"#%^]/g, '-').replace(/-+/g, '-');
     const filePath = `${prefix}/${user.id}/${Date.now()}_${safeName}`;
 
     const useResumable = file.size > RESUMABLE_THRESHOLD;
@@ -1110,7 +1110,7 @@ export class MessagingService {
             .eq('id', senderId)
             .single();
 
-          callback({ ...base, sender: senderProfile || null, attachments: attachmentsWithUrls } as Message);
+          callback({ ...base, sender: senderProfile || null, attachments: attachmentsWithUrls } as unknown as Message);
         }
       )
       .subscribe();

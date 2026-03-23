@@ -307,7 +307,7 @@ export class SquadsService {
       ...r,
       avatar_url: (r.avatar_url as string) || null,
       cover_url: (r.cover_url as string) || null,
-    }));
+    })) as Squad[];
     const withUrls = await this.applySquadSignedUrls(items, SquadsService.AVATAR_BUCKET);
     const squadsWithDetails = await Promise.all(
       withUrls.map(async (r) => {
@@ -355,7 +355,7 @@ export class SquadsService {
       category: string | null;
       avatar_url: string | null;
       cover_url: string | null;
-      type: 'open' | 'restricted';
+      type: 'open' | 'restricted' | 'private';
       is_joined: boolean;
       join_request_status: 'pending' | 'approved' | 'denied' | null;
       member_count: number;
@@ -371,7 +371,25 @@ export class SquadsService {
     const { data: rows, error } = await supabase.rpc('get_trending_squads');
     if (error || !rows?.length) return [];
 
-    const items = rows.map((r: { avatar_url?: string | null; cover_url?: string | null; [k: string]: unknown }) => ({
+    type TrendingSquadRpc = {
+      id: string;
+      name: string;
+      category?: string | null;
+      avatar_url?: string | null;
+      cover_url?: string | null;
+      type?: string;
+      is_joined?: boolean;
+      join_request_status?: string | null;
+      member_count?: number;
+      post_count?: number;
+      engagement_24h?: number;
+      change_pct?: number;
+      window_hours?: number;
+      posts_in_window?: number;
+      replies_in_window?: number;
+      hearts_in_window?: number;
+    };
+    const items = (rows as TrendingSquadRpc[]).map((r) => ({
       ...r,
       avatar_url: r.avatar_url ?? null,
       cover_url: r.cover_url ?? null,
@@ -383,7 +401,11 @@ export class SquadsService {
       category: (r.category as string) ?? null,
       avatar_url: r.avatar_url ?? null,
       cover_url: r.cover_url ?? null,
-      type: (r.type === 'restricted' ? 'restricted' : 'open') as 'open' | 'restricted',
+      type: (r.type === 'restricted'
+        ? 'restricted'
+        : r.type === 'private'
+          ? 'private'
+          : 'open') as 'open' | 'restricted' | 'private',
       is_joined: !!r.is_joined,
       join_request_status: (r.join_request_status === 'pending' || r.join_request_status === 'approved' || r.join_request_status === 'denied' ? r.join_request_status : null) as 'pending' | 'approved' | 'denied' | null,
       member_count: Number(r.member_count ?? 0),
@@ -913,7 +935,7 @@ export class SquadsService {
 
     return rows.map((r) => ({
       ...r,
-      profile: profileMap.get(r.user_id) || null,
+      profile: profileMap.get(r.user_id) ?? undefined,
     }));
   }
 

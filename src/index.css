@@ -160,6 +160,13 @@
 @utility pb-nav-safe { padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px) + 0.5rem); }
 @utility gpu-accelerated { will-change: transform; transform: translateZ(0); }
 
+/* Bordered inset for scrollable lists in sheets/modals (e.g. add-member search hits). */
+@utility sheet-scroll-frame {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background-color: var(--background);
+}
+
 /* Safari iOS: fix sizing and touch/drag issues app-wide */
 html {
   -webkit-text-size-adjust: 100%;
@@ -494,6 +501,18 @@ img:not(.rounded-full):not(.rounded-none) {
   --epr-picker-border-color: #e5e5e5;
 }
 
+/*
+  Vaul adds a ::after on [data-vaul-drawer] (rubber-band extension). On iOS + keyboard + refocus,
+  it can paint above the sheet body so the modal scrim reads through—especially when the focused
+  field is still “empty” / not scrollable. Hiding it matches many production apps that skip that effect.
+*/
+[data-vaul-drawer]::after {
+  display: none !important;
+}
+
+[data-slot="drawer-content"] {
+  isolation: isolate;
+}
 
 /* Landing-style background: warm gradient on cream (sign-in, onboarding, landing) */
 .landing-bg {

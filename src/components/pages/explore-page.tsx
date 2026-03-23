@@ -526,7 +526,7 @@ export function ExplorePage({
                 ? "Search people..."
                 : "Search by squad name"
           }
-          className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50"
           aria-label={tab === "squads" ? "Search squads to discover" : "Search explore"}
         />
       </div>

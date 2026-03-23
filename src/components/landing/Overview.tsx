@@ -736,8 +736,8 @@ const ImmersiveBackground = memo<ImmersiveBackgroundProps>(({
   // Smooth interpolation: fade in as section enters, hold, fade out as section exits
   const backgroundOpacity = useTransform(
     scrollProgress,
-    BG_SCROLL_THRESHOLDS.input,
-    BG_SCROLL_THRESHOLDS.output
+    [...BG_SCROLL_THRESHOLDS.input],
+    [...BG_SCROLL_THRESHOLDS.output]
   );
 
   // For reduced motion: use a stepped transition instead of continuous interpolation

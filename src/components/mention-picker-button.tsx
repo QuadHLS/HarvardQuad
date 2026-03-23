@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 
 type MentionItem = { id: string; label: string }
 
@@ -19,31 +21,47 @@ export function MentionPickerButton({
   triggerClassName?: string
   disabled?: boolean
 }) {
+  const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [items, setItems] = useState<MentionItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [listError, setListError] = useState(false)
+  const fetchGen = useRef(0)
 
   const fetchItems = useCallback(async (q: string) => {
+    const myGen = ++fetchGen.current
     setLoading(true)
     try {
-      const { data } = await supabase.rpc("list_profiles_for_mention", {
+      const { data, error } = await supabase.rpc("list_profiles_for_mention", {
         query_param: q.trim() || null,
       })
+      if (myGen !== fetchGen.current) return
+      if (error) {
+        setItems([])
+        setListError(true)
+        toast.error("Couldn't load people to mention.", { id: "mention-picker-rpc" })
+        return
+      }
+      setListError(false)
       const list = (data || []).map((p: { id: string; public_name: string | null; full_name: string | null }) => ({
         id: p.id,
         label: p.public_name || p.full_name || "Unknown",
       }))
       setItems(list)
     } finally {
-      setLoading(false)
+      if (myGen === fetchGen.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     if (open) {
       setQuery("")
+      setListError(false)
       fetchItems("")
+    } else {
+      fetchGen.current += 1
+      setListError(false)
     }
   }, [open, fetchItems])
 
@@ -82,13 +100,15 @@ export function MentionPickerButton({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search people..."
           className="w-full border-b border-border bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
-          autoFocus
+          autoFocus={!isMobile}
         />
         <div className="max-h-[200px] overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
           {loading ? (
             <div className="px-3 py-4 text-sm text-muted-foreground">Loading…</div>
           ) : items.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-muted-foreground">No users found</div>
+            <div className="px-3 py-4 text-sm text-muted-foreground">
+              {listError ? "Couldn't load people. Try again." : "No users found"}
+            </div>
           ) : (
             items.map((item) => (
               <button

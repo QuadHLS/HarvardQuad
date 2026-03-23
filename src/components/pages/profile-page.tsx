@@ -63,13 +63,14 @@ import { isValidSocialUrl, normalizeSocialUrl } from "@/lib/urlUtils"
 import { FriendsService, type FriendRequestStatus } from "@/services/friendsService"
 import { BlocksService } from "@/services/blocksService"
 import { MessagingService, type DmConversationRow } from "@/services/messagingService"
-import { BlockInfoDialog, type BlockInfoAnchorRect } from "@/components/block-info-dialog"
+import { BlockInfoDialog, BLOCK_INFO, type BlockInfoAnchorRect } from "@/components/block-info-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 const HARVARD_SCHOOLS = [
   "Harvard College (Undergraduate)",
@@ -457,7 +458,7 @@ function ProfileHeader({
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Add your bio | e.g. CS Major | Harvard '27"
-              className="w-full text-sm text-foreground/90 bg-transparent border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none leading-relaxed placeholder:text-muted-foreground"
+              className="w-full text-sm text-foreground/90 bg-transparent border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50 resize-none leading-relaxed placeholder:text-muted-foreground"
               rows={2}
             />
           ) : (
@@ -1414,7 +1415,7 @@ function ProfileSquads({
   onGoToSquad: (squadId: string) => void
   onNavigateToDiscoverSquads?: () => void
 }) {
-  const [squads, setSquads] = useState<Array<{ id: string; name: string; type: "open" | "restricted" | "private"; member_count?: number; post_count?: number; category: string; avatar_url?: string | null }>>([])
+  const [squads, setSquads] = useState<Array<{ id: string; name: string; type: "open" | "restricted" | "private"; member_count?: number; post_count?: number; category: string; avatar_url?: string | null; cover_url?: string | null }>>([])
   const [currentUserSquadIds, setCurrentUserSquadIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(!!profileUserId)
   const [actionSquadId, setActionSquadId] = useState<string | null>(null)
@@ -2089,7 +2090,6 @@ function ProfileSettings({
   onSaveSocial,
   onSavePrivacy,
   onSaveAppearance,
-  onOpenAboutBlocking,
   canEdit = true,
 }: {
   onEditProfile?: () => void
@@ -2097,9 +2097,11 @@ function ProfileSettings({
   onSaveSocial?: (platform: "instagram" | "linkedin" | "twitter" | "github", url: string) => void
   onSavePrivacy?: (isPublic: boolean) => void
   onSaveAppearance?: (theme: "light" | "dark" | "system") => void
-  onOpenAboutBlocking?: (anchor: BlockInfoAnchorRect) => void
   canEdit?: boolean
 }) {
+  const isMobile = useIsMobile()
+  const { signOut } = useAuth()
+  const [signOutLoading, setSignOutLoading] = useState(false)
   const [editingSocial, setEditingSocial] = useState<"instagram" | "linkedin" | "twitter" | "github" | null>(null)
   const [socialInput, setSocialInput] = useState("")
   const { theme, setTheme } = useTheme()
@@ -2146,8 +2148,8 @@ function ProfileSettings({
       title: "Account",
       items: [
         { icon: Edit3, label: "Edit Profile", desc: "Update your personal information" },
-        { icon: Bell, label: "Notifications", desc: "Manage your notification preferences" },
-        { icon: Shield, label: "Privacy", desc: "Control who sees your content", isPrivacy: true },
+        { icon: Bell, label: "Notifications", desc: "Manage your notification preferences", comingSoon: true as const },
+        { icon: Shield, label: "Privacy", desc: "Public or private profile visibility", isPrivacy: true },
       ],
     },
     {
@@ -2158,7 +2160,7 @@ function ProfileSettings({
       title: "Preferences",
       items: [
         { icon: Moon, label: "Appearance", desc: "Dark mode, theme, font size" },
-        { icon: BookOpen, label: "Academic Info", desc: "Update your courses and schedule" },
+        { icon: BookOpen, label: "Academic Info", desc: "Update your courses and schedule", comingSoon: true as const },
       ],
     },
     {
@@ -2175,7 +2177,7 @@ function ProfileSettings({
         { icon: FileText, label: "Privacy Policy", desc: "View our privacy policy", href: "/privacy" },
         { icon: FileText, label: "Terms of Service", desc: "View our terms of service", href: "/terms" },
         { icon: FileText, label: "User Guide", desc: "Coming soon", href: "/user-guide" },
-        { icon: LogOut, label: "Sign Out", desc: "Log out of your account" },
+        { icon: LogOut, label: "Sign Out", desc: "Log out of your account", isSignOut: true as const },
       ],
     },
   ]
@@ -2206,8 +2208,8 @@ function ProfileSettings({
                           value={socialInput}
                           onChange={(e) => setSocialInput(e.target.value)}
                           placeholder={`${label} URL`}
-                          className="flex-1 min-w-0 text-sm bg-transparent border border-input rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
-                          autoFocus
+                          className="flex-1 min-w-0 text-sm bg-transparent border border-input rounded-md px-2 py-1.5 focus:outline-none focus:ring-inset focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
+                          autoFocus={!isMobile}
                         />
                         <button
                           onClick={() => {
@@ -2268,38 +2270,76 @@ function ProfileSettings({
                 </div>
               ))
             ) : (
-              ("items" in group ? group.items : []).map((item, idx, arr) =>
+              ("items" in group && group.items != null ? group.items : []).map((item, idx, arr) =>
                 "isPrivacy" in item && item.isPrivacy ? (
                   <div
                     key={item.label}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3.5",
-                      idx < arr.length - 1 && "border-b border-border"
-                    )}
+                    className={cn(idx < arr.length - 1 && "border-b border-border")}
                   >
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-secondary shrink-0">
-                      <item.icon className="size-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{item.label}</p>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
-                    </div>
-                    {canEdit && onSavePrivacy && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={cn("text-xs", (profile?.is_public ?? true) ? "text-muted-foreground" : "text-foreground font-medium")}>
-                          <Lock className="size-3.5 inline mr-0.5" />
-                          Private
-                        </span>
-                        <Switch
-                          checked={profile?.is_public ?? true}
-                          onCheckedChange={onSavePrivacy}
-                        />
-                        <span className={cn("text-xs", (profile?.is_public ?? true) ? "text-foreground font-medium" : "text-muted-foreground")}>
-                          <Globe className="size-3.5 inline mr-0.5" />
-                          Public
-                        </span>
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      <div className="flex size-9 items-center justify-center rounded-lg bg-secondary shrink-0">
+                        <item.icon className="size-4 text-muted-foreground" />
                       </div>
-                    )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
+                      </div>
+                      {canEdit && onSavePrivacy && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={cn("text-xs", (profile?.is_public ?? true) ? "text-muted-foreground" : "text-foreground font-medium")}>
+                            <Lock className="size-3.5 inline mr-0.5" />
+                            Private
+                          </span>
+                          <Switch
+                            checked={profile?.is_public ?? true}
+                            onCheckedChange={onSavePrivacy}
+                          />
+                          <span className={cn("text-xs", (profile?.is_public ?? true) ? "text-foreground font-medium" : "text-muted-foreground")}>
+                            <Globe className="size-3.5 inline mr-0.5" />
+                            Public
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <Collapsible
+                      defaultOpen={false}
+                      className="border-t border-border [&[data-state=open]_button_.privacy-about-chevron]:rotate-90"
+                    >
+                      <CollapsibleTrigger
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs font-medium text-foreground transition-colors",
+                          "hover:bg-muted/50 active:bg-muted/60"
+                        )}
+                      >
+                        <Info className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                        About privacy
+                        <ChevronRight
+                          className="privacy-about-chevron ml-auto size-4 shrink-0 text-muted-foreground transition-transform"
+                          aria-hidden
+                        />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div
+                          className="border-t border-border bg-muted/25 px-4 pb-3 pt-2"
+                          role="region"
+                          aria-label="About profile privacy"
+                        >
+                          <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                            <p>
+                              <span className="font-medium text-foreground">Public</span>
+                              {" — "}
+                              You can appear in the People tab under Explore (blocked users won’t see each other there). On your profile, others can open Posts, Squads, and Friends and see that content. Your header stays visible too: photo, name, @handle, bio, school details, social links, and post/friend/squad counts.
+                            </p>
+                            <p>
+                              <span className="font-medium text-foreground">Private</span>
+                              {" — "}
+                              You don’t appear in Explore → People. You may still show up in other searches (for example new messages, squad invites, or @mentions). If someone opens your profile, they see the same header fields as above, but not your posts, squads, or friend list—only a note that the profile is private. You always see your own profile in full.
+                            </p>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 ) : item.label === "Appearance" ? (
                   <div
@@ -2343,11 +2383,9 @@ function ProfileSettings({
                 ) : "isBlockedList" in item && item.isBlockedList ? (
                   <>
                     <button
+                      type="button"
                       onClick={() => setBlockedListExpanded((v) => !v)}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors w-full",
-                        "border-b border-border"
-                      )}
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-secondary/50"
                     >
                       <div className="flex size-9 items-center justify-center rounded-lg bg-secondary shrink-0">
                         <item.icon className="size-4 text-muted-foreground" />
@@ -2358,6 +2396,42 @@ function ProfileSettings({
                       </div>
                       <ChevronRight className={cn("size-4 text-muted-foreground shrink-0 transition-transform", blockedListExpanded && "rotate-90")} />
                     </button>
+                    <Collapsible
+                      defaultOpen={false}
+                      className="border-t border-border [&[data-state=open]_button_.blocking-about-chevron]:rotate-90"
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      <CollapsibleTrigger
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs font-medium text-foreground transition-colors",
+                          "hover:bg-muted/50 active:bg-muted/60"
+                        )}
+                      >
+                        <Info className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                        About blocking
+                        <ChevronRight
+                          className="blocking-about-chevron ml-auto size-4 shrink-0 text-muted-foreground transition-transform"
+                          aria-hidden
+                        />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div
+                          className="border-t border-border bg-muted/25 px-4 pb-3 pt-2"
+                          role="region"
+                          aria-label="About blocking"
+                        >
+                          <ul className="list-none space-y-2 pl-0 text-xs leading-relaxed text-muted-foreground">
+                            {BLOCK_INFO.map((line, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="shrink-0 text-muted-foreground/60">•</span>
+                                <span>{line}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                     {blockedListExpanded && (
                       <div className="border-t border-border px-4 py-3.5">
                         {blockedLoading ? (
@@ -2416,26 +2490,6 @@ function ProfileSettings({
                               </div>
                             )
                           })
-                        )}
-                        {onOpenAboutBlocking && (
-                          <button
-                            type="button"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              const r = e.currentTarget.getBoundingClientRect()
-                              onOpenAboutBlocking({
-                                left: r.left,
-                                top: r.top,
-                                width: r.width,
-                                height: r.height,
-                              })
-                            }}
-                            className="mt-3 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors"
-                          >
-                            <Info className="size-4 shrink-0" />
-                            About blocking
-                          </button>
                         )}
                       </div>
                     )}
@@ -2547,13 +2601,49 @@ function ProfileSettings({
                     </div>
                     <ChevronRight className="size-4 text-muted-foreground shrink-0" />
                   </button>
+                ) : "comingSoon" in item && item.comingSoon ? (
+                  <div
+                    key={item.label}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3.5 text-left w-full",
+                      idx < arr.length - 1 && "border-b border-border"
+                    )}
+                  >
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-secondary shrink-0">
+                      <item.icon className="size-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                    <Badge variant="secondary" className="shrink-0 font-normal text-muted-foreground">
+                      Coming soon
+                    </Badge>
+                  </div>
                 ) : (
                   <button
                     key={item.label}
-                    onClick={item.label === "Edit Profile" ? onEditProfile : undefined}
+                    type="button"
+                    disabled={signOutLoading && "isSignOut" in item && item.isSignOut}
+                    onClick={
+                      item.label === "Edit Profile"
+                        ? onEditProfile
+                        : "isSignOut" in item && item.isSignOut
+                          ? async () => {
+                              setSignOutLoading(true)
+                              try {
+                                const { error } = await signOut()
+                                if (error) toast.error(error.message ?? "Couldn't sign out")
+                              } finally {
+                                setSignOutLoading(false)
+                              }
+                            }
+                          : undefined
+                    }
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors",
-                      idx < arr.length - 1 && "border-b border-border"
+                      "flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors w-full",
+                      idx < arr.length - 1 && "border-b border-border",
+                      signOutLoading && "isSignOut" in item && item.isSignOut && "opacity-70"
                     )}
                   >
                     <div className="flex size-9 items-center justify-center rounded-lg bg-secondary">
@@ -2563,7 +2653,11 @@ function ProfileSettings({
                       <p className={cn("text-sm font-medium", item.label === "Sign Out" ? "text-destructive" : "text-foreground")}>{item.label}</p>
                       <p className="text-xs text-muted-foreground">{item.desc}</p>
                     </div>
-                    <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                    {signOutLoading && "isSignOut" in item && item.isSignOut ? (
+                      <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                    )}
                   </button>
                 )
               )
@@ -3075,7 +3169,7 @@ export function ProfilePage({
                 profileUserId={profileUserId ?? null}
                 isOwnProfile={isOwnProfile}
                 currentUserId={user?.id}
-                onGoToSquad={onGoToSquad}
+                onGoToSquad={(id) => onGoToSquad?.(id)}
                 onNavigateToDiscoverSquads={onNavigateToDiscoverSquads}
               />
             )}
@@ -3107,10 +3201,6 @@ export function ProfilePage({
                 onSaveSocial={handleSaveSocial}
                 onSavePrivacy={handleSavePrivacy}
                 onSaveAppearance={handleSaveAppearance}
-                onOpenAboutBlocking={(anchor) => {
-                  setBlockInfoAnchorRect(anchor)
-                  setBlockInfoOpen(true)
-                }}
                 canEdit={!!user}
               />
             )}

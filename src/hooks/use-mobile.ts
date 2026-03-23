@@ -5,6 +5,7 @@ export const MOBILE_LAYOUT_BREAKPOINT_PX = 550
 
 const SIDEBAR_BREAKPOINT = 768 // desktop sidebar rail (not Tailwind md in this app)
 
+/** `true` below {@link MOBILE_LAYOUT_BREAKPOINT_PX} — used for shell layout and policies like skipping `autoFocus` in sheets. */
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(() =>
     typeof window !== "undefined" ? window.innerWidth < MOBILE_LAYOUT_BREAKPOINT_PX : false

@@ -8,13 +8,7 @@ import {
   type ProfileRow,
 } from "@/services/feedService"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
+import { MobileBottomDrawer } from "@/components/ui/mobile-bottom-drawer"
 import {
   Dialog,
   DialogContent,
@@ -330,6 +324,8 @@ function NewPostForm({
   submitting,
   initialData,
   isEditMode,
+  /** Mobile bottom drawer: keep title/editor scrollable, toolbar fixed above keyboard. */
+  pinToolbar,
 }: {
   onClose: () => void
   onSubmit: (title: string, content: string | null, imageFile?: File | null, url?: string | null, pollOptions?: string[]) => Promise<void>
@@ -338,6 +334,7 @@ function NewPostForm({
   submitting: boolean
   initialData?: { title?: string; content?: string | null; url?: string | null; image_path?: string | null; image_url?: string | null }
   isEditMode?: boolean
+  pinToolbar?: boolean
 }) {
   const isMobileNewPost = useIsMobile()
   const isEdit = !!initialData || isEditMode
@@ -396,74 +393,68 @@ function NewPostForm({
     }
   }
 
-  return (
-    <div className="flex gap-3">
-      <Avatar className="size-10 shrink-0">
-        <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
-          {userInitials}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex-1">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={isPoll ? "Ask a question..." : "Title"}
-          className="w-full bg-transparent text-base font-medium text-foreground placeholder:text-muted-foreground focus:outline-none border-b border-transparent focus:border-border pb-1 mb-2"
-          autoFocus
-          aria-label="Post title"
-          disabled={submitting}
-        />
-        <RichTextEditor
-          value={content}
-          onChange={setContent}
-          placeholder="Body text (optional). Type @ to mention someone"
-          disabled={submitting}
-          minHeight="100px"
-          editorRef={editorRef}
-        />
-        {isPoll && (
-          <div className="mt-2 space-y-2">
-            {pollOptions.map((opt, i) => (
-              <div key={i} className="flex gap-2">
-                <input
-                  type="text"
-                  value={opt}
-                  onChange={(e) => {
-                    const next = [...pollOptions]
-                    next[i] = e.target.value
-                    setPollOptions(next)
-                  }}
-                  placeholder={`Option ${i + 1}`}
-                  className="flex-1 rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => pollOptions.length > 2 && setPollOptions(pollOptions.filter((_, j) => j !== i))}
-                  disabled={pollOptions.length <= 2}
-                  className="shrink-0 size-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
-                  aria-label="Remove option"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-            ))}
-            {pollOptions.length < 15 && (
+  const scrollableFields = (
+    <>
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={isPoll ? "Ask a question..." : "Title"}
+        className="w-full bg-transparent text-base font-medium text-foreground placeholder:text-muted-foreground focus:outline-none border-b border-transparent focus:border-border pb-1 mb-2"
+        autoFocus={!isMobileNewPost}
+        aria-label="Post title"
+        disabled={submitting}
+      />
+      <RichTextEditor
+        value={content}
+        onChange={setContent}
+        placeholder="Body text (optional). Type @ to mention someone"
+        disabled={submitting}
+        minHeight="100px"
+        editorRef={editorRef}
+      />
+      {isPoll && (
+        <div className="mt-2 space-y-2">
+          {pollOptions.map((opt, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                type="text"
+                value={opt}
+                onChange={(e) => {
+                  const next = [...pollOptions]
+                  next[i] = e.target.value
+                  setPollOptions(next)
+                }}
+                placeholder={`Option ${i + 1}`}
+                className="flex-1 rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
               <button
                 type="button"
-                onClick={() => setPollOptions([...pollOptions, ""])}
-                className="text-xs text-primary hover:underline"
+                onClick={() => pollOptions.length > 2 && setPollOptions(pollOptions.filter((_, j) => j !== i))}
+                disabled={pollOptions.length <= 2}
+                className="shrink-0 size-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
+                aria-label="Remove option"
               >
-                + Add option
+                <X className="size-4" />
               </button>
-            )}
-          </div>
-        )}
-        {imagePreview && (
-          <div className="mt-2 flex justify-center">
-            <div className="relative inline-block">
-              <img src={imagePreview} alt="Preview" className="max-h-80 max-w-full rounded-lg object-contain" />
-              <button
+            </div>
+          ))}
+          {pollOptions.length < 15 && (
+            <button
+              type="button"
+              onClick={() => setPollOptions([...pollOptions, ""])}
+              className="text-xs text-primary hover:underline"
+            >
+              + Add option
+            </button>
+          )}
+        </div>
+      )}
+      {imagePreview && (
+        <div className="mt-2 flex justify-center">
+          <div className="relative inline-block">
+            <img src={imagePreview} alt="Preview" className="max-h-80 max-w-full rounded-lg object-contain" />
+            <button
               type="button"
               onClick={() => {
                 setImageFile(null)
@@ -475,85 +466,124 @@ function NewPostForm({
             >
               <X className="size-3" />
             </button>
-            </div>
-          </div>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-          aria-hidden
-        />
-        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex size-9 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-secondary hover:text-primary"
-              aria-label="Add photo"
-            >
-              <ImageIcon className="size-4" />
-            </button>
-            {!isEdit && (
-              <button
-                type="button"
-                onClick={() => setIsPoll(!isPoll)}
-                className={cn(
-                  "flex size-9 items-center justify-center rounded-md transition-colors",
-                  isPoll ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-primary"
-                )}
-                aria-label="Add poll"
-                title="Poll"
-              >
-                <BarChart3 className="size-4" />
-              </button>
-            )}
-            <MentionPickerButton
-              onSelect={(id, label) => editorRef.current?.insertMention(id, label)}
-              triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
-            />
-            {!isMobileNewPost && (
-              <EmojiPicker
-                onSelect={(emoji) => editorRef.current?.insertContent(emoji)}
-                triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
-              />
-            )}
-          </div>
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="YouTube, TikTok, etc. — pasted link embeds as video"
-            className="input-text-xs flex-1 min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-            aria-label="Social link"
-          />
-          <div className="flex items-center gap-2 shrink-0">
-            {isEdit && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-            )}
-            <button
-              type="button"
-              className={cn(
-                "rounded-lg px-5 py-2 text-sm font-medium transition-colors",
-                title.trim() && !submitting
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-primary/30 text-primary-foreground/50 cursor-not-allowed"
-              )}
-              disabled={!title.trim() || submitting}
-              onClick={handleSubmit}
-            >
-              {submitting ? (isEdit ? "Saving…" : "Posting…") : (isEdit ? "Save" : "Post")}
-            </button>
           </div>
         </div>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+        aria-hidden
+      />
+    </>
+  )
+
+  const toolbarRow = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex size-9 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-secondary hover:text-primary"
+          aria-label="Add photo"
+        >
+          <ImageIcon className="size-4" />
+        </button>
+        {!isEdit && (
+          <button
+            type="button"
+            onClick={() => setIsPoll(!isPoll)}
+            className={cn(
+              "flex size-9 items-center justify-center rounded-md transition-colors",
+              isPoll ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-primary"
+            )}
+            aria-label="Add poll"
+            title="Poll"
+          >
+            <BarChart3 className="size-4" />
+          </button>
+        )}
+        <MentionPickerButton
+          onSelect={(id, label) => editorRef.current?.insertMention(id, label)}
+          triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
+        />
+        {!isMobileNewPost && (
+          <EmojiPicker
+            onSelect={(emoji) => editorRef.current?.insertContent(emoji)}
+            triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
+          />
+        )}
+      </div>
+      <input
+        type="url"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="YouTube, TikTok, etc. — pasted link embeds as video"
+        className="input-text-xs flex-1 min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+        aria-label="Social link"
+      />
+      <div className="flex items-center gap-2 shrink-0">
+        {isEdit && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="button"
+          className={cn(
+            "rounded-lg px-5 py-2 text-sm font-medium transition-colors",
+            title.trim() && !submitting
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-primary/30 text-primary-foreground/50 cursor-not-allowed"
+          )}
+          disabled={!title.trim() || submitting}
+          onClick={handleSubmit}
+        >
+          {submitting ? (isEdit ? "Saving…" : "Posting…") : (isEdit ? "Save" : "Post")}
+        </button>
+      </div>
+    </div>
+  )
+
+  if (pinToolbar) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4" style={{ WebkitOverflowScrolling: "touch" }}>
+          <div className="flex gap-3">
+            <Avatar className="size-10 shrink-0">
+              <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">{scrollableFields}</div>
+          </div>
+        </div>
+        <div className="shrink-0 border-t border-border bg-background px-4 pb-6 pt-3">
+          <div className="flex gap-3">
+            <div className="size-10 shrink-0" aria-hidden />
+            <div className="min-w-0 flex-1">{toolbarRow}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-3">
+      <Avatar className="size-10 shrink-0">
+        <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
+          {userInitials}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1">
+        {scrollableFields}
+        <div className="mt-3 border-t border-border pt-3">{toolbarRow}</div>
       </div>
     </div>
   )
@@ -580,30 +610,37 @@ export function NewPostModal({
   editPost?: FeedPostWithAuthor | null
 }) {
   const isEdit = !!editPost
-  const form = (
-    <NewPostForm
-      onClose={onClose}
-      onSubmit={onSubmit}
-      authorId={authorId}
-      userInitials={userInitials}
-      submitting={submitting}
-      initialData={editPost ? { title: editPost.title, content: editPost.content, url: editPost.url, image_path: editPost.image_path, image_url: editPost.image_url } : undefined}
-      isEditMode={isEdit}
-    />
-  )
+
+  const formProps = {
+    onClose,
+    onSubmit,
+    authorId,
+    userInitials,
+    submitting,
+    initialData: editPost
+      ? {
+          title: editPost.title,
+          content: editPost.content,
+          url: editPost.url,
+          image_path: editPost.image_path,
+          image_url: editPost.image_url,
+        }
+      : undefined,
+    isEditMode: isEdit,
+  }
+
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>{isEdit ? "Edit Post" : "New Post"}</SheetTitle>
-            <SheetDescription>{isEdit ? "Update your post" : "Share something with your campus"}</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">
-            {form}
-          </div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title={isEdit ? "Edit Post" : "New Post"}
+        description={isEdit ? "Update your post" : "Share something with your campus"}
+        variant="form"
+        scrollBody={false}
+      >
+        <NewPostForm {...formProps} pinToolbar />
+      </MobileBottomDrawer>
     )
   }
 
@@ -614,7 +651,7 @@ export function NewPostModal({
           <DialogTitle>{isEdit ? "Edit Post" : "New Post"}</DialogTitle>
           <DialogDescription>{isEdit ? "Update your post" : "Share something with your campus"}</DialogDescription>
         </DialogHeader>
-        {form}
+        <NewPostForm {...formProps} />
       </DialogContent>
     </Dialog>
   )
@@ -1489,47 +1526,50 @@ export function PostDetailView({
           </div>
         </div>
         )}
-        <Sheet open={replySheetOpen} onOpenChange={(v) => { if (!v) { setReplySheetOpen(false); setReplyingTo(null) } }}>
-          <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-            <SheetHeader>
-              <SheetTitle>Write a reply</SheetTitle>
-              <SheetDescription>Share your thoughts on this post</SheetDescription>
-            </SheetHeader>
-            <div className="px-4 pb-6 overflow-y-auto">
-              <ReplyComposer
-                userInitials={currentUserInitials}
-                onSubmit={handleSubmitReply}
-                submitting={submitting}
-                onCancel={() => { setReplySheetOpen(false); setReplyingTo(null) }}
-                forceExpanded
-                replyingToName={replyingTo ? (() => {
-                  const r = findReplyById(replies, replyingTo)
-                  return r ? FeedService.displayName(r.author) : null
-                })() : null}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-        <Sheet open={!!editReply} onOpenChange={(v) => { if (!v) setEditReply(null) }}>
-          <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-            <SheetHeader>
-              <SheetTitle>Edit reply</SheetTitle>
-              <SheetDescription>Update your reply</SheetDescription>
-            </SheetHeader>
-            <div className="px-4 pb-6 overflow-y-auto">
-              <ReplyComposer
-                key={editReply?.id}
-                userInitials={currentUserInitials}
-                onSubmit={handleUpdateReply}
-                submitting={submitting}
-                onCancel={() => setEditReply(null)}
-                forceExpanded
-                initialContent={editReply?.content}
-                isEditMode
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
+        <MobileBottomDrawer
+          open={replySheetOpen}
+          onOpenChange={(v) => { if (!v) { setReplySheetOpen(false); setReplyingTo(null) } }}
+          title="Write a reply"
+          description="Share your thoughts on this post"
+          variant="form"
+          maxHeightClassName="max-h-[80dvh]"
+          scrollBody={false}
+        >
+          <ReplyComposer
+            userInitials={currentUserInitials}
+            onSubmit={handleSubmitReply}
+            submitting={submitting}
+            onCancel={() => { setReplySheetOpen(false); setReplyingTo(null) }}
+            forceExpanded
+            pinToolbar
+            replyingToName={replyingTo ? (() => {
+              const r = findReplyById(replies, replyingTo)
+              return r ? FeedService.displayName(r.author) : null
+            })() : null}
+            onClearReplyingTo={() => setReplyingTo(null)}
+          />
+        </MobileBottomDrawer>
+        <MobileBottomDrawer
+          open={!!editReply}
+          onOpenChange={(v) => { if (!v) setEditReply(null) }}
+          title="Edit reply"
+          description="Update your reply"
+          variant="form"
+          maxHeightClassName="max-h-[80dvh]"
+          scrollBody={false}
+        >
+          <ReplyComposer
+            key={editReply?.id}
+            userInitials={currentUserInitials}
+            onSubmit={handleUpdateReply}
+            submitting={submitting}
+            onCancel={() => setEditReply(null)}
+            forceExpanded
+            pinToolbar
+            initialContent={editReply?.content}
+            isEditMode
+          />
+        </MobileBottomDrawer>
       </div>
     )
   }
@@ -1726,7 +1766,7 @@ export function PostComposer({
                 placeholder={isPoll ? "Ask a question..." : "Title"}
                 className="w-full bg-transparent text-base font-medium text-foreground placeholder:text-muted-foreground focus:outline-none border-b border-transparent focus:border-border pb-1 mb-2"
                 aria-label="Post title"
-                autoFocus
+                autoFocus={!isMobile}
               />
               <RichTextEditor
                 value={content}
@@ -1908,6 +1948,8 @@ function ReplyComposer({
   onClearReplyingTo,
   initialContent,
   isEditMode,
+  /** Mobile bottom drawer: scroll editor only; keep toolbar + “Replying to” usable above keyboard. */
+  pinToolbar,
 }: {
   userInitials: string
   onSubmit: (content: string) => Promise<void>
@@ -1920,6 +1962,7 @@ function ReplyComposer({
   onClearReplyingTo?: () => void
   initialContent?: string
   isEditMode?: boolean
+  pinToolbar?: boolean
 }) {
   const [content, setContent] = useState(initialContent ?? "")
   const [typingText, setTypingText] = useState("")
@@ -2003,23 +2046,96 @@ function ReplyComposer({
     )
   }
 
+  const replyingRow =
+    replyingToName != null && replyingToName !== "" ? (
+      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>Replying to {replyingToName}</span>
+        {onClearReplyingTo ? (
+          <button type="button" onClick={onClearReplyingTo} className="text-primary hover:underline">
+            Cancel
+          </button>
+        ) : null}
+      </div>
+    ) : null
+
+  const toolbarRow = (
+    <div className="flex items-center gap-2">
+      <MentionPickerButton
+        onSelect={(id, label) => editorRef.current?.insertMention(id, label)}
+        triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
+      />
+      {!isMobile && (
+        <EmojiPicker
+          onSelect={(emoji) => editorRef.current?.insertContent(emoji)}
+          triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
+        />
+      )}
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "rounded-lg px-5 py-1.5 text-sm font-medium transition-colors",
+            hasContent && !submitting ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-primary/30 text-primary-foreground/50 cursor-not-allowed"
+          )}
+          disabled={!hasContent || submitting}
+          onClick={handleSubmit}
+        >
+          {submitting ? (isEditMode ? "Saving…" : "Posting…") : (isEditMode ? "Save" : "Reply")}
+        </button>
+      </div>
+    </div>
+  )
+
+  if (pinToolbar) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-2" style={{ WebkitOverflowScrolling: "touch" }}>
+          {replyingRow}
+          <div className="flex gap-3">
+            <Avatar className="size-10 shrink-0">
+              <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <RichTextEditor
+                value={content}
+                onChange={setContent}
+                placeholder="Write a reply... Type @ to mention someone"
+                disabled={submitting}
+                minHeight="80px"
+                editorRef={editorRef}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="shrink-0 border-t border-border bg-card p-4 pt-3">
+          <div className="flex gap-3">
+            <div className="size-10 shrink-0" aria-hidden />
+            <div className="min-w-0 flex-1">{toolbarRow}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 transition-colors">
-      {replyingToName && (
-        <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Replying to {replyingToName}</span>
-          {onClearReplyingTo && (
-            <button type="button" onClick={onClearReplyingTo} className="text-primary hover:underline">Cancel</button>
-          )}
-        </div>
-      )}
+      {replyingRow}
       <div className="flex gap-3">
         <Avatar className="size-10 shrink-0">
           <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
             {userInitials}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <RichTextEditor
             value={content}
             onChange={setContent}
@@ -2028,38 +2144,7 @@ function ReplyComposer({
             minHeight="80px"
             editorRef={editorRef}
           />
-          <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-            <MentionPickerButton
-              onSelect={(id, label) => editorRef.current?.insertMention(id, label)}
-              triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
-            />
-            {!isMobile && (
-            <EmojiPicker
-              onSelect={(emoji) => editorRef.current?.insertContent(emoji)}
-              triggerClassName="shrink-0 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
-            />
-            )}
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded-lg px-5 py-1.5 text-sm font-medium transition-colors",
-                  hasContent && !submitting ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-primary/30 text-primary-foreground/50 cursor-not-allowed"
-                )}
-                disabled={!hasContent || submitting}
-                onClick={handleSubmit}
-              >
-                {submitting ? (isEditMode ? "Saving…" : "Posting…") : (isEditMode ? "Save" : "Reply")}
-              </button>
-            </div>
-          </div>
+          <div className="mt-3 border-t border-border pt-3">{toolbarRow}</div>
         </div>
       </div>
     </div>
@@ -2893,6 +2978,8 @@ function FriendsFeedConfigModal({
     setSaving(true)
     try {
       await onSave(Array.from(selectedFriends))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save feed settings")
     } finally {
       setSaving(false)
     }
@@ -2918,7 +3005,10 @@ function FriendsFeedConfigModal({
               {selectedFriends.size === friends.length ? "Deselect all" : "Select all"}
             </button>
           </div>
-          <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+          <div
+            className="sheet-scroll-frame flex max-h-64 touch-pan-y flex-col gap-1.5 overflow-y-auto overscroll-y-contain p-1"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {friends.map((friend) => {
               const name = friend.public_name?.trim() || friend.full_name?.trim() || "Unknown"
               return (
@@ -2959,15 +3049,16 @@ function FriendsFeedConfigModal({
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Configure Friends Feed</SheetTitle>
-            <SheetDescription className="sr-only">Choose which friends appear</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{body}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title="Configure Friends Feed"
+        description="Choose which friends appear"
+        descriptionClassName="sr-only"
+        maxHeightClassName="max-h-[80dvh]"
+      >
+        {body}
+      </MobileBottomDrawer>
     )
   }
 
@@ -3034,6 +3125,8 @@ function CustomFeedConfigModal({
     setSaving(true)
     try {
       await onSave({ include_campus: includeCampus, squad_ids: Array.from(selectedSquads) })
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save feed settings")
     } finally {
       setSaving(false)
     }
@@ -3082,7 +3175,10 @@ function CustomFeedConfigModal({
               {selectedSquads.size === joinedSquads.length ? "Deselect all" : "Select all"}
             </button>
           </div>
-          <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+          <div
+            className="sheet-scroll-frame flex max-h-64 touch-pan-y flex-col gap-1.5 overflow-y-auto overscroll-y-contain p-1"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {joinedSquads.map((squad) => (
               <button
                 key={squad.id}
@@ -3125,15 +3221,16 @@ function CustomFeedConfigModal({
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Configure Custom Feed</SheetTitle>
-            <SheetDescription className="sr-only">Choose feeds to combine</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{body}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title="Configure Custom Feed"
+        description="Choose feeds to combine"
+        descriptionClassName="sr-only"
+        maxHeightClassName="max-h-[80dvh]"
+      >
+        {body}
+      </MobileBottomDrawer>
     )
   }
 

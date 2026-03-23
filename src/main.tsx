@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Component, ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import App from "./App";
 import { TermsPage } from "@/components/pages/terms-page"
 import { PrivacyPage } from "@/components/pages/privacy-page"
 import { UserGuidePage } from "@/components/pages/user-guide-page"

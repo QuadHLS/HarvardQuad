@@ -15,7 +15,7 @@ export type TrendingSquad = {
   category: string | null
   avatar_url: string | null
   cover_url?: string | null
-  type: "open" | "restricted"
+  type: "open" | "restricted" | "private"
   is_joined: boolean
   join_request_status: "pending" | "approved" | "denied" | null
   member_count: number

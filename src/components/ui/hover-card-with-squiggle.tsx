@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { composeRefs } from "@radix-ui/react-compose-refs"
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card"
 
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -36,22 +37,12 @@ export function squiggleEndpointsForHoverRects(
   // Closest point on trigger boundary toward the card, then on card toward that point; re-snap
   // trigger once so both ends sit on the true shortest bridge between the two rects.
   let startOnTr = nearestPointOnRectBoundary(ccx, ccy, tr)
-  let endOnCard = nearestPointOnRectBoundary(startOnTr.x, startOnTr.y, cr)
+  const endOnCard = nearestPointOnRectBoundary(startOnTr.x, startOnTr.y, cr)
   startOnTr = nearestPointOnRectBoundary(endOnCard.x, endOnCard.y, tr)
 
   const start = offsetOutsideRect(startOnTr.x, startOnTr.y, tr, startPadPx)
   const end = offsetOutsideRect(endOnCard.x, endOnCard.y, cr, endPadPx)
   return { x0: start.x, y0: start.y, x1: end.x, y1: end.y }
-}
-
-function mergeRefs<T>(...refs: (React.Ref<T> | null | undefined)[]) {
-  return (value: T | null) => {
-    for (const ref of refs) {
-      if (!ref) continue
-      if (typeof ref === "function") ref(value)
-      else (ref as React.MutableRefObject<T | null>).current = value
-    }
-  }
 }
 
 /** Hover card with Quadly-style random squiggle from trigger to the white content card. */
@@ -127,11 +118,13 @@ export function SquiggleHoverCardTrigger({
     )
   }
 
-  const child = children as React.ReactElement<{ ref?: React.Ref<HTMLElement> }>
+  const child = children as React.ReactElement & {
+    props: { ref?: React.Ref<HTMLElement> }
+  }
   return (
     <HoverCardPrimitive.Trigger data-slot="hover-card-squiggle-trigger" asChild {...props}>
       {React.cloneElement(child, {
-        ref: mergeRefs(child.ref, ctx.triggerRef) as React.Ref<unknown>,
+        ref: composeRefs(child.props.ref, ctx.triggerRef),
       })}
     </HoverCardPrimitive.Trigger>
   )
@@ -169,7 +162,7 @@ export function SquiggleHoverCardContent({
         )}
         {...props}
       >
-        <div ref={ctx.contentCardRef} className={cn(innerCardClass, className)}>
+        <div ref={ctx.contentCardRef as React.LegacyRef<HTMLDivElement>} className={cn(innerCardClass, className)}>
           {children}
         </div>
       </HoverCardPrimitive.Content>

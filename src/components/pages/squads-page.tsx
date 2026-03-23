@@ -5,13 +5,7 @@ import { SquadsService, type Squad, type SquadMember, type SquadDocument } from 
 import { FeedService, type FeedPostWithAuthor } from "@/services/feedService"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
+import { MobileBottomDrawer } from "@/components/ui/mobile-bottom-drawer"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -248,33 +242,59 @@ function InviteSquadSheet({
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<Array<{ id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }>>([])
   const [loading, setLoading] = useState(false)
+  const [listError, setListError] = useState(false)
   const [invitingId, setInvitingId] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const searchGen = useRef(0)
+
+  useEffect(() => {
+    if (!open) {
+      searchGen.current += 1
+      setListError(false)
+    }
+  }, [open])
 
   useEffect(() => {
     if (!query.trim() || !currentUserId) {
+      searchGen.current += 1
       setResults([])
+      setListError(false)
       return
     }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
+      const myGen = ++searchGen.current
       setLoading(true)
-      const { data } = await supabase.rpc("list_profiles_for_invite_search", {
-        viewer_id_param: currentUserId,
-        query_param: query.trim() || null,
-      })
-      const list = (data || [])
-        .filter((p: { id: string }) => !memberIds.includes(p.id))
-        .map((p: { id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }) => ({
-          id: p.id,
-          full_name: p.full_name,
-          public_name: p.public_name,
-          avatar_url: p.avatar_url,
-        }))
-      setResults(list)
-      setLoading(false)
+      try {
+        const { data, error } = await supabase.rpc("list_profiles_for_invite_search", {
+          viewer_id_param: currentUserId,
+          query_param: query.trim() || null,
+        })
+        if (myGen !== searchGen.current) return
+        if (error) {
+          setResults([])
+          setListError(true)
+          toast.error("Couldn't search people.", { id: "squad-invite-search-rpc" })
+          return
+        }
+        setListError(false)
+        const list = (data || [])
+          .filter((p: { id: string }) => !memberIds.includes(p.id))
+          .map((p: { id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }) => ({
+            id: p.id,
+            full_name: p.full_name,
+            public_name: p.public_name,
+            avatar_url: p.avatar_url,
+          }))
+        setResults(list)
+      } finally {
+        if (myGen === searchGen.current) setLoading(false)
+      }
     }, 250)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      searchGen.current += 1
+    }
   }, [query, currentUserId, memberIds])
 
   const handleInvite = async (userId: string) => {
@@ -302,25 +322,33 @@ function InviteSquadSheet({
   }
 
   const content = (
-    <div className="flex flex-col gap-4">
-      <div className="relative">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="relative shrink-0">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or @username..."
           className="h-10 pl-9"
-          autoFocus
+          autoFocus={!isMobile}
         />
       </div>
-      <div className="flex flex-col gap-1 min-h-0 flex-1 overflow-y-auto">
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-y-contain touch-pan-y",
+          query.trim() && "sheet-scroll-frame p-1",
+        )}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {loading && (
           <div className="flex justify-center py-8">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
           </div>
         )}
         {!loading && query.trim() && results.length === 0 && (
-          <p className="text-sm text-muted-foreground py-2">No users found</p>
+          <p className="text-sm text-muted-foreground py-2">
+            {listError ? "Couldn't load results. Try again." : "No users found"}
+          </p>
         )}
         {!loading && results.map((u) => (
           <div key={u.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary transition-colors">
@@ -350,21 +378,25 @@ function InviteSquadSheet({
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Invite to {squadName}</SheetTitle>
-            <SheetDescription>Search for someone to invite. They&apos;ll get a notification to accept or decline.</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{content}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(o) => !o && onClose()}
+        title={`Invite to ${squadName}`}
+        description="Search for someone to invite. They'll get a notification to accept or decline."
+        variant="inputStable"
+        maxHeightClassName="max-h-[80dvh]"
+        scrollBody={false}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-6 pt-2">
+          {content}
+        </div>
+      </MobileBottomDrawer>
     )
   }
   if (!open) return null
   return (
     <div className="fixed bottom-6 right-6 z-50 w-[400px] max-h-[80vh] rounded-2xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in-0 duration-200">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+      <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Invite to {squadName}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Search for someone to invite</p>
@@ -373,7 +405,7 @@ function InviteSquadSheet({
           <X className="size-4" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto px-4 pb-4">{content}</div>
+      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">{content}</div>
     </div>
   )
 }
@@ -543,14 +575,16 @@ function CreateSquadModal({ open, onClose, onSubmit, submitting, isMobile }: {
   )
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Create a Squad</SheetTitle>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{content}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title="Create a Squad"
+        description="Set name, description, category, privacy, and optional meeting details for your squad"
+        descriptionClassName="sr-only"
+        variant="form"
+      >
+        {content}
+      </MobileBottomDrawer>
     )
   }
   if (!open) return null
@@ -648,15 +682,16 @@ function AddDocumentModal({ open, onClose, squadId, onSubmit, submitting, isMobi
   )
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Add Document</SheetTitle>
-            <SheetDescription>Share a document with your squad</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{content}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title="Add Document"
+        description="Share a document with your squad"
+        variant="form"
+        maxHeightClassName="max-h-[80dvh]"
+      >
+        {content}
+      </MobileBottomDrawer>
     )
   }
   if (!open) return null
@@ -702,7 +737,7 @@ function ConfirmPopup({
       await onConfirm()
       onClose()
     } catch (err) {
-      toast.error((err as Error).message || errorMessage)
+      toast.error(err instanceof Error ? err.message : errorMessage)
     } finally {
       setLoading(false)
     }
@@ -725,15 +760,15 @@ function ConfirmPopup({
   )
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>{title}</SheetTitle>
-            <SheetDescription>{description}</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 pt-2">{buttons}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title={title}
+        description={description}
+        scrollBody={false}
+      >
+        <div className="px-4 pb-6 pt-2">{buttons}</div>
+      </MobileBottomDrawer>
     )
   }
   return (
@@ -770,7 +805,7 @@ function DeleteSquadDialog({ open, onClose, squadName, onConfirm }: {
       await onConfirm()
       onClose()
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to delete')
+      toast.error(err instanceof Error ? err.message : 'Failed to delete')
     } finally {
       setLoading(false)
     }
@@ -1111,7 +1146,7 @@ function EditSquadFormContent({
           value={rules}
           onChange={(e) => setRules(e.target.value)}
           placeholder="Rules"
-          className="w-full resize-none rounded-lg border-none bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 leading-relaxed"
+          className="w-full resize-none rounded-lg border-none bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50 leading-relaxed"
           rows={4}
         />
       </div>
@@ -1155,14 +1190,16 @@ function EditSquadModal({ open, onClose, squad, onSave, isMobile }: {
   const content = <EditSquadFormContent key={open ? 'open' : 'closed'} squad={squad} onClose={onClose} onSave={onSave} />
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Edit Squad</SheetTitle>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{content}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title="Edit Squad"
+        description="Update squad name, description, category, privacy, meeting times, and location"
+        descriptionClassName="sr-only"
+        variant="form"
+      >
+        {content}
+      </MobileBottomDrawer>
     )
   }
   if (!open) return null
@@ -1205,7 +1242,7 @@ function EditRulesFormContent({ squad, onClose, onSave }: { squad: Squad; onClos
           value={rules}
           onChange={(e) => setRules(e.target.value)}
           placeholder="Add rules for your squad..."
-          className="w-full resize-none rounded-lg border-none bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 leading-relaxed"
+          className="w-full resize-none rounded-lg border-none bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50 leading-relaxed"
           rows={6}
         />
       </div>
@@ -1226,14 +1263,16 @@ function EditRulesModal({ open, onClose, squad, onSave, isMobile }: {
   const content = <EditRulesFormContent key={open ? 'open' : 'closed'} squad={squad} onClose={onClose} onSave={onSave} />
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Edit Rules</SheetTitle>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{content}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title="Edit Rules"
+        description="Update the community rules shown to squad members"
+        descriptionClassName="sr-only"
+        variant="form"
+      >
+        {content}
+      </MobileBottomDrawer>
     )
   }
   if (!open) return null
@@ -2164,7 +2203,9 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
             description="This will hide the squad chat from your Messages list. You'll see it again if someone messages."
             confirmLabel="Hide"
             onConfirm={async () => {
-              if (!squadData.conversation_id) return
+              if (!squadData.conversation_id) {
+                throw new Error('No squad chat to hide')
+              }
               await MessagingService.hideConversation(squadData.conversation_id)
               setShowChat(false)
               setHideChatOpen(false)
@@ -2306,7 +2347,9 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
           confirmLabel="Remove"
           confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           onConfirm={async () => {
-            if (!removeMember) return
+            if (!removeMember) {
+              throw new Error('No member selected')
+            }
             await SquadsService.removeSquadMember(squad.id, removeMember.user_id)
             toast.success(`${displayName(removeMember)} has been removed`)
             setRemoveMember(null)
@@ -2334,7 +2377,9 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
           confirmLabel="Delete"
           confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           onConfirm={async () => {
-            if (!deleteDoc) return
+            if (!deleteDoc) {
+              throw new Error('No document selected')
+            }
             await SquadsService.deleteSquadDocument(squad.id, deleteDoc.id)
             toast.success('Document deleted')
             setDeleteDoc(null)
@@ -2350,7 +2395,9 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
           description="This will hide the squad chat from your Messages list. You'll see it again if someone messages."
           confirmLabel="Hide"
           onConfirm={async () => {
-            if (!squadData.conversation_id) return
+            if (!squadData.conversation_id) {
+              throw new Error('No squad chat to hide')
+            }
             await MessagingService.hideConversation(squadData.conversation_id)
             setShowChat(false)
             setHideChatOpen(false)
@@ -2575,7 +2622,9 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
         confirmLabel="Remove"
         confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         onConfirm={async () => {
-          if (!removeMember) return
+          if (!removeMember) {
+            throw new Error('No member selected')
+          }
           await SquadsService.removeSquadMember(squad.id, removeMember.user_id)
           toast.success(`${displayName(removeMember)} has been removed`)
           setRemoveMember(null)
@@ -2618,7 +2667,9 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
         confirmLabel="Delete"
         confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         onConfirm={async () => {
-          if (!deleteDoc) return
+          if (!deleteDoc) {
+            throw new Error('No document selected')
+          }
           await SquadsService.deleteSquadDocument(squad.id, deleteDoc.id)
           toast.success('Document deleted')
           setDeleteDoc(null)
@@ -2944,7 +2995,6 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
 
 // ── Squad Card (exported for Explore discover) ──
 export function SquadCard({ squad, onClick }: { squad: Squad; onClick: () => void }) {
-  const isMobile = useIsMobile()
   const [imgError, setImgError] = useState(false)
   const avatarUrl = squad.avatar_url && !imgError ? squad.avatar_url : null
   const hoverColor = squadHoverColor(squad.id)
@@ -3186,7 +3236,7 @@ export function SquadsPage({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={filter === "joined" ? "Search your squads by name" : "Search by squad name"}
-            className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50"
             aria-label={filter === "joined" ? "Search your squads" : "Search squads"}
           />
         </div>

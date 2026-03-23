@@ -25,14 +25,14 @@ const innerCardClass =
 const contentAnimations =
   "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-popover-content-transform-origin]"
 
-const BLOCK_INFO = [
+export const BLOCK_INFO = [
   "Your DM is deleted. You can't message each other.",
   "You're unfriended. Any pending friend request is cancelled.",
   "You won't see their profile or posts in feeds.",
   "Notifications between you (likes, mentions, etc.) are removed.",
   "They won't be notified.",
   "To unblock: Settings → Blocked users.",
-]
+] as const
 
 export type BlockInfoAnchorRect = {
   left: number

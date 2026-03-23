@@ -65,7 +65,7 @@ export const Footer = memo(() => {
             <ul className="space-y-3">
               {PLATFORM_LINKS.map((link) => (
                 <li key={link.label}>
-                  {link.sectionId ? (
+                  {"sectionId" in link ? (
                     <button
                       onClick={() => scrollToSection(link.sectionId)}
                       className="text-[#787771] hover:text-[#27251f] transition-colors cursor-pointer font-normal tracking-[-0.01em]"

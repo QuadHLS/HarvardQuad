@@ -10,6 +10,9 @@ import { ProfileProvider } from './contexts/ProfileContext';
 import { navigateWithoutReload } from './lib/navigation';
 import { supabase } from './lib/supabase';
 
+/** When false, signed-out users go straight to login; landing page code stays below for easy restore. */
+const SHOW_LANDING_PAGE = false;
+
 export default function App() {
   const { user, loading } = useAuth();
   const [profile, setProfile] = useState<{ onboarding_completed?: boolean | null } | null>(null);
@@ -28,23 +31,31 @@ export default function App() {
     const timeout = setTimeout(() => {
       if (!cancelled) setProfileLoading(false);
     }, 8000);
-    supabase
-      .from('profiles')
-      .select('onboarding_completed')
-      .eq('id', userId)
-      .single()
-      .then(({ data }) => {
+
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", userId)
+          .single();
         if (cancelled) return;
+        if (error) {
+          setProfile(null);
+          return;
+        }
         setProfile(data ?? null);
         if (data?.onboarding_completed) setOnboardingComplete(true);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setProfile(null);
-      })
-      .finally(() => {
-        if (!cancelled) setProfileLoading(false);
-        clearTimeout(timeout);
-      });
+      } finally {
+        if (!cancelled) {
+          setProfileLoading(false);
+          clearTimeout(timeout);
+        }
+      }
+    })();
+
     return () => {
       cancelled = true;
       clearTimeout(timeout);
@@ -77,8 +88,12 @@ export default function App() {
   }
 
   if (!user) {
-    if (showAuth) {
-      return <AuthScreensStandalone onBack={() => setShowAuth(false)} />;
+    if (showAuth || !SHOW_LANDING_PAGE) {
+      return (
+        <AuthScreensStandalone
+          onBack={SHOW_LANDING_PAGE ? () => setShowAuth(false) : undefined}
+        />
+      );
     }
     return (
       <LandingPage

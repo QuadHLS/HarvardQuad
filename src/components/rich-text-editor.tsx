@@ -19,6 +19,7 @@ import { Bold, Italic, Check, List, ListOrdered, Strikethrough, Underline, Link,
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 
 /* Google Docs/Sheets/Slides standard theme palette (reverse-engineered, no official API) */
 const GOOGLE_DOCS_PALETTE = [
@@ -267,7 +268,11 @@ function createMentionSuggestion() {
     pluginKey: mentionPluginKey,
     items: async ({ query }: { query: string }) => {
       const q = (query || "").trim()
-      const { data } = await supabase.rpc("list_profiles_for_mention", { query_param: q || null })
+      const { data, error } = await supabase.rpc("list_profiles_for_mention", { query_param: q || null })
+      if (error) {
+        toast.error("Couldn't load people to mention.", { id: "mention-editor-rpc" })
+        return []
+      }
       return (data || []).map((p: { id: string; public_name: string | null; full_name: string | null }) => ({
         id: p.id,
         label: p.public_name || p.full_name || "Unknown",

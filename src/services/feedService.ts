@@ -211,7 +211,7 @@ export const FeedService = {
     });
 
     const squadIds = [...new Set((rows as FeedPostRow[]).filter((p) => p.source_type === 'squad' && p.source_id).map((p) => p.source_id!))];
-    let squadNameById = new Map<string, string>();
+    const squadNameById = new Map<string, string>();
     if (squadIds.length > 0) {
       const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds);
       (squads || []).forEach((s: { id: string; name: string }) => squadNameById.set(s.id, s.name || ''));
@@ -322,7 +322,7 @@ export const FeedService = {
     });
 
     const squadIds = [...new Set((list as FeedPostRow[]).filter((p) => p.source_type === 'squad' && p.source_id).map((p) => p.source_id!))];
-    let squadNameById = new Map<string, string>();
+    const squadNameById = new Map<string, string>();
     if (squadIds.length > 0) {
       const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds);
       (squads || []).forEach((s: { id: string; name: string }) => squadNameById.set(s.id, s.name || ''));
@@ -432,7 +432,7 @@ export const FeedService = {
     });
 
     const squadIds = [...new Set((list as FeedPostRow[]).filter((p) => p.source_type === 'squad' && p.source_id).map((p) => p.source_id!))];
-    let squadNameById = new Map<string, string>();
+    const squadNameById = new Map<string, string>();
     if (squadIds.length > 0) {
       const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds);
       (squads || []).forEach((s: { id: string; name: string }) => squadNameById.set(s.id, s.name || ''));
@@ -541,7 +541,7 @@ export const FeedService = {
     });
 
     const squadIds = [...new Set(filtered.filter((p) => p.source_type === 'squad' && p.source_id).map((p) => p.source_id!))];
-    let squadNameById = new Map<string, string>();
+    const squadNameById = new Map<string, string>();
     if (squadIds.length > 0) {
       const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds);
       (squads || []).forEach((s: { id: string; name: string }) => squadNameById.set(s.id, s.name || ''));
@@ -731,7 +731,7 @@ export const FeedService = {
 
     const optionRows = (optionsRes.data || []) as FeedPollOptionRow[];
     const optionIds = optionRows.map((o) => o.id);
-    let voteCountByOption: Record<string, number> = {};
+    const voteCountByOption: Record<string, number> = {};
     if (optionIds.length > 0) {
       const { data: votes } = await supabase.from('feed_poll_votes').select('option_id').in('option_id', optionIds);
       (votes || []).forEach((v: { option_id: string }) => { voteCountByOption[v.option_id] = (voteCountByOption[v.option_id] || 0) + 1; });
@@ -901,7 +901,7 @@ export const FeedService = {
     });
 
     const squadIds = [...new Set((rows as FeedPostRow[]).filter((p) => p.source_type === 'squad' && p.source_id).map((p) => p.source_id!))];
-    let squadNameById = new Map<string, string>();
+    const squadNameById = new Map<string, string>();
     if (squadIds.length > 0) {
       const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds);
       (squads || []).forEach((s: { id: string; name: string }) => squadNameById.set(s.id, s.name || ''));
@@ -996,7 +996,7 @@ export const FeedService = {
     });
 
     const squadIds = [...new Set(rowsOrdered.filter((p) => p.source_type === 'squad' && p.source_id).map((p) => p.source_id!))];
-    let squadNameById = new Map<string, string>();
+    const squadNameById = new Map<string, string>();
     if (squadIds.length > 0) {
       const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds);
       (squads || []).forEach((s: { id: string; name: string }) => squadNameById.set(s.id, s.name || ''));

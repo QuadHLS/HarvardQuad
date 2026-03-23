@@ -25,3 +25,26 @@ export function quadAvatarColor(id: string): string {
   const i = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
   return QUAD_AVATAR_COLORS[Math.abs(i) % QUAD_AVATAR_COLORS.length]
 }
+
+/**
+ * iOS Safari: fields in scrollable panels (e.g. floating share card) can sit under the
+ * keyboard until layout changes. Pinned footers in `MobileBottomDrawer` avoid most cases;
+ * this still helps desktop overflow regions and late viewport settles.
+ */
+export function scrollFocusedFieldIntoView(el: HTMLElement) {
+  const scroll = () => {
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(scroll)
+  })
+  if (typeof window === 'undefined') return
+  const vv = window.visualViewport
+  if (!vv) return
+  const onVv = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scroll)
+    })
+  }
+  vv.addEventListener('resize', onVv, { once: true })
+}

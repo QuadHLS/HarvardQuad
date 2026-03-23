@@ -1,12 +1,6 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useId } from "react"
 import { Send, Loader2, X, Check } from "lucide-react"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
+import { MobileBottomDrawer } from "@/components/ui/mobile-bottom-drawer"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -15,7 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { MessagingService, type DmConversationRow, type SharedPostData } from "@/services/messagingService"
 import { FeedService, type FeedPostWithAuthor } from "@/services/feedService"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { cn, scrollFocusedFieldIntoView } from "@/lib/utils"
 
 function initials(name: string | null): string {
   if (!name?.trim()) return "?"
@@ -49,6 +43,8 @@ export function SharePostModal({
   /** Called after successful share with (postId, countAdded). Use to update share_count optimistically. */
   onShareSuccess?: (postId: string, countAdded: number) => void
 }) {
+  const convHeadingId = useId()
+  const captionInputId = useId()
   const isMobile = useIsMobile()
   const [conversations, setConversations] = useState<DmConversationRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -119,119 +115,157 @@ export function SharePostModal({
     }
   }
 
-  const content = (
-    <div className="flex flex-col gap-4">
-      {post && (
-        <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
-          <p className="font-medium text-foreground line-clamp-2">{post.title}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {FeedService.postAuthorName(post)}
-            {post.source_type === "squad" && post.source_name && ` · #${post.source_name}`}
-          </p>
+  const postPreview =
+    post && (
+      <div className="shrink-0 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+        <p className="font-medium text-foreground line-clamp-2">{post.title}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {FeedService.postAuthorName(post)}
+          {post.source_type === "squad" && post.source_name && ` · #${post.source_name}`}
+        </p>
+      </div>
+    )
+
+  const conversationHeading = (
+    <p id={convHeadingId} className="text-sm font-medium text-foreground shrink-0">
+      Choose conversation{selectedIds.size > 0 && ` (${selectedIds.size} selected)`}
+    </p>
+  )
+
+  const conversationListContent = (
+    <div className="flex flex-col gap-1">
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       )}
-      <div>
-        <label className="text-sm font-medium text-foreground mb-2 block">
-          Choose conversation{selectedIds.size > 0 && ` (${selectedIds.size} selected)`}
-        </label>
-        <ScrollArea className="h-[200px] rounded-lg border border-border">
-          <div className="flex flex-col p-2 gap-1">
-            {loading && (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      {!loading && conversations.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-6">No conversations yet</p>
+      )}
+      {!loading &&
+        conversations.map((conv) => {
+          const isSelected = selectedIds.has(conv.id)
+          return (
+            <button
+              key={conv.id}
+              type="button"
+              onClick={() => toggleSelected(conv.id)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-all",
+                isSelected
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "hover:bg-secondary/50 border border-transparent",
+              )}
+            >
+              <Avatar className="size-11 shrink-0">
+                {conv.other_avatar_url ? (
+                  <img src={conv.other_avatar_url} alt="" className="size-11 rounded-full object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-accent text-accent-foreground text-sm font-semibold">
+                    {initials(conv.other_display_name)}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium truncate">{conv.other_display_name || "Unknown"}</span>
+                  {conv.squad_id && (
+                    <span className="shrink-0 inline-flex items-center justify-center text-xs font-medium px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">
+                      Squad
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {conv.last_message_content || "No messages yet"}
+                </p>
               </div>
-            )}
-            {!loading && conversations.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">No conversations yet</p>
-            )}
-            {!loading &&
-              conversations.map((conv) => {
-                const isSelected = selectedIds.has(conv.id)
-                return (
-                  <button
-                    key={conv.id}
-                    type="button"
-                    onClick={() => toggleSelected(conv.id)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-all",
-                      isSelected
-                        ? "bg-primary/15 text-primary border border-primary/30"
-                        : "hover:bg-secondary/50 border border-transparent"
-                    )}
-                  >
-                    <Avatar className="size-11 shrink-0">
-                      {conv.other_avatar_url ? (
-                        <img src={conv.other_avatar_url} alt="" className="size-11 rounded-full object-cover" />
-                      ) : (
-                        <AvatarFallback className="bg-accent text-accent-foreground text-sm font-semibold">
-                          {initials(conv.other_display_name)}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium truncate">{conv.other_display_name || "Unknown"}</span>
-                        {conv.squad_id && (
-                          <span className="shrink-0 inline-flex items-center justify-center text-xs font-medium px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">
-                            Squad
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {conv.last_message_content || "No messages yet"}
-                      </p>
-                    </div>
-                    {isSelected && (
-                      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                        <Check className="size-3.5" />
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-          </div>
-        </ScrollArea>
-      </div>
-      <div>
-        <label className="text-sm font-medium text-foreground mb-2 block">Add a message (optional)</label>
-        <Input
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder="Say something about this post..."
-          className="rounded-lg"
-          maxLength={500}
-        />
-      </div>
-      <Button
-        onClick={handleShare}
-        disabled={selectedIds.size === 0 || sending}
-        className="w-full gap-2"
+              {isSelected && (
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Check className="size-3.5" />
+                </div>
+              )}
+            </button>
+          )
+        })}
+    </div>
+  )
+
+  const conversationPickerDesktop = (
+    <div className="flex flex-col gap-2" role="group" aria-labelledby={convHeadingId}>
+      {conversationHeading}
+      <ScrollArea className="sheet-scroll-frame h-[200px]">
+        <div className="p-2">{conversationListContent}</div>
+      </ScrollArea>
+    </div>
+  )
+
+  const conversationPickerMobile = (
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden" role="group" aria-labelledby={convHeadingId}>
+      {conversationHeading}
+      <div
+        className="sheet-scroll-frame flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain p-2 touch-pan-y"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {sending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Send className="size-4" />
-        )}
-        {selectedIds.size === 0
-          ? "Share"
-          : selectedIds.size === 1
-            ? "Share"
-            : `Share to ${selectedIds.size}`}
-      </Button>
+        {conversationListContent}
+      </div>
+    </div>
+  )
+
+  const captionField = (
+    <div>
+      <label htmlFor={captionInputId} className="text-sm font-medium text-foreground mb-2 block">
+        Add a message (optional)
+      </label>
+      <Input
+        id={captionInputId}
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+        onFocus={(e) => scrollFocusedFieldIntoView(e.currentTarget)}
+        placeholder="Say something about this post..."
+        className="rounded-lg"
+        maxLength={500}
+      />
+    </div>
+  )
+
+  const shareActionButton = (
+    <Button onClick={handleShare} disabled={selectedIds.size === 0 || sending} className="w-full gap-2">
+      {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+      {selectedIds.size === 0 ? "Share" : selectedIds.size === 1 ? "Share" : `Share to ${selectedIds.size}`}
+    </Button>
+  )
+
+  const content = (
+    <div className="flex flex-col gap-4">
+      {postPreview}
+      {conversationPickerDesktop}
+      {captionField}
+      {shareActionButton}
     </div>
   )
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Share post</SheetTitle>
-            <SheetDescription>Send to one or more conversations</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{content}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title="Share post"
+        description="Send to one or more conversations"
+        variant="form"
+        maxHeightClassName="max-h-[80dvh]"
+        scrollBody={false}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-6">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+            {postPreview}
+            {conversationPickerMobile}
+          </div>
+          <div className="shrink-0 flex flex-col gap-3 border-t border-border/60 bg-background pt-3 mt-2">
+            {captionField}
+            {shareActionButton}
+          </div>
+        </div>
+      </MobileBottomDrawer>
     )
   }
 

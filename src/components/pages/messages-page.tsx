@@ -1,13 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
+import { MobileBottomDrawer } from "@/components/ui/mobile-bottom-drawer"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -834,36 +828,54 @@ function NewMessageForm({
   onSelectConversation: (id: string) => void
   inModal?: boolean
 }) {
+  const isMobileLayout = useIsMobile()
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<Array<{ id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }>>([])
   const [loading, setLoading] = useState(false)
+  const [listError, setListError] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const searchGen = useRef(0)
 
   useEffect(() => {
     if (!query.trim() || !currentUserId) {
+      searchGen.current += 1
       setResults([])
+      setListError(false)
       return
     }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
+      const myGen = ++searchGen.current
       setLoading(true)
-      const { data } = await supabase.rpc("list_profiles_for_invite_search", {
-        viewer_id_param: currentUserId,
-        query_param: query.trim() || null,
-      })
-      const list = (data || []).map(
-        (p: { id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }) => ({
-          id: p.id,
-          full_name: p.full_name,
-          public_name: p.public_name,
-          avatar_url: p.avatar_url,
+      try {
+        const { data, error } = await supabase.rpc("list_profiles_for_invite_search", {
+          viewer_id_param: currentUserId,
+          query_param: query.trim() || null,
         })
-      )
-      setResults(list)
-      setLoading(false)
+        if (myGen !== searchGen.current) return
+        if (error) {
+          setResults([])
+          setListError(true)
+          toast.error("Couldn't search people.", { id: "new-message-search-rpc" })
+          return
+        }
+        setListError(false)
+        const list = (data || []).map(
+          (p: { id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }) => ({
+            id: p.id,
+            full_name: p.full_name,
+            public_name: p.public_name,
+            avatar_url: p.avatar_url,
+          })
+        )
+        setResults(list)
+      } finally {
+        if (myGen === searchGen.current) setLoading(false)
+      }
     }, 250)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
+      searchGen.current += 1
     }
   }, [query, currentUserId])
 
@@ -884,7 +896,7 @@ function NewMessageForm({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={cn("flex min-h-0 flex-1 flex-col", inModal ? "h-full min-w-0" : "h-full")}>
       {!inModal && (
         <div className="flex items-center gap-3 border-b border-border px-4 py-3 shrink-0">
           <button
@@ -897,26 +909,34 @@ function NewMessageForm({
           <h2 className="text-base font-semibold text-foreground">New message</h2>
         </div>
       )}
-      <div className="flex flex-col flex-1 min-h-0 p-4 overflow-hidden">
-        <div className="relative mb-4">
+      <div className={cn("flex min-h-0 flex-1 flex-col", inModal ? "" : "overflow-hidden p-4")}>
+        <div className="relative mb-4 shrink-0">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name or @username..."
-            className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            autoFocus
+            className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50"
+            autoFocus={!isMobileLayout}
           />
         </div>
-        <ScrollArea className="flex-1">
-          <div className="flex flex-col gap-1 pr-2">
+        <div
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y",
+            query.trim() && "sheet-scroll-frame p-1",
+          )}
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+          <div className="flex flex-col gap-1 pr-1">
             {loading && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               </div>
             )}
             {!loading && results.length === 0 && query.trim() && (
-              <p className="text-sm text-muted-foreground py-2">No users found</p>
+              <p className="text-sm text-muted-foreground py-2">
+                {listError ? "Couldn't load results. Try again." : "No users found"}
+              </p>
             )}
             {!loading &&
               results.map((u) => (
@@ -945,7 +965,7 @@ function NewMessageForm({
                 </button>
               ))}
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   )
@@ -958,12 +978,15 @@ function NewGroupForm({
   onSelectConversation,
   onRefresh,
   inModal,
+  onPhaseChange,
 }: {
   currentUserId: string
   onBack: () => void
   onSelectConversation: (id: string) => void
   onRefresh?: () => void
   inModal?: boolean
+  /** Mobile drawer title: switch when moving to optional avatar step */
+  onPhaseChange?: (phase: "form" | "photo") => void
 }) {
   const [name, setName] = useState("")
   const [query, setQuery] = useState("")
@@ -978,6 +1001,10 @@ function NewGroupForm({
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    onPhaseChange?.(createdId ? "photo" : "form")
+  }, [createdId, onPhaseChange])
 
   useEffect(() => {
     if (!query.trim()) {
@@ -1139,7 +1166,7 @@ function NewGroupForm({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={cn("flex min-h-0 flex-1 flex-col", inModal ? "h-full min-w-0" : "h-full")}>
       {!inModal && (
         <div className="flex items-center gap-3 border-b border-border px-4 py-3 shrink-0">
           <button
@@ -1152,108 +1179,120 @@ function NewGroupForm({
           <h2 className="text-base font-semibold text-foreground">New group</h2>
         </div>
       )}
-      <div className="flex flex-col flex-1 min-h-0 p-4">
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Group Name</label>
+      {/* One scroll region (incl. Create button). Nested ScrollArea + sibling button clipped the footer when the drawer was keyboard-shortened on iOS. */}
+      <div
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y",
+          inModal ? "pb-4" : "p-4",
+        )}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Group Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Study Group CS229"
+              className="h-10 w-full rounded-lg border border-border bg-secondary px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          {selected.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selected.map((id) => {
+                const label = selectedNames[id] || "?"
+                return (
+                  <span
+                    key={id}
+                    className="flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary"
+                  >
+                    {label.split(" ")[0]}
+                    <button
+                      onClick={() => toggleUser(id, label)}
+                      className="flex size-4 items-center justify-center rounded-full hover:bg-primary/20 transition-colors"
+                      aria-label={`Remove ${label}`}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          )}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Add Members</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Study Group CS229"
-                className="h-10 w-full rounded-lg border border-border bg-secondary px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or @username..."
+                className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50"
               />
             </div>
-            {selected.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {selected.map((id) => {
-                  const label = selectedNames[id] || "?"
-                  return (
-                    <span
-                      key={id}
-                      className="flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary"
-                    >
-                      {label.split(" ")[0]}
-                      <button
-                        onClick={() => toggleUser(id, label)}
-                        className="flex size-4 items-center justify-center rounded-full hover:bg-primary/20 transition-colors"
-                        aria-label={`Remove ${label}`}
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </span>
-                  )
-                })}
-              </div>
-            )}
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Add Members</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by name or @username..."
-                  className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-            </div>
-            <ScrollArea className="flex-1 max-h-64">
-              <div className="flex flex-col gap-1 pr-2">
-                {loading && (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-                {!loading &&
-                  results.map((u) => (
-                    <button
-                      key={u.id}
-                      onClick={() => toggleUser(u.id, u.full_name || u.public_name || "Unknown")}
+          </div>
+          {(query.trim() || loading) && (
+            <div
+              className="sheet-scroll-frame flex max-h-64 min-h-28 touch-pan-y flex-col gap-0.5 overflow-y-auto overscroll-y-contain p-1"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              {loading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {!loading &&
+                results.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => toggleUser(u.id, u.full_name || u.public_name || "Unknown")}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors text-left",
+                      selected.includes(u.id) ? "bg-primary/10" : "hover:bg-secondary",
+                    )}
+                  >
+                    <Avatar className="size-8">
+                      {u.avatar_url ? (
+                        <img src={u.avatar_url} alt="" className="size-8 rounded-full object-cover" />
+                      ) : (
+                        <AvatarFallback className="bg-accent text-accent-foreground text-xs font-semibold">
+                          {initials(u.full_name || u.public_name)}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {u.full_name || u.public_name || "Unknown"}
+                      </p>
+                      {u.public_name && (
+                        <p className="text-xs text-muted-foreground">@{u.public_name.replace(/^@/, "")}</p>
+                      )}
+                    </div>
+                    <div
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors text-left",
-                        selected.includes(u.id) ? "bg-primary/10" : "hover:bg-secondary"
+                        "size-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                        selected.includes(u.id) ? "border-primary bg-primary" : "border-border",
                       )}
                     >
-                      <Avatar className="size-8">
-                        {u.avatar_url ? (
-                          <img src={u.avatar_url} alt="" className="size-8 rounded-full object-cover" />
-                        ) : (
-                          <AvatarFallback className="bg-accent text-accent-foreground text-xs font-semibold">
-                            {initials(u.full_name || u.public_name)}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {u.full_name || u.public_name || "Unknown"}
-                        </p>
-                        {u.public_name && (
-                          <p className="text-xs text-muted-foreground">@{u.public_name.replace(/^@/, "")}</p>
-                        )}
-                      </div>
-                      <div
-                        className={cn(
-                          "size-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
-                          selected.includes(u.id) ? "border-primary bg-primary" : "border-border"
-                        )}
-                      >
-                        {selected.includes(u.id) && <CheckCheck className="size-3 text-primary-foreground" />}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </ScrollArea>
-          </div>
+                      {selected.includes(u.id) && <CheckCheck className="size-3 text-primary-foreground" />}
+                    </div>
+                  </button>
+                ))}
+              {!loading && query.trim() && results.length === 0 && (
+                <p className="py-2 text-sm text-muted-foreground">No users found</p>
+              )}
+            </div>
+          )}
         </div>
         <button
+          type="button"
           disabled={!name.trim() || selected.length < 1 || creating}
           onClick={handleCreate}
           className={cn(
-            "shrink-0 w-full mt-4 rounded-lg py-2.5 text-sm font-medium transition-colors",
+            "mt-4 w-full shrink-0 rounded-lg py-2.5 text-sm font-medium transition-colors",
             name.trim() && selected.length >= 1 && !creating
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
-              : "bg-primary/30 text-primary-foreground/50 cursor-not-allowed"
+              : "bg-primary/30 text-primary-foreground/50 cursor-not-allowed",
           )}
         >
           {creating ? "Creating..." : `Create Group (${selected.length + 1} ${selected.length + 1 === 1 ? "member" : "members"})`}
@@ -1399,15 +1438,16 @@ function EditGroupPanel({
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Edit Group</SheetTitle>
-            <SheetDescription>Change photo and name</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 overflow-y-auto">{editBody}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Edit Group"
+        description="Change photo and name"
+        variant="form"
+        maxHeightClassName="max-h-[80dvh]"
+      >
+        {editBody}
+      </MobileBottomDrawer>
     )
   }
 
@@ -1585,11 +1625,14 @@ function GroupMembersPanel({
           value={addQuery}
           onChange={(e) => setAddQuery(e.target.value)}
           placeholder="Search by name or @username..."
-          className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50"
         />
       </div>
       {addQuery.trim() && (
-        <div className="flex flex-col gap-0.5 h-36 overflow-y-auto rounded-lg border border-border bg-background p-1">
+        <div
+          className="sheet-scroll-frame flex min-h-28 max-h-44 touch-pan-y flex-col gap-0.5 overflow-y-auto overscroll-y-contain p-1"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {addLoading ? (
             <div className="flex justify-center py-4">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -1629,26 +1672,37 @@ function GroupMembersPanel({
     </div>
   )
 
-  const membersBody = (
-    <>
-      {addSection}
-      <ScrollArea className="flex-1 min-h-0 -mx-1">
-        <div className="flex flex-col gap-1 pr-2">{memberList}</div>
-      </ScrollArea>
-    </>
-  )
+  const membersScrollInner = <div className="-mx-1 flex flex-col gap-1 pr-2">{memberList}</div>
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80dvh] pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>Group Members</SheetTitle>
-            <SheetDescription>{loading ? "..." : `${participants.length} ${participants.length === 1 ? "member" : "members"}`}</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 h-full flex flex-col gap-4 overflow-hidden">{membersBody}</div>
-        </SheetContent>
-      </Sheet>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Group Members"
+        description={
+          loading
+            ? "Loading members"
+            : `${participants.length} ${participants.length === 1 ? "member" : "members"}`
+        }
+        variant="inputStable"
+        maxHeightClassName="max-h-[80dvh]"
+        scrollBody={false}
+      >
+        {/* Members on top (scroll); add + search results pinned below so results never hide the roster. */}
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pb-6">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <p className="mb-2 shrink-0 text-xs font-medium text-muted-foreground">Current members</p>
+            <div
+              className="sheet-scroll-frame min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain p-1"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              {membersScrollInner}
+            </div>
+          </div>
+          <div className="mt-3 shrink-0 border-t border-border bg-background pt-3">{addSection}</div>
+        </div>
+      </MobileBottomDrawer>
     )
   }
 
@@ -1662,7 +1716,13 @@ function GroupMembersPanel({
           <X className="size-4" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0 flex flex-col gap-4">{membersBody}</div>
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Current members</p>
+          <div className="sheet-scroll-frame p-2">{membersScrollInner}</div>
+        </div>
+        {addSection}
+      </div>
     </div>
   )
 }
@@ -1678,7 +1738,7 @@ function HideConfirmPopup({
   open: boolean
   onClose: () => void
   isGroup: boolean
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
   isMobile: boolean
 }) {
   const [loading, setLoading] = useState(false)
@@ -1686,7 +1746,8 @@ function HideConfirmPopup({
     setLoading(true)
     try {
       await onConfirm()
-      onClose()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong")
     } finally {
       setLoading(false)
     }
@@ -1710,24 +1771,24 @@ function HideConfirmPopup({
   )
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>{title}</SheetTitle>
-            <SheetDescription>{description}</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 pt-2">
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleConfirm} disabled={loading}>
-                {loading ? <Loader2 className="size-4 animate-spin" /> : "Hide"}
-              </Button>
-            </div>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title={title}
+        description={description}
+        scrollBody={false}
+      >
+        <div className="px-4 pb-6 pt-2">
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleConfirm} disabled={loading}>
+              {loading ? <Loader2 className="size-4 animate-spin" /> : "Hide"}
+            </Button>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </MobileBottomDrawer>
     )
   }
   return (
@@ -1761,7 +1822,7 @@ function BlockConfirmPopup({
   open: boolean
   onClose: () => void
   displayName: string
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
   isMobile: boolean
 }) {
   const [loading, setLoading] = useState(false)
@@ -1769,7 +1830,8 @@ function BlockConfirmPopup({
     setLoading(true)
     try {
       await onConfirm()
-      onClose()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong")
     } finally {
       setLoading(false)
     }
@@ -1791,24 +1853,24 @@ function BlockConfirmPopup({
   )
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-safe border-t border-border/60">
-          <SheetHeader>
-            <SheetTitle>{title}</SheetTitle>
-            <SheetDescription>{description}</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 pt-2">
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
-                Cancel
-              </Button>
-              <Button size="sm" variant="destructive" onClick={handleConfirm} disabled={loading}>
-                {loading ? <Loader2 className="size-4 animate-spin" /> : "Block"}
-              </Button>
-            </div>
+      <MobileBottomDrawer
+        open={open}
+        onOpenChange={(v) => !v && onClose()}
+        title={title}
+        description={description}
+        scrollBody={false}
+      >
+        <div className="px-4 pb-6 pt-2">
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button size="sm" variant="destructive" onClick={handleConfirm} disabled={loading}>
+              {loading ? <Loader2 className="size-4 animate-spin" /> : "Block"}
+            </Button>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </MobileBottomDrawer>
     )
   }
   return (
@@ -1874,7 +1936,7 @@ function ConversationList({
   })
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <div className="p-4 pb-0">
         <div className="flex items-center justify-between mb-3">
           <h2 className={pageMainTitleClass}>Messages</h2>
@@ -1903,7 +1965,7 @@ function ConversationList({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search by name or group"
-            className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50"
             aria-label="Search conversations"
           />
         </div>
@@ -1924,7 +1986,7 @@ function ConversationList({
         </button>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col px-2 py-1">
           {loading && (
             <ConversationListSkeleton count={6} />
@@ -2877,7 +2939,7 @@ export function ChatView({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Message"
-              className="w-full min-h-10 resize-none rounded-full bg-white/50 backdrop-blur-md px-4 py-2 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 leading-relaxed shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+              className="w-full min-h-10 resize-none rounded-full bg-white/50 backdrop-blur-md px-4 py-2 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-inset focus:ring-2 focus:ring-primary/50 leading-relaxed shadow-[0_0_12px_rgba(0,0,0,0.08)]"
               rows={1}
               aria-label="Message"
               onKeyDown={(e) => {
@@ -2987,6 +3049,9 @@ export function MessagesPage({
   const [friendsOnly, setFriendsOnly] = useState(false)
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
   const [viewOverride, setViewOverride] = useState<"newMessage" | "newGroup" | null>(null)
+  const [newGroupDrawerPhase, setNewGroupDrawerPhase] = useState<"form" | "photo">("form")
+  const [newMessageDrawerKey, setNewMessageDrawerKey] = useState(0)
+  const [newGroupDrawerKey, setNewGroupDrawerKey] = useState(0)
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
   const [blockDialogOpen, setBlockDialogOpen] = useState(false)
   const [blockInfoOpen, setBlockInfoOpen] = useState(false)
@@ -3054,7 +3119,12 @@ export function MessagesPage({
   }, [user?.id, refreshSilent])
 
   useEffect(() => {
-    if (isMobile) setIsSubView(!!selectedConv || !!viewOverride)
+    if (viewOverride !== "newGroup") setNewGroupDrawerPhase("form")
+  }, [viewOverride])
+
+  useEffect(() => {
+    if (isMobile) setIsSubView(!!selectedConv)
+    else setIsSubView(!!selectedConv || !!viewOverride)
     return () => setIsSubView(false)
   }, [selectedConv, viewOverride, isMobile, setIsSubView])
 
@@ -3109,6 +3179,67 @@ export function MessagesPage({
         }}
       />
 
+      {isMobile && (
+        <>
+          <MobileBottomDrawer
+            open={viewOverride === "newMessage"}
+            onOpenChange={(open) => {
+              if (!open) setViewOverride(null)
+            }}
+            title="New message"
+            description="Search for someone to message"
+            variant="form"
+            maxHeightClassName="max-h-[85dvh]"
+            scrollBody={false}
+          >
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-6">
+              <NewMessageForm
+                key={newMessageDrawerKey}
+                currentUserId={user.id}
+                onBack={() => setViewOverride(null)}
+                onSelectConversation={(id) => {
+                  setSelectedConv(id)
+                  setViewOverride(null)
+                  refreshSilent()
+                }}
+                inModal
+              />
+            </div>
+          </MobileBottomDrawer>
+          <MobileBottomDrawer
+            open={viewOverride === "newGroup"}
+            onOpenChange={(open) => {
+              if (!open) setViewOverride(null)
+            }}
+            title={newGroupDrawerPhase === "photo" ? "Add group photo" : "New group"}
+            description={
+              newGroupDrawerPhase === "photo"
+                ? "Optional: add a photo, then continue or skip"
+                : "Name your group and add members"
+            }
+            variant="form"
+            maxHeightClassName="max-h-[85dvh]"
+            scrollBody={false}
+          >
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-6">
+              <NewGroupForm
+                key={newGroupDrawerKey}
+                currentUserId={user.id}
+                onBack={() => setViewOverride(null)}
+                onSelectConversation={(id) => {
+                  setSelectedConv(id)
+                  setViewOverride(null)
+                  refreshSilent()
+                }}
+                onRefresh={refreshSilent}
+                inModal
+                onPhaseChange={setNewGroupDrawerPhase}
+              />
+            </div>
+          </MobileBottomDrawer>
+        </>
+      )}
+
       {!isMobile && viewOverride === "newMessage" && (
         <div className="fixed bottom-6 right-6 z-50 w-[400px] max-h-[80vh] rounded-2xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in-0 duration-200">
           <div className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -3119,6 +3250,7 @@ export function MessagesPage({
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
             <NewMessageForm
+              key={newMessageDrawerKey}
               currentUserId={user.id}
               onBack={() => setViewOverride(null)}
               onSelectConversation={(id) => {
@@ -3134,14 +3266,22 @@ export function MessagesPage({
 
       {!isMobile && viewOverride === "newGroup" && (
         <div className="fixed bottom-6 right-6 z-50 w-[400px] max-h-[80vh] rounded-2xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in-0 duration-200">
-          <div className="flex items-center justify-between px-4 pt-4 pb-2">
-            <h3 className="text-sm font-semibold text-foreground">New group</h3>
-            <button type="button" onClick={() => setViewOverride(null)} className="flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+          <div className="flex items-center justify-between px-4 pt-4 pb-2 gap-2">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-foreground">
+                {newGroupDrawerPhase === "photo" ? "Add group photo" : "New group"}
+              </h3>
+              {newGroupDrawerPhase === "photo" && (
+                <p className="text-xs text-muted-foreground mt-0.5">Optional: add a photo, then continue or skip</p>
+              )}
+            </div>
+            <button type="button" onClick={() => setViewOverride(null)} className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
               <X className="size-4" />
             </button>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
             <NewGroupForm
+              key={newGroupDrawerKey}
               currentUserId={user.id}
               onBack={() => setViewOverride(null)}
               onSelectConversation={(id) => {
@@ -3151,6 +3291,7 @@ export function MessagesPage({
               }}
               onRefresh={refreshSilent}
               inModal
+              onPhaseChange={setNewGroupDrawerPhase}
             />
           </div>
         </div>
@@ -3158,7 +3299,7 @@ export function MessagesPage({
 
       <div
         className={cn(
-          "flex overflow-hidden",
+          "flex min-h-0 overflow-hidden",
           (selectedConv || viewOverride) && isMobile
             ? "h-[calc(100dvh-env(safe-area-inset-top,0px))]"
             : "h-[calc(100dvh-3.5rem-3.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4rem)]"
@@ -3166,8 +3307,8 @@ export function MessagesPage({
       >
         <div
           className={cn(
-            "w-full md:w-72 lg:w-80 md:border-r md:border-border shrink-0",
-            selectedConv || viewOverride ? "hidden md:flex md:flex-col" : "flex flex-col"
+            "min-h-0 w-full shrink-0 md:w-72 lg:w-80 md:border-r md:border-border",
+            selectedConv ? "hidden md:flex md:flex-col" : "flex flex-col"
           )}
         >
           <ConversationList
@@ -3182,10 +3323,12 @@ export function MessagesPage({
               setViewOverride(null)
             }}
             onNewMessage={() => {
+              setNewMessageDrawerKey((k) => k + 1)
               setViewOverride("newMessage")
               setSelectedConv(null)
             }}
             onNewGroup={() => {
+              setNewGroupDrawerKey((k) => k + 1)
               setViewOverride("newGroup")
               setSelectedConv(null)
             }}
@@ -3208,39 +3351,12 @@ export function MessagesPage({
 
         <div
           className={cn(
-            "flex-1 min-w-0 overflow-hidden",
+            "min-h-0 flex-1 min-w-0 overflow-hidden",
             selectedConv || viewOverride ? "flex flex-col" : "hidden md:flex md:flex-col"
           )}
         >
-          {viewOverride === "newMessage" ? (
-            isMobile ? (
-              <NewMessageForm
-                currentUserId={user.id}
-                onBack={() => setViewOverride(null)}
-                onSelectConversation={(id) => {
-                  setSelectedConv(id)
-                  setViewOverride(null)
-                  refreshSilent()
-                }}
-              />
-            ) : (
-              <EmptyChat />
-            )
-          ) : viewOverride === "newGroup" ? (
-            isMobile ? (
-              <NewGroupForm
-                currentUserId={user.id}
-                onBack={() => setViewOverride(null)}
-                onSelectConversation={(id) => {
-                  setSelectedConv(id)
-                  setViewOverride(null)
-                  refreshSilent()
-                }}
-                onRefresh={refreshSilent}
-              />
-            ) : (
-              <EmptyChat />
-            )
+          {viewOverride === "newMessage" || viewOverride === "newGroup" ? (
+            <EmptyChat />
           ) : selectedConv && selected ? (
             <ChatView
               conversationId={selectedConv}
