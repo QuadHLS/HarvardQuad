@@ -63,7 +63,7 @@ import { isValidSocialUrl, normalizeSocialUrl } from "@/lib/urlUtils"
 import { FriendsService, type FriendRequestStatus } from "@/services/friendsService"
 import { BlocksService } from "@/services/blocksService"
 import { MessagingService, type DmConversationRow } from "@/services/messagingService"
-import { BlockInfoDialog } from "@/components/block-info-dialog"
+import { BlockInfoDialog, type BlockInfoAnchorRect } from "@/components/block-info-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -2089,6 +2089,7 @@ function ProfileSettings({
   onSaveSocial,
   onSavePrivacy,
   onSaveAppearance,
+  onOpenAboutBlocking,
   canEdit = true,
 }: {
   onEditProfile?: () => void
@@ -2096,6 +2097,7 @@ function ProfileSettings({
   onSaveSocial?: (platform: "instagram" | "linkedin" | "twitter" | "github", url: string) => void
   onSavePrivacy?: (isPublic: boolean) => void
   onSaveAppearance?: (theme: "light" | "dark" | "system") => void
+  onOpenAboutBlocking?: (anchor: BlockInfoAnchorRect) => void
   canEdit?: boolean
 }) {
   const [editingSocial, setEditingSocial] = useState<"instagram" | "linkedin" | "twitter" | "github" | null>(null)
@@ -2415,6 +2417,26 @@ function ProfileSettings({
                             )
                           })
                         )}
+                        {onOpenAboutBlocking && (
+                          <button
+                            type="button"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const r = e.currentTarget.getBoundingClientRect()
+                              onOpenAboutBlocking({
+                                left: r.left,
+                                top: r.top,
+                                width: r.width,
+                                height: r.height,
+                              })
+                            }}
+                            className="mt-3 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors"
+                          >
+                            <Info className="size-4 shrink-0" />
+                            About blocking
+                          </button>
+                        )}
                       </div>
                     )}
                   </>
@@ -2584,6 +2606,7 @@ export function ProfilePage({
   const [headerBlocked, setHeaderBlocked] = useState(false)
   const [headerBlockLoading, setHeaderBlockLoading] = useState(false)
   const [blockInfoOpen, setBlockInfoOpen] = useState(false)
+  const [blockInfoAnchorRect, setBlockInfoAnchorRect] = useState<BlockInfoAnchorRect | null>(null)
 
   const isOwnProfile = !viewingUserId || viewingUserId === user?.id
 
@@ -2850,6 +2873,15 @@ export function ProfilePage({
   const tabsToShow = isOwnProfile ? tabs : tabs.filter((t) => t.id !== "settings" && t.id !== "saved")
 
   return (
+    <>
+      <BlockInfoDialog
+        open={blockInfoOpen}
+        onOpenChange={(o) => {
+          setBlockInfoOpen(o)
+          if (!o) setBlockInfoAnchorRect(null)
+        }}
+        anchorRect={blockInfoAnchorRect}
+      />
     <div className="mx-auto w-full max-w-3xl px-4 py-4 md:px-6 md:py-6 pb-nav-safe md:pb-6">
       {!isOwnProfile && onBackFromViewing && (
         <button
@@ -2876,7 +2908,6 @@ export function ProfilePage({
         moreActionsSlot={
           !isOwnProfile && profileUserId && user?.id ? (
             <>
-              <BlockInfoDialog open={blockInfoOpen} onOpenChange={setBlockInfoOpen} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -2915,7 +2946,19 @@ export function ProfilePage({
                     {headerBlocked ? "Unblock" : "Block"}
                   </DropdownMenuItem>
                   {!headerBlocked && (
-                    <DropdownMenuItem onClick={() => setBlockInfoOpen(true)}>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        const el = e.currentTarget as HTMLElement
+                        const r = el.getBoundingClientRect()
+                        setBlockInfoAnchorRect({
+                          left: r.left,
+                          top: r.top,
+                          width: r.width,
+                          height: r.height,
+                        })
+                        setBlockInfoOpen(true)
+                      }}
+                    >
                       <Info className="size-4" />
                       About blocking
                     </DropdownMenuItem>
@@ -3064,6 +3107,10 @@ export function ProfilePage({
                 onSaveSocial={handleSaveSocial}
                 onSavePrivacy={handleSavePrivacy}
                 onSaveAppearance={handleSaveAppearance}
+                onOpenAboutBlocking={(anchor) => {
+                  setBlockInfoAnchorRect(anchor)
+                  setBlockInfoOpen(true)
+                }}
                 canEdit={!!user}
               />
             )}
@@ -3071,5 +3118,6 @@ export function ProfilePage({
         </>
       )}
     </div>
+    </>
   )
 }

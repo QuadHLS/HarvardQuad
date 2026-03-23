@@ -1,5 +1,9 @@
-import type { CSSProperties } from "react"
 import type { PageId } from "@/components/shell/app-shell"
+import {
+  mobileHeaderCloudBackdropClass,
+  mobileHeaderCloudTintPositionClass,
+  mobileHeaderCloudTintStyle,
+} from "@/components/shell/mobile-chrome-cloud"
 import { Search, Bell, Sun, Moon, Monitor } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,27 +19,6 @@ interface TopBarProps {
   onGoToMyProfile?: () => void
   profile?: { full_name: string | null; public_name: string | null; avatar_url: string | null } | null
   notificationsUnreadCount?: number
-}
-
-/** Mobile: cloud under header bottom edge (mirror of mobile-bottom-nav cloud lift). */
-const headerCloudBottom = "-bottom-[2rem]"
-
-const headerCloudBackdrop = cn(
-  "pointer-events-none absolute inset-x-0 top-0 backdrop-blur-2xl backdrop-saturate-150 md:hidden",
-  headerCloudBottom,
-  "[-webkit-mask-image:linear-gradient(to_top,transparent_0%,rgba(0,0,0,0.12)_12%,rgba(0,0,0,0.42)_26%,rgba(0,0,0,0.82)_44%,#000_58%)] [mask-image:linear-gradient(to_top,transparent_0%,rgba(0,0,0,0.12)_12%,rgba(0,0,0,0.42)_26%,rgba(0,0,0,0.82)_44%,#000_58%)]"
-)
-
-const headerCloudTintStyle: CSSProperties = {
-  background: `linear-gradient(to top,
-    transparent 0%,
-    color-mix(in oklab, var(--background) 8%, transparent) 8%,
-    color-mix(in oklab, var(--background) 22%, transparent) 18%,
-    color-mix(in oklab, var(--background) 44%, transparent) 30%,
-    color-mix(in oklab, var(--background) 68%, transparent) 44%,
-    color-mix(in oklab, var(--background) 86%, transparent) 58%,
-    var(--background) 74%,
-    var(--background) 100%)`,
 }
 
 export function TopBar({ activePage, onNavigate, onGoToMyProfile, profile, notificationsUnreadCount = 0 }: TopBarProps) {
@@ -56,16 +39,13 @@ export function TopBar({ activePage, onNavigate, onGoToMyProfile, profile, notif
   return (
     <header
       className={cn(
-        "relative z-10 isolate flex h-14 shrink-0 items-center gap-2 overflow-visible border-b-0 bg-transparent",
-        "md:h-16 md:gap-4 md:border-b md:border-border md:bg-background"
+        /* z-20 on mobile so backdrop/tint bleed below h-14 paints above main (later DOM sibling). */
+        "relative z-20 isolate flex h-14 shrink-0 items-center gap-2 overflow-visible border-b-0 bg-transparent",
+        "md:z-10 md:h-16 md:gap-4 md:border-b md:border-border md:bg-background"
       )}
     >
-      <div className={headerCloudBackdrop} aria-hidden />
-      <div
-        className={cn("pointer-events-none absolute inset-x-0 top-0 md:hidden", headerCloudBottom)}
-        style={headerCloudTintStyle}
-        aria-hidden
-      />
+      <div className={mobileHeaderCloudBackdropClass} aria-hidden />
+      <div className={mobileHeaderCloudTintPositionClass} style={mobileHeaderCloudTintStyle} aria-hidden />
       {/* Logo - desktop only (hidden on mobile) */}
       <div className="relative z-10 hidden md:flex w-[250px] shrink-0 items-center justify-start pl-4">
         <button
@@ -96,7 +76,7 @@ export function TopBar({ activePage, onNavigate, onGoToMyProfile, profile, notif
           <input
             type="search"
             placeholder="Search people, squads, posts..."
-            className="h-9 w-full rounded-full border border-primary/40 bg-background py-2 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="h-9 w-full rounded-full border border-primary/25 bg-background/45 py-2 pl-10 pr-3 text-sm text-foreground shadow-none backdrop-blur-md placeholder:text-muted-foreground focus:outline-none dark:bg-background/35"
             aria-label="Search"
           />
         </div>

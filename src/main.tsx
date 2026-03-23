@@ -6,6 +6,7 @@ import { PrivacyPage } from "@/components/pages/privacy-page"
 import { UserGuidePage } from "@/components/pages/user-guide-page"
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./components/theme-provider";
+import { ThemeColorSync } from "./components/theme-color-sync";
 import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -59,6 +60,7 @@ createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <AuthProvider>
       <Root />
+      <ThemeColorSync />
       <Toaster position="top-center" richColors />
     </AuthProvider>
   </ErrorBoundary>

@@ -134,6 +134,25 @@ function formatTimeInput(date: Date): string {
   return date.toTimeString().slice(0, 5)
 }
 
+/**
+ * `changedTouches` on touchend covers quick flicks with no `touchmove`.
+ * `requireHorizontalDominant`: only for the scrollable time grid — avoids day changes while scrolling vertically.
+ */
+function resolveCalendarHorizontalSwipe(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  thresholdPx: number,
+  requireHorizontalDominant: boolean
+): "next" | "prev" | null {
+  const dx = startX - endX
+  const dy = startY - endY
+  if (Math.abs(dx) < thresholdPx) return null
+  if (requireHorizontalDominant && Math.abs(dx) <= Math.abs(dy)) return null
+  return dx > 0 ? "next" : "prev"
+}
+
 function CurrentTimeIndicator() {
   const now = new Date()
   const top = (now.getHours() + now.getMinutes() / 60) * HOUR_HEIGHT
@@ -368,10 +387,10 @@ function MonthCalendarGrid({
                   compactFixedLayout
                     ? cn(
                         "flex h-6 w-7 shrink-0 items-center justify-center py-0 leading-none",
-                        isMobile ? "text-[10px]" : "text-[11px] sm:text-xs"
+                        "text-[11px] sm:text-xs"
                       )
                     : isMobile
-                      ? "py-px text-[8px]"
+                      ? "py-px text-[10px] leading-none"
                       : "py-px text-[9px] sm:text-[10px]"
                 )}
               >
@@ -410,8 +429,14 @@ function MonthCalendarGrid({
               )
             }
             const dayNumClass = cn(
-              "flex items-center justify-center rounded-full font-medium tabular-nums transition-colors",
-              isMobile ? "size-4 text-[9px]" : "size-5 text-[10px]",
+              "flex items-center justify-center rounded-full font-medium tabular-nums transition-colors leading-none",
+              isMobile
+                ? today
+                  ? "size-[1.125rem] text-[11px]"
+                  : "size-4 text-[11px]"
+                : today
+                  ? "size-[1.375rem] text-[11px]"
+                  : "size-5 text-[10px]",
               !inMonth && "text-muted-foreground/45",
               inMonth && !selected && !today && "text-foreground",
               onDayPick && inMonth && !selected && !today && "hover:bg-muted",
@@ -480,7 +505,9 @@ function MonthCalendarGrid({
       "min-h-0 min-w-0 text-left transition-colors",
       mobileFlatMonth &&
         cn(
-          "aspect-square w-full bg-background p-0 flex flex-col items-center justify-center overflow-hidden",
+          "aspect-square w-full bg-background p-0 flex flex-col items-center overflow-hidden",
+          /* Top-align date row so varying dot/+N height doesn’t shift numbers (justify-center caused that). */
+          "pt-1.5 pb-1",
           flatInteractive && "hover:bg-muted/40"
         ),
       !mobileFlatMonth &&
@@ -500,33 +527,87 @@ function MonthCalendarGrid({
     const inner = (
       <>
         {idx < 7 && !mobileFlatMonth && (
-          <span className="self-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span
+            className={cn(
+              "self-center text-xs font-medium uppercase tracking-wide text-muted-foreground",
+              !isMobile && "mb-1"
+            )}
+          >
             {isMobile ? WEEKDAYS_SHORT[idx] : WEEKDAYS[idx]}
           </span>
         )}
-        <span
-          className={cn(
-            "shrink-0 font-medium tabular-nums",
-            mobileFlatMonth ? "text-[13px] leading-none" : "text-xs self-center",
-            !inCurrentMonth && "text-muted-foreground",
-            !mobileFlatMonth && "self-center",
-            isToday(day) &&
-              cn(
-                "flex items-center justify-center rounded-full bg-primary text-primary-foreground",
-                mobileFlatMonth ? "size-7 text-xs" : "size-5 sm:size-6"
-              ),
-            isSelected &&
-              !isToday(day) &&
-              cn(
-                "flex items-center justify-center rounded-full bg-primary/20 text-primary",
-                mobileFlatMonth ? "size-7" : "size-5 sm:size-6"
-              )
-          )}
-        >
-          {!isMobile && day.getDate() === 1
-            ? `${day.toLocaleDateString("en-US", { month: "short" })} ${day.getDate()}`
-            : day.getDate()}
-        </span>
+        {mobileFlatMonth ? (
+          <div className="relative flex h-8 w-full shrink-0 items-center justify-center">
+            {isToday(day) && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 size-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary"
+              />
+            )}
+            {isSelected && !isToday(day) && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 size-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20"
+              />
+            )}
+            <span
+              className={cn(
+                "relative z-[1] text-sm font-normal leading-none tabular-nums",
+                !inCurrentMonth && "text-muted-foreground",
+                isToday(day) && "text-primary-foreground",
+                isSelected && !isToday(day) && "text-primary",
+                inCurrentMonth &&
+                  !isToday(day) &&
+                  !(isSelected && !isToday(day)) &&
+                  "text-foreground"
+              )}
+            >
+              {day.getDate()}
+            </span>
+          </div>
+        ) : !isMobile && day.getDate() === 1 ? (
+          <div className="flex shrink-0 flex-row items-center gap-1 self-center">
+            <span
+              className={cn(
+                "text-[11px] font-medium leading-none sm:text-xs",
+                !inCurrentMonth ? "text-muted-foreground/80" : "text-muted-foreground"
+              )}
+            >
+              {day.toLocaleDateString("en-US", { month: "short" })}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 tabular-nums text-xs font-medium leading-none",
+                !inCurrentMonth && "text-muted-foreground",
+                isToday(day) &&
+                  "flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground sm:size-6",
+                isSelected &&
+                  !isToday(day) &&
+                  "flex size-5 items-center justify-center rounded-full bg-primary/20 text-primary sm:size-6",
+                inCurrentMonth &&
+                  !isToday(day) &&
+                  !(isSelected && !isToday(day)) &&
+                  "text-foreground"
+              )}
+            >
+              {day.getDate()}
+            </span>
+          </div>
+        ) : (
+          <span
+            className={cn(
+              "shrink-0 tabular-nums text-xs font-medium self-center",
+              !inCurrentMonth && "text-muted-foreground",
+              isToday(day) &&
+                "flex items-center justify-center rounded-full bg-primary text-primary-foreground size-5 sm:size-6",
+              isSelected &&
+                !isToday(day) &&
+                "flex items-center justify-center rounded-full bg-primary/20 text-primary size-5 sm:size-6"
+            )}
+          >
+            {day.getDate()}
+          </span>
+        )}
         {evs.length > 0 && (
           <div
             className={cn(
@@ -541,7 +622,7 @@ function MonthCalendarGrid({
                 key={event.id}
                 className={cn(
                   "rounded-full",
-                  mobileFlatMonth ? "size-[3px]" : "size-1 sm:size-1.5",
+                  mobileFlatMonth ? "size-1.5" : "size-1 sm:size-1.5",
                   TYPE_COLORS[event.type] || TYPE_COLORS.event
                 )}
               />
@@ -550,7 +631,7 @@ function MonthCalendarGrid({
               <span
                 className={cn(
                   "text-muted-foreground",
-                  mobileFlatMonth ? "text-[8px] leading-none" : "text-xs"
+                  mobileFlatMonth ? "text-[10px] leading-none" : "text-xs"
                 )}
               >
                 +{evs.length - (isMobile ? 2 : 3)}
@@ -558,6 +639,7 @@ function MonthCalendarGrid({
             )}
           </div>
         )}
+        {mobileFlatMonth && <div className="min-h-0 flex-1" aria-hidden />}
         <div className="hidden md:block mt-1 space-y-0.5 flex-1 overflow-hidden">
           {evs.slice(0, 2).map((event) => (
             <div
@@ -626,7 +708,7 @@ function MonthCalendarGrid({
             >
               {showTitle && (
                 <h3
-                  className="pb-1 text-center text-base font-semibold leading-none text-foreground"
+                  className="pb-1 text-center text-lg font-semibold leading-tight text-foreground"
                   style={{ gridColumn: colOfFirst + 1, gridRow: 1 }}
                 >
                   {formatMonthShort(monthAnchor)}
@@ -746,10 +828,11 @@ function CalendarPageContent() {
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [calendarLayers, setCalendarLayers] = useState(DEFAULT_CALENDAR_LAYERS)
-  /** Mobile month list: year shown on back control follows scroll position. */
-  const [monthScrollBackYear, setMonthScrollBackYear] = useState(() =>
-    selectedDate.getFullYear()
-  )
+  /** Mobile month list: year on back control + visible month in header track scroll position. */
+  const [monthListViewport, setMonthListViewport] = useState(() => ({
+    year: selectedDate.getFullYear(),
+    month: selectedDate.getMonth(),
+  }))
 
   const visibleEvents = useMemo(
     () => filterEventsByCalendarLayers(events, calendarLayers),
@@ -778,22 +861,22 @@ function CalendarPageContent() {
   const handleMobileCalendarBack = useCallback(() => {
     if (calendarView === "day") setCalendarView("month")
     else if (calendarView === "month") {
-      setSelectedDate(new Date(monthScrollBackYear, 0, 1))
+      setSelectedDate(new Date(monthListViewport.year, 0, 1))
       setCalendarView("year")
     }
-  }, [calendarView, setCalendarView, setSelectedDate, monthScrollBackYear])
+  }, [calendarView, setCalendarView, setSelectedDate, monthListViewport.year])
 
   /** Month: scrolled year. Day: month only (no year); phone has no mini calendar for context. */
   const mobileCalendarBackLabel =
     calendarView === "day"
       ? selectedDate.toLocaleDateString("en-US", { month: "short" })
       : calendarView === "month"
-        ? String(monthScrollBackYear)
+        ? String(monthListViewport.year)
         : ""
 
   const mobileCalendarBackAriaLabel =
     calendarView === "month"
-      ? `Open year ${monthScrollBackYear}`
+      ? `Open year ${monthListViewport.year}`
       : calendarView === "day"
         ? `Back to ${formatMonthYear(selectedDate)}`
         : ""
@@ -879,13 +962,13 @@ function CalendarPageContent() {
 
   const effectiveView = isMobile && calendarView === "week" ? "day" : calendarView
 
-  const updateMonthScrollBackYear = useCallback(() => {
+  const updateMonthListViewport = useCallback(() => {
     const root = monthListScrollRef.current
     if (!root) return
     const sections = root.querySelectorAll<HTMLElement>("[data-calendar-month-section]")
     if (sections.length === 0) return
     const rootRect = root.getBoundingClientRect()
-    let bestYear: number | null = null
+    let best: { year: number; month: number } | null = null
     let maxOverlap = 0
     sections.forEach((el) => {
       const rect = el.getBoundingClientRect()
@@ -894,13 +977,14 @@ function CalendarPageContent() {
         Math.min(rect.bottom, rootRect.bottom) - Math.max(rect.top, rootRect.top)
       )
       const y = Number(el.dataset.year)
-      if (Number.isFinite(y) && overlap > maxOverlap) {
+      const m = Number(el.dataset.month)
+      if (Number.isFinite(y) && Number.isFinite(m) && overlap > maxOverlap) {
         maxOverlap = overlap
-        bestYear = y
+        best = { year: y, month: m }
       }
     })
-    if (bestYear !== null && maxOverlap > 0) {
-      setMonthScrollBackYear(bestYear)
+    if (best !== null && maxOverlap > 0) {
+      setMonthListViewport(best)
     }
   }, [])
 
@@ -908,7 +992,10 @@ function CalendarPageContent() {
   useEffect(() => {
     if (!isMobile) return
     if (calendarView === "month" && prevCalendarViewRef.current !== "month") {
-      setMonthScrollBackYear(selectedDate.getFullYear())
+      setMonthListViewport({
+        year: selectedDate.getFullYear(),
+        month: selectedDate.getMonth(),
+      })
     }
     prevCalendarViewRef.current = calendarView
   }, [isMobile, calendarView, selectedDate])
@@ -945,7 +1032,7 @@ function CalendarPageContent() {
           `[data-calendar-month-section][data-year="${sy}"][data-month="${sm}"]`
         )
         el?.scrollIntoView({ block: "start", behavior: "smooth" })
-        if (isMobile) window.setTimeout(() => updateMonthScrollBackYear(), 400)
+        if (isMobile) window.setTimeout(() => updateMonthListViewport(), 400)
       } else if (effectiveView === "year") {
         const root = yearListScrollRef.current
         const el = root?.querySelector<HTMLElement>(
@@ -955,7 +1042,7 @@ function CalendarPageContent() {
       }
     }
     requestAnimationFrame(() => requestAnimationFrame(runScroll))
-  }, [setSelectedDate, effectiveView, narrowCalendar, updateMonthScrollBackYear, isMobile])
+  }, [setSelectedDate, effectiveView, narrowCalendar, updateMonthListViewport, isMobile])
 
   /** FAB mounts to body so clicks work (not blocked by main scroll/stacking). */
   const [todayFabPortalReady, setTodayFabPortalReady] = useState(false)
@@ -1022,8 +1109,18 @@ function CalendarPageContent() {
   const dayEvents = getEventsForDay(visibleEvents, selectedDate)
   const dayOverlaps = getOverlappingEvents(dayEvents)
 
-  const touchStartRef = useRef<number | null>(null)
-  const touchEndRef = useRef<number | null>(null)
+  /** Mobile day view: time grid swipe → previous/next day. */
+  const dayGridSwipeStartX = useRef<number | null>(null)
+  const dayGridSwipeStartY = useRef<number | null>(null)
+  const dayGridSwipeEndX = useRef<number | null>(null)
+  const dayGridSwipeEndY = useRef<number | null>(null)
+  /** Mobile day view: weekday row swipe → previous/next week (same weekday). */
+  const weekStripSwipeStartX = useRef<number | null>(null)
+  const weekStripSwipeStartY = useRef<number | null>(null)
+  const weekStripSwipeEndX = useRef<number | null>(null)
+  const weekStripSwipeEndY = useRef<number | null>(null)
+  /** Brief guard after a week swipe so a trailing `click` doesn’t pick the wrong day (mostly iOS). */
+  const weekStripSuppressClickUntilRef = useRef(0)
   const gridRef = useRef<HTMLDivElement>(null)
   const weekGridRef = useRef<HTMLDivElement>(null)
   const monthScrollTargetRef = useRef<HTMLElement | null>(null)
@@ -1031,29 +1128,126 @@ function CalendarPageContent() {
   const yearScrollTargetRef = useRef<HTMLElement | null>(null)
   const yearListScrollRef = useRef<HTMLDivElement>(null)
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchEndRef.current = null
-    touchStartRef.current = e.targetTouches[0].clientX
+  const MOBILE_SWIPE_THRESHOLD_PX = 50
+
+  const resetDayGridSwipe = () => {
+    dayGridSwipeStartX.current = null
+    dayGridSwipeStartY.current = null
+    dayGridSwipeEndX.current = null
+    dayGridSwipeEndY.current = null
   }
-  const onTouchMove = (e: React.TouchEvent) => {
-    touchEndRef.current = e.targetTouches[0].clientX
+
+  const resetWeekStripSwipe = () => {
+    weekStripSwipeStartX.current = null
+    weekStripSwipeStartY.current = null
+    weekStripSwipeEndX.current = null
+    weekStripSwipeEndY.current = null
   }
-  const onTouchEnd = () => {
-    const touchStart = touchStartRef.current
-    const touchEnd = touchEndRef.current
-    if (touchStart === null || touchEnd === null) return
-    const distance = touchStart - touchEnd
-    if (distance > 50) {
+
+  const onDayGridTouchStart = (e: React.TouchEvent) => {
+    const t = e.targetTouches[0]
+    if (!t) return
+    dayGridSwipeEndX.current = null
+    dayGridSwipeEndY.current = null
+    dayGridSwipeStartX.current = t.clientX
+    dayGridSwipeStartY.current = t.clientY
+  }
+  const onDayGridTouchMove = (e: React.TouchEvent) => {
+    const t = e.targetTouches[0]
+    if (!t) return
+    dayGridSwipeEndX.current = t.clientX
+    dayGridSwipeEndY.current = t.clientY
+  }
+  const onDayGridTouchEnd = (e: React.TouchEvent) => {
+    const startX = dayGridSwipeStartX.current
+    const startY = dayGridSwipeStartY.current
+    if (startX === null || startY === null) {
+      resetDayGridSwipe()
+      return
+    }
+    let endX = dayGridSwipeEndX.current
+    let endY = dayGridSwipeEndY.current
+    const endTouch = e.changedTouches[0]
+    if (endTouch) {
+      if (endX === null) endX = endTouch.clientX
+      if (endY === null) endY = endTouch.clientY
+    }
+    if (endX === null || endY === null) {
+      resetDayGridSwipe()
+      return
+    }
+    const dir = resolveCalendarHorizontalSwipe(
+      startX,
+      startY,
+      endX,
+      endY,
+      MOBILE_SWIPE_THRESHOLD_PX,
+      true
+    )
+    if (dir === "next") {
       const d = new Date(selectedDate)
       d.setDate(d.getDate() + 1)
       setSelectedDate(d)
-    } else if (distance < -50) {
+    } else if (dir === "prev") {
       const d = new Date(selectedDate)
       d.setDate(d.getDate() - 1)
       setSelectedDate(d)
     }
-    touchStartRef.current = null
-    touchEndRef.current = null
+    resetDayGridSwipe()
+  }
+
+  const onWeekStripTouchStart = (e: React.TouchEvent) => {
+    const t = e.targetTouches[0]
+    if (!t) return
+    weekStripSwipeEndX.current = null
+    weekStripSwipeEndY.current = null
+    weekStripSwipeStartX.current = t.clientX
+    weekStripSwipeStartY.current = t.clientY
+  }
+  const onWeekStripTouchMove = (e: React.TouchEvent) => {
+    const t = e.targetTouches[0]
+    if (!t) return
+    weekStripSwipeEndX.current = t.clientX
+    weekStripSwipeEndY.current = t.clientY
+  }
+  const onWeekStripTouchEnd = (e: React.TouchEvent) => {
+    const startX = weekStripSwipeStartX.current
+    const startY = weekStripSwipeStartY.current
+    if (startX === null || startY === null) {
+      resetWeekStripSwipe()
+      return
+    }
+    let endX = weekStripSwipeEndX.current
+    let endY = weekStripSwipeEndY.current
+    const endTouch = e.changedTouches[0]
+    if (endTouch) {
+      if (endX === null) endX = endTouch.clientX
+      if (endY === null) endY = endTouch.clientY
+    }
+    if (endX === null || endY === null) {
+      resetWeekStripSwipe()
+      return
+    }
+    const dir = resolveCalendarHorizontalSwipe(
+      startX,
+      startY,
+      endX,
+      endY,
+      MOBILE_SWIPE_THRESHOLD_PX,
+      false
+    )
+    if (dir === "next") {
+      weekStripSuppressClickUntilRef.current = Date.now() + 280
+      const d = new Date(selectedDate)
+      d.setDate(d.getDate() + 7)
+      setSelectedDate(d)
+    } else if (dir === "prev") {
+      weekStripSuppressClickUntilRef.current = Date.now() + 280
+      const d = new Date(selectedDate)
+      d.setDate(d.getDate() - 7)
+      setSelectedDate(d)
+    }
+    resetWeekStripSwipe()
   }
 
   useEffect(() => {
@@ -1079,27 +1273,27 @@ function CalendarPageContent() {
     const id = requestAnimationFrame(() => {
       monthScrollTargetRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })
     })
-    const t = window.setTimeout(() => updateMonthScrollBackYear(), 400)
+    const t = window.setTimeout(() => updateMonthListViewport(), 400)
     return () => {
       cancelAnimationFrame(id)
       window.clearTimeout(t)
     }
-  }, [effectiveView, monthScrollFocusKey, narrowCalendar, updateMonthScrollBackYear])
+  }, [effectiveView, monthScrollFocusKey, narrowCalendar, updateMonthListViewport])
 
   useEffect(() => {
     if (!isMobile || effectiveView !== "month") return
     const root = monthListScrollRef.current
     if (!root) return
-    updateMonthScrollBackYear()
-    const onScroll = () => updateMonthScrollBackYear()
+    updateMonthListViewport()
+    const onScroll = () => updateMonthListViewport()
     root.addEventListener("scroll", onScroll, { passive: true })
-    const ro = new ResizeObserver(() => updateMonthScrollBackYear())
+    const ro = new ResizeObserver(() => updateMonthListViewport())
     ro.observe(root)
     return () => {
       root.removeEventListener("scroll", onScroll)
       ro.disconnect()
     }
-  }, [isMobile, effectiveView, updateMonthScrollBackYear, monthScrollFocusKey])
+  }, [isMobile, effectiveView, updateMonthListViewport, monthScrollFocusKey])
 
   const yearScrollFocusKey = String(selectedDate.getFullYear())
   useEffect(() => {
@@ -1112,7 +1306,7 @@ function CalendarPageContent() {
 
   /** Shared by mobile Create + portaled Today FAB (native <button> for Radix trigger ref + FAB clicks). */
   const mobileCalendarPillButtonClass =
-    "inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground shadow-none backdrop-blur-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-card touch-manipulation"
+    "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border bg-background px-3 text-sm font-medium text-foreground shadow-none backdrop-blur-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-card touch-manipulation"
 
   /** Mobile day + year: white rounded sheet on white root; pills should match. */
   const mobileWhiteCalendarChrome = isMobile && (effectiveView === "day" || effectiveView === "year")
@@ -1124,13 +1318,13 @@ function CalendarPageContent() {
           type="button"
           className={cn(
             mobileCalendarPillButtonClass,
+            "text-base",
             mobileWhiteCalendarChrome && "bg-white dark:bg-card"
           )}
           aria-label="Create"
         >
-          <Plus className="size-4 shrink-0" />
+          <Plus className="size-5 shrink-0" />
           Create
-          <ChevronDown className="size-4 shrink-0 opacity-50" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="border-border">
@@ -1162,7 +1356,7 @@ function CalendarPageContent() {
                   "border-b border-border/60"
               )}
             >
-              <div className="flex min-w-0 flex-1 items-center">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 <button
                   type="button"
                   onClick={handleMobileCalendarBack}
@@ -1170,7 +1364,7 @@ function CalendarPageContent() {
                     "flex max-w-full min-w-0 items-center text-left font-medium text-foreground transition-colors touch-manipulation",
                     effectiveView === "month" || effectiveView === "day"
                       ? cn(
-                          "h-10 shrink-0 gap-1.5 rounded-full border border-border px-4 text-sm shadow-none backdrop-blur-sm outline-none hover:bg-accent hover:text-accent-foreground active:bg-accent/90 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 touch-manipulation",
+                          "h-9 shrink-0 gap-1.5 rounded-full border border-border px-3 text-sm shadow-none backdrop-blur-sm outline-none hover:bg-accent hover:text-accent-foreground active:bg-accent/90 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 touch-manipulation",
                           effectiveView === "day"
                             ? "bg-white dark:bg-card"
                             : "bg-background dark:bg-card"
@@ -1182,11 +1376,32 @@ function CalendarPageContent() {
                   <ChevronLeft
                     className={cn(
                       "shrink-0 opacity-80",
-                      effectiveView === "month" || effectiveView === "day" ? "size-4" : "size-5"
+                      effectiveView === "month" || effectiveView === "day" ? "size-5" : "size-6"
                     )}
                   />
-                  <span className="min-w-0 truncate tabular-nums">{mobileCalendarBackLabel}</span>
+                  <span className="min-w-0 truncate text-base tabular-nums">
+                    {mobileCalendarBackLabel}
+                  </span>
                 </button>
+                {effectiveView === "month" && (
+                  <span
+                    className="min-w-0 flex-1 truncate text-xl font-semibold leading-tight text-foreground tabular-nums"
+                    aria-live="polite"
+                  >
+                    {new Date(monthListViewport.year, monthListViewport.month, 1).toLocaleDateString(
+                      "en-US",
+                      { month: "long" }
+                    )}
+                  </span>
+                )}
+                {effectiveView === "day" && (
+                  <span
+                    className="min-w-0 flex-1 truncate text-lg font-normal leading-tight text-foreground tabular-nums"
+                    aria-live="polite"
+                  >
+                    {`${selectedDate.toLocaleDateString("en-US", { weekday: "long" })} - ${selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                  </span>
+                )}
               </div>
               {mobileCreateDropdown}
             </div>
@@ -1449,9 +1664,6 @@ function CalendarPageContent() {
             "flex flex-1 min-h-0 flex-col overflow-hidden md:pb-4",
             isMobile ? "bg-white dark:bg-card" : "bg-background"
           )}
-          onTouchStart={isMobile ? onTouchStart : undefined}
-          onTouchMove={isMobile ? onTouchMove : undefined}
-          onTouchEnd={isMobile ? onTouchEnd : undefined}
         >
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl bg-white shadow-sm dark:bg-card">
           <div className="sticky top-0 z-20 flex shrink-0 items-stretch border-b border-border bg-white dark:bg-card">
@@ -1461,6 +1673,10 @@ function CalendarPageContent() {
                 "grid min-w-0 grid-cols-7 bg-white dark:bg-card",
                 isMobile ? "w-full px-0.5 py-2" : "min-h-0 flex-1"
               )}
+              onTouchStart={isMobile ? onWeekStripTouchStart : undefined}
+              onTouchMove={isMobile ? onWeekStripTouchMove : undefined}
+              onTouchEnd={isMobile ? onWeekStripTouchEnd : undefined}
+              onTouchCancel={isMobile ? resetWeekStripSwipe : undefined}
             >
               {getWeekDays(selectedDate).map((day) => {
                 const sel = isSameDay(day, selectedDate)
@@ -1469,7 +1685,10 @@ function CalendarPageContent() {
                   <button
                     key={day.toDateString()}
                     type="button"
-                    onClick={() => setSelectedDate(new Date(day))}
+                    onClick={() => {
+                      if (Date.now() < weekStripSuppressClickUntilRef.current) return
+                      setSelectedDate(new Date(day))
+                    }}
                     className={cn(
                       "flex min-w-0 flex-col items-center justify-center rounded-lg transition-colors touch-manipulation",
                       isMobile
@@ -1480,7 +1699,7 @@ function CalendarPageContent() {
                     <span
                       className={cn(
                         isMobile
-                          ? "text-[10px] font-medium uppercase leading-none tabular-nums"
+                          ? "text-xs font-medium uppercase leading-none tabular-nums"
                           : "text-xs font-normal uppercase tracking-wide",
                         tod ? "text-primary" : sel ? "text-foreground" : "text-muted-foreground"
                       )}
@@ -1514,7 +1733,18 @@ function CalendarPageContent() {
               })}
             </div>
           </div>
-          <div ref={gridRef} className="relative z-0 flex-1 overflow-auto bg-white dark:bg-card" data-time-grid>
+          <div
+            ref={gridRef}
+            className={cn(
+              "relative z-0 flex-1 overflow-auto bg-white dark:bg-card",
+              isMobile && "touch-pan-y"
+            )}
+            data-time-grid
+            onTouchStart={isMobile ? onDayGridTouchStart : undefined}
+            onTouchMove={isMobile ? onDayGridTouchMove : undefined}
+            onTouchEnd={isMobile ? onDayGridTouchEnd : undefined}
+            onTouchCancel={isMobile ? resetDayGridSwipe : undefined}
+          >
             <div
               className="flex min-h-full"
               style={{ paddingTop: TIME_GRID_TOP_PADDING }}
@@ -1564,8 +1794,8 @@ function CalendarPageContent() {
           </div>
           </div>
           {isMobile && (
-            <div className="shrink-0 border-t border-border bg-muted/50 py-2 text-center text-xs text-muted-foreground">
-              Swipe left or right to change days
+            <div className="shrink-0 border-t border-border bg-muted/50 py-2 text-center text-xs text-muted-foreground px-2">
+              Swipe the day row to change week · swipe the schedule to change day
             </div>
           )}
         </div>
@@ -1579,7 +1809,7 @@ function CalendarPageContent() {
               className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-0"
             >
               <div className="sticky top-0 z-10 mb-2 border-b border-border/50 bg-background py-2">
-                <div className="grid grid-cols-7 gap-0 text-center text-[10px] font-medium uppercase leading-none text-muted-foreground">
+                <div className="grid grid-cols-7 gap-0 text-center text-xs font-medium uppercase leading-none text-muted-foreground">
                   {WEEKDAYS_SHORT.map((d, i) => (
                     <div key={i} className="tabular-nums">
                       {d}
@@ -1771,7 +2001,7 @@ function CalendarPageContent() {
                                       : undefined
                                   }
                                 >
-                                  <span className="text-left text-sm font-semibold leading-tight text-foreground sm:text-base">
+                                  <span className="text-left text-lg font-semibold leading-tight text-foreground sm:text-xl">
                                     {monthStart.toLocaleDateString("en-US", {
                                       month: "short",
                                     })}
@@ -1814,12 +2044,7 @@ function CalendarPageContent() {
                         key={m}
                         className="flex w-max max-w-full min-w-0 flex-col items-start"
                       >
-                        <p
-                          className={cn(
-                            "mb-1 text-left font-semibold text-foreground",
-                            isMobile ? "text-[11px]" : "text-xs sm:text-sm"
-                          )}
-                        >
+                        <p className="mb-1 text-left text-lg font-semibold leading-tight text-foreground sm:text-xl">
                           {monthStart.toLocaleDateString("en-US", { month: "long" })}
                         </p>
                         <MonthCalendarGrid

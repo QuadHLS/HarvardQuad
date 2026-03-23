@@ -23,35 +23,25 @@ type SquiggleHoverCtxValue = {
 
 const SquiggleHoverCtx = React.createContext<SquiggleHoverCtxValue | null>(null)
 
-/**
- * Anchor outside the trigger toward the popover. Uses trigger↔card center so flipped / shifted
- * hover content (collision) still gets a sensible edge; horizontal cases keep a top corner bias.
- */
-function triggerAnchorTowardCard(
+/** Squiggle endpoints: on the trigger edge facing the card → on the card edge facing the trigger. */
+export function squiggleEndpointsForHoverRects(
   tr: DOMRectReadOnly,
   cr: DOMRectReadOnly,
-  gap: number
-): { x0: number; y0: number } {
-  const tcx = tr.left + tr.width / 2
-  const tcy = tr.top + tr.height / 2
+  startPadPx: number,
+  endPadPx: number
+): { x0: number; y0: number; x1: number; y1: number } {
   const ccx = cr.left + cr.width / 2
   const ccy = cr.top + cr.height / 2
-  const dx = ccx - tcx
-  const dy = ccy - tcy
 
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    if (dx >= 0) return { x0: tr.right + gap, y0: tr.top - gap }
-    return { x0: tr.left - gap, y0: tr.top - gap }
-  }
-  const skew = tr.width * 0.22
-  if (dy >= 0) {
-    if (dx > skew) return { x0: tr.right + gap, y0: tr.bottom + gap }
-    if (dx < -skew) return { x0: tr.left - gap, y0: tr.bottom + gap }
-    return { x0: tcx, y0: tr.bottom + gap }
-  }
-  if (dx > skew) return { x0: tr.right + gap, y0: tr.top - gap }
-  if (dx < -skew) return { x0: tr.left - gap, y0: tr.top - gap }
-  return { x0: tcx, y0: tr.top - gap }
+  // Closest point on trigger boundary toward the card, then on card toward that point; re-snap
+  // trigger once so both ends sit on the true shortest bridge between the two rects.
+  let startOnTr = nearestPointOnRectBoundary(ccx, ccy, tr)
+  let endOnCard = nearestPointOnRectBoundary(startOnTr.x, startOnTr.y, cr)
+  startOnTr = nearestPointOnRectBoundary(endOnCard.x, endOnCard.y, tr)
+
+  const start = offsetOutsideRect(startOnTr.x, startOnTr.y, tr, startPadPx)
+  const end = offsetOutsideRect(endOnCard.x, endOnCard.y, cr, endPadPx)
+  return { x0: start.x, y0: start.y, x1: end.x, y1: end.y }
 }
 
 function mergeRefs<T>(...refs: (React.Ref<T> | null | undefined)[]) {
@@ -95,11 +85,7 @@ export function SquiggleHoverCard({
     if (!trig || !card) return null
     const tr = trig.getBoundingClientRect()
     const cr = card.getBoundingClientRect()
-    const gap = 10
-    const { x0, y0 } = triggerAnchorTowardCard(tr, cr, gap)
-    const edge = nearestPointOnRectBoundary(x0, y0, cr)
-    const out = offsetOutsideRect(edge.x, edge.y, cr, 12)
-    return { x0, y0, x1: out.x, y1: out.y }
+    return squiggleEndpointsForHoverRects(tr, cr, 2, 4)
   }, [])
 
   return (
@@ -157,7 +143,8 @@ export function SquiggleHoverCardContent({
   /** To the right of the trigger; start + negative alignOffset lifts the card for a true top-right read. */
   side = "right",
   align = "start",
-  sideOffset = 48,
+  /** Larger offset = longer squiggle chord (trigger ↔ card). */
+  sideOffset = 80,
   alignOffset = -72,
   collisionPadding = 16,
   ...props

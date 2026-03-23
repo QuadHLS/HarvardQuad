@@ -9,12 +9,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Smile } from "lucide-react"
 
+import { cn } from "@/lib/utils"
+
 export function EmojiPicker({
   onSelect,
   triggerClassName,
+  iconClassName = "size-4",
 }: {
   onSelect: (emoji: string) => void
   triggerClassName?: string
+  /** Lucide `Smile` size (e.g. size-6). */
+  iconClassName?: string
 }) {
   const [open, setOpen] = useState(false)
 
@@ -31,7 +36,7 @@ export function EmojiPicker({
           className={triggerClassName}
           aria-label="Add emoji"
         >
-          <Smile className="size-4" />
+          <Smile className={cn("shrink-0", iconClassName)} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" side="bottom" sideOffset={6} arrowPadding={8} className="emoji-picker-dropdown border-border p-0 overflow-hidden outline-none">

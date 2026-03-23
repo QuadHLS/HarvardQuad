@@ -143,7 +143,7 @@ function AppShellInner() {
       />
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 md:overflow-hidden max-md:overflow-visible">
         {/* Desktop Sidebar + toggle rail - hidden on mobile */}
         <div
           className="hidden md:flex shrink-0 relative"
@@ -199,8 +199,20 @@ function AppShellInner() {
         </div>
 
         {/* Main Content Area - shift left when sidebar closed so Hidden section lines touch vertical separator */}
-        <div className={cn("flex flex-1 flex-col overflow-hidden min-w-0 md:pl-4", !sidebarOpen && "md:-ml-4")}>
-          <main className="flex flex-1 flex-col min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col md:overflow-hidden max-md:overflow-visible md:pl-4",
+            !sidebarOpen && "md:-ml-4"
+          )}
+        >
+          <main
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain",
+              /* Scroll surface extends under frosted header so there is no hard seam (mirrors content behind bottom nav). */
+              !(isSubView && isMobile) && "max-md:-mt-14 max-md:scroll-pt-14 max-md:pt-14"
+            )}
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {activePage === "feed" && (
               <HomeFeed
                 initialPostId={postToOpenId}

@@ -62,7 +62,7 @@ import { FriendsService } from "@/services/friendsService"
 import { BlocksService } from "@/services/blocksService"
 import { SquadsService } from "@/services/squadsService"
 import { getSignedUrl } from "@/lib/signedStorageUrl"
-import { BlockInfoDialog } from "@/components/block-info-dialog"
+import { BlockInfoAlertDialog } from "@/components/block-info-dialog"
 import { CATEGORY_LABELS } from "@/lib/squad-constants"
 import { ConversationListSkeleton } from "@/components/ui/feed-skeletons"
 import { Input } from "@/components/ui/input"
@@ -2201,7 +2201,7 @@ export function ChatView({
   onMuteToggle?: () => void | Promise<void>
   /** Called when user blocks the other person (DM only). */
   onBlock?: (userId: string) => void | Promise<void>
-  /** Called when user wants to see blocking info. */
+  /** Called when user wants to see blocking info (messages: AlertDialog). */
   onBlockInfo?: () => void
 }) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -2689,6 +2689,7 @@ export function ChatView({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
+                type="button"
                 className="flex size-9 shrink-0 items-center justify-center rounded-[50%] bg-white/50 backdrop-blur-md text-muted-foreground hover:bg-white/70 hover:text-foreground shadow-[0_0_12px_rgba(0,0,0,0.08)] transition-colors"
                 aria-label="Settings"
               >
@@ -2744,7 +2745,7 @@ export function ChatView({
                     Block
                   </DropdownMenuItem>
                   {onBlockInfo && (
-                    <DropdownMenuItem onClick={onBlockInfo}>
+                    <DropdownMenuItem onSelect={() => onBlockInfo()}>
                       <Info className="size-4" />
                       About blocking
                     </DropdownMenuItem>
@@ -2889,6 +2890,7 @@ export function ChatView({
           </div>
           {!isMobile && (
             <EmojiPicker
+              iconClassName="size-5"
               onSelect={(emoji) => {
                 const ta = textareaRef.current
                 if (ta) {
@@ -3086,7 +3088,7 @@ export function MessagesPage({
           }
         }}
       />
-      <BlockInfoDialog open={blockInfoOpen} onOpenChange={setBlockInfoOpen} />
+      <BlockInfoAlertDialog open={blockInfoOpen} onOpenChange={setBlockInfoOpen} />
       <BlockConfirmPopup
         open={blockDialogOpen}
         onClose={() => { setBlockDialogOpen(false); setUserToBlock(null) }}

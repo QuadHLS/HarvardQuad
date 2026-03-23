@@ -1,22 +1,25 @@
-import * as React from 'react'
+import * as React from "react"
 
-const MOBILE_BREAKPOINT = 550
-const SIDEBAR_BREAKPOINT = 768 // matches Tailwind md
+/** Aligns with `@theme --breakpoint-md` (34.375rem): shell chrome + max-md utilities. */
+export const MOBILE_LAYOUT_BREAKPOINT_PX = 550
+
+const SIDEBAR_BREAKPOINT = 768 // desktop sidebar rail (not Tailwind md in this app)
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < MOBILE_LAYOUT_BREAKPOINT_PX : false
+  )
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener('change', onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener('change', onChange)
+    const query = `(max-width: ${MOBILE_LAYOUT_BREAKPOINT_PX - 1}px)`
+    const mql = window.matchMedia(query)
+    const onChange = () => setIsMobile(mql.matches)
+    mql.addEventListener("change", onChange)
+    onChange()
+    return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  return !!isMobile
+  return isMobile
 }
 
 export function useShowSidebar() {

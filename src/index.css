@@ -170,11 +170,8 @@ html {
   overflow-x: hidden;
   max-width: 100vw;
   scroll-behavior: smooth;
-  /* Fill safe-area strips so background isn't cut at top/bottom on notched devices */
-  background: #F1EFE7;
-}
-html.dark {
-  background: #0f0f11;
+  /* Same token as AppShell — safe-area / overscroll match page (not legacy cream hex). */
+  background: var(--background);
 }
 body {
   font-family: 'Reddit Sans', sans-serif;
@@ -191,11 +188,7 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   /* No padding here so full-screen wrappers can extend background to edges; they use safe-area padding instead */
-  /* Match app shell so any visible area shows app color */
-  background: #F1EFE7;
-}
-html.dark body {
-  background: #0f0f11;
+  background: var(--background);
 }
 
 /* Match landing page typography: tight heading line-height */
