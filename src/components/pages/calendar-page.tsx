@@ -1305,6 +1305,9 @@ function CalendarPageContent() {
   /** Mobile day + year: white rounded sheet on white root; pills should match. */
   const mobileWhiteCalendarChrome = isMobile && (effectiveView === "day" || effectiveView === "year")
 
+  /** Year on phone has no in-calendar header — match Feed/Squads: let shell <main> scroll under TopBar. */
+  const mobileYearUsesMainScroll = isMobile && effectiveView === "year"
+
   const mobileCreateDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -1331,13 +1334,23 @@ function CalendarPageContent() {
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden",
-        mobileWhiteCalendarChrome ? "bg-white dark:bg-card" : "bg-background",
-        "h-[calc(100dvh-3.5rem-3.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4rem)]",
-        isMobile && "min-h-0 flex-1"
+        "flex flex-col",
+        mobileYearUsesMainScroll
+          ? "h-auto min-h-min shrink-0 overflow-visible bg-white dark:bg-card"
+          : cn(
+              "overflow-hidden",
+              mobileWhiteCalendarChrome ? "bg-white dark:bg-card" : "bg-background",
+              "h-[calc(100dvh-3.5rem-3.5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4rem)]",
+              isMobile && "min-h-0 flex-1"
+            )
       )}
     >
-      <div className="mx-auto flex w-full max-w-[1400px] flex-1 min-h-0 min-w-0 flex-col px-0 md:px-4 lg:px-6">
+      <div
+        className={cn(
+          "mx-auto flex w-full max-w-[1400px] min-w-0 flex-col px-0 md:px-4 lg:px-6",
+          mobileYearUsesMainScroll ? "min-h-min shrink-0 overflow-visible" : "flex-1 min-h-0"
+        )}
+      >
         {isMobile ? (
           calendarView === "year" ? null : (
             <div
@@ -1539,14 +1552,24 @@ function CalendarPageContent() {
           </header>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col md:flex-row">
+        <div
+          className={cn(
+            "flex min-w-0 flex-col md:flex-row",
+            mobileYearUsesMainScroll ? "min-h-min shrink-0 overflow-visible" : "min-h-0 flex-1"
+          )}
+        >
           <CalendarSidebar
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
             layers={calendarLayers}
             onLayerChange={handleCalendarLayerChange}
           />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col md:pl-3">
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 flex-col md:pl-3",
+              mobileYearUsesMainScroll ? "min-h-min shrink-0 overflow-visible" : "min-h-0"
+            )}
+          >
       {effectiveView === "week" && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-background md:pb-4">
           <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-3xl bg-white shadow-sm dark:bg-card">
@@ -1938,23 +1961,34 @@ function CalendarPageContent() {
       {effectiveView === "year" && (
         <div
           className={cn(
-            "flex flex-1 min-h-0 flex-col overflow-hidden md:pb-4",
-            isMobile ? "bg-white dark:bg-card" : "bg-background"
+            "flex flex-col md:pb-4",
+            mobileYearUsesMainScroll
+              ? "min-h-min shrink-0 overflow-visible bg-white dark:bg-card"
+              : cn("flex-1 min-h-0 overflow-hidden", isMobile ? "bg-white dark:bg-card" : "bg-background")
           )}
         >
           <div
             className={cn(
-              "flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl bg-white shadow-sm dark:bg-card",
-              isMobile && "relative"
+              "flex flex-col rounded-3xl bg-white shadow-sm dark:bg-card",
+              mobileYearUsesMainScroll
+                ? "overflow-visible"
+                : cn("min-h-0 flex-1 overflow-hidden", isMobile && "relative")
             )}
           >
             <div
               ref={yearListScrollRef}
               className={cn(
-                "min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-3 md:p-4",
-                isMobile && "pt-12"
+                "overflow-x-hidden p-2.5 sm:p-3 md:p-4",
+                mobileYearUsesMainScroll
+                  ? "min-h-min shrink-0 overflow-y-visible"
+                  : cn("min-h-0 flex-1 overflow-y-auto", isMobile && "pt-12")
               )}
             >
+              {mobileYearUsesMainScroll && (
+                <div className="sticky top-0 z-30 -mx-2.5 mb-3 flex justify-end border-b border-border/50 bg-white/90 px-2.5 py-2 backdrop-blur-md dark:border-border/40 dark:bg-card/90">
+                  {mobileCreateDropdown}
+                </div>
+              )}
               {narrowCalendar ? (
                 <>
                   {Array.from({ length: 7 }, (_, yi) => {
@@ -2064,7 +2098,7 @@ function CalendarPageContent() {
                 </div>
               )}
             </div>
-            {isMobile && (
+            {isMobile && !mobileYearUsesMainScroll && (
               <div className="pointer-events-none absolute right-3 top-2 z-50">
                 <div className="pointer-events-auto">{mobileCreateDropdown}</div>
               </div>

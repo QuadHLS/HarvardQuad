@@ -2839,7 +2839,7 @@ function ActiveFriendsPanel({
   if (isMobile) {
     if (!hasFriends) {
       return (
-        <div className="relative z-10 w-full min-w-0 bg-background">
+        <div className="relative z-10 w-full min-w-0 bg-transparent">
           <div className="flex items-center gap-3">
             <QuadlyMessagePopover
               variant="mobile"
@@ -2864,7 +2864,7 @@ function ActiveFriendsPanel({
       )
     }
     return (
-      <div className="relative z-10 w-full min-w-0 bg-background">
+      <div className="relative z-10 w-full min-w-0 bg-transparent">
         <div
           className="flex gap-2.5 overflow-x-auto scrollbar-none"
           style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}
@@ -4013,9 +4013,12 @@ export function HomeFeed({
           setPinnedPosts((p) => p.map((x) => (x.id === postId ? { ...x, share_count: (x.share_count ?? 0) + added } : x)))
         }}
       />
-      <div className="mx-auto w-full max-w-6xl h-full flex flex-col min-h-0 min-w-0 px-4 md:px-6 overflow-x-hidden">
-        <div ref={feedContainerRef} className="flex flex-1 gap-6 min-h-0 overflow-hidden">
-          <div className="flex-1 max-w-2xl mx-auto lg:mx-0 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col">
+      <div className="mx-auto w-full max-w-6xl min-w-0 px-4 md:px-6 overflow-x-hidden flex flex-col max-md:h-auto max-md:min-h-min max-md:shrink-0 md:min-h-0 md:h-full">
+        <div
+          ref={feedContainerRef}
+          className="flex gap-6 max-md:shrink-0 max-md:overflow-visible md:flex-1 md:min-h-0 md:overflow-hidden"
+        >
+          <div className="flex-1 max-w-2xl mx-auto lg:mx-0 min-w-0 overflow-x-hidden flex flex-col max-md:shrink-0 max-md:overflow-y-visible md:overflow-y-auto">
             {isMobile && userId && myFriendsLoaded && (
               <div className="shrink-0 py-1.5">
                 <ActiveFriendsPanel
@@ -4026,7 +4029,12 @@ export function HomeFeed({
                 />
               </div>
             )}
-            <div className={cn("pb-1 mb-2 bg-background", isMobile ? "pt-0" : "pt-3")}>
+            <div
+              className={cn(
+                "pb-1 mb-2",
+                isMobile ? "bg-transparent pt-0" : "bg-background pt-3"
+              )}
+            >
               <div className="inline-flex items-center gap-1 rounded-lg bg-secondary p-1">
                 {(["campus", "custom", "friends"] as const).map((tab) => (
                   <button

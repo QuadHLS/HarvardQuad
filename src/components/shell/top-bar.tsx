@@ -1,6 +1,7 @@
 import type { PageId } from "@/components/shell/app-shell"
 import {
   mobileHeaderCloudBackdropClass,
+  mobileHeaderCloudBackdropMaskStyle,
   mobileHeaderCloudTintPositionClass,
   mobileHeaderCloudTintStyle,
 } from "@/components/shell/mobile-chrome-cloud"
@@ -44,7 +45,11 @@ export function TopBar({ activePage, onNavigate, onGoToMyProfile, profile, notif
         "md:z-10 md:h-16 md:gap-4 md:border-b md:border-border md:bg-background"
       )}
     >
-      <div className={mobileHeaderCloudBackdropClass} aria-hidden />
+      <div
+        className={mobileHeaderCloudBackdropClass}
+        style={mobileHeaderCloudBackdropMaskStyle}
+        aria-hidden
+      />
       <div className={mobileHeaderCloudTintPositionClass} style={mobileHeaderCloudTintStyle} aria-hidden />
       {/* Logo - desktop only (hidden on mobile) */}
       <div className="relative z-10 hidden md:flex w-[250px] shrink-0 items-center justify-start pl-4">

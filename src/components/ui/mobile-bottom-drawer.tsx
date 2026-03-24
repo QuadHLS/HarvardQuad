@@ -56,7 +56,7 @@ export function MobileBottomDrawer({
   const vv = useDrawerVisualViewportMaxHeight(open)
   const vvStyle: React.CSSProperties = {
     ...(vv.maxHeightPx != null ? { maxHeight: vv.maxHeightPx } : {}),
-    ...(vv.bottomInsetPx != null ? { bottom: vv.bottomInsetPx } : {}),
+    ...(vv.bottomInsetPx != null && vv.bottomInsetPx > 0 ? { bottom: vv.bottomInsetPx } : {}),
   }
   const hasVvStyle = Object.keys(vvStyle).length > 0
 

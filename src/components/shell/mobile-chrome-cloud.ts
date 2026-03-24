@@ -1,43 +1,98 @@
 import type { CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 
-const bleedTop = "-top-[0.75rem]"
-const bleedBottom = "-bottom-[0.75rem]"
+const bleedTop = "-top-[0.375rem]"
+const bleedBottom = "-bottom-[0.375rem]"
 
-/** Blur mask: soft at outer edge, full by mid bar (percentages = same curve as sibling chrome). */
-const blurMaskToBottom =
-  "[-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.12)_12%,rgba(0,0,0,0.42)_26%,rgba(0,0,0,0.82)_44%,#000_58%)] [mask-image:linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.12)_12%,rgba(0,0,0,0.42)_26%,rgba(0,0,0,0.82)_44%,#000_58%)]"
+/**
+ * Shared feather curve: many small steps so blur + tint ramp together without visible bands.
+ * Stops are identical for mask alpha and tint color-mix % so the two layers don’t drift.
+ */
+const cloudFeatherStops: { pct: number; strength: number }[] = [
+  { pct: 0, strength: 0 },
+  { pct: 3, strength: 0.03 },
+  { pct: 6, strength: 0.08 },
+  { pct: 9, strength: 0.14 },
+  { pct: 12, strength: 0.22 },
+  { pct: 15, strength: 0.32 },
+  { pct: 18, strength: 0.42 },
+  { pct: 21, strength: 0.52 },
+  { pct: 24, strength: 0.62 },
+  { pct: 27, strength: 0.7 },
+  { pct: 30, strength: 0.78 },
+  { pct: 33, strength: 0.84 },
+  { pct: 36, strength: 0.88 },
+  { pct: 39, strength: 0.91 },
+  { pct: 42, strength: 0.94 },
+  { pct: 45, strength: 0.96 },
+  { pct: 48, strength: 0.98 },
+  { pct: 52, strength: 1 },
+  { pct: 100, strength: 1 },
+]
 
-const blurMaskToTop =
-  "[-webkit-mask-image:linear-gradient(to_top,transparent_0%,rgba(0,0,0,0.12)_12%,rgba(0,0,0,0.42)_26%,rgba(0,0,0,0.82)_44%,#000_58%)] [mask-image:linear-gradient(to_top,transparent_0%,rgba(0,0,0,0.12)_12%,rgba(0,0,0,0.42)_26%,rgba(0,0,0,0.82)_44%,#000_58%)]"
+function blurMaskGradient(direction: "to bottom" | "to top"): string {
+  const parts = cloudFeatherStops.map(({ pct, strength }) => {
+    if (strength <= 0) return `transparent ${pct}%`
+    if (strength >= 1) return `#000 ${pct}%`
+    return `rgba(0,0,0,${strength}) ${pct}%`
+  })
+  return `linear-gradient(${direction}, ${parts.join(",")})`
+}
+
+function tintGradientStops(): string {
+  return cloudFeatherStops
+    .map(({ pct, strength }) => {
+      if (strength <= 0) return `transparent ${pct}%`
+      if (strength >= 1) return `var(--background) ${pct}%`
+      const mix = Math.min(100, Math.round(strength * 100))
+      return `color-mix(in oklab, var(--background) ${mix}%, transparent) ${pct}%`
+    })
+    .join(", ")
+}
+
+const blurMaskGradientBottom = blurMaskGradient("to bottom")
+const blurMaskGradientTop = blurMaskGradient("to top")
+
+const cloudMaskBottom: Pick<CSSProperties, "WebkitMaskImage" | "maskImage"> = {
+  WebkitMaskImage: blurMaskGradientBottom,
+  maskImage: blurMaskGradientBottom,
+}
+
+const cloudMaskTop: Pick<CSSProperties, "WebkitMaskImage" | "maskImage"> = {
+  WebkitMaskImage: blurMaskGradientTop,
+  maskImage: blurMaskGradientTop,
+}
+
+/** Desaturate backdrop before blur so only luminance smudges — no chroma from content behind the bar. */
+const backdropNoColorSpread =
+  "[backdrop-filter:saturate(0)_blur(26px)] [-webkit-backdrop-filter:saturate(0)_blur(26px)]"
 
 export const mobileBottomNavCloudBackdropClass = cn(
-  "pointer-events-none absolute inset-x-0 bottom-0 backdrop-blur-2xl backdrop-saturate-150",
-  bleedTop,
-  blurMaskToBottom
+  "pointer-events-none absolute inset-x-0 bottom-0",
+  backdropNoColorSpread,
+  bleedTop
 )
 
 export const mobileHeaderCloudBackdropClass = cn(
-  "pointer-events-none absolute inset-x-0 top-0 backdrop-blur-2xl backdrop-saturate-150 md:hidden",
-  bleedBottom,
-  blurMaskToTop
+  "pointer-events-none absolute inset-x-0 top-0 md:hidden",
+  backdropNoColorSpread,
+  bleedBottom
 )
 
-const tintStops = `transparent 0%,
-    color-mix(in oklab, var(--background) 8%, transparent) 8%,
-    color-mix(in oklab, var(--background) 22%, transparent) 18%,
-    color-mix(in oklab, var(--background) 44%, transparent) 30%,
-    color-mix(in oklab, var(--background) 68%, transparent) 44%,
-    color-mix(in oklab, var(--background) 86%, transparent) 58%,
-    var(--background) 74%,
-    var(--background) 100%`
+export const mobileBottomNavCloudBackdropMaskStyle: CSSProperties = cloudMaskBottom
+
+export const mobileHeaderCloudBackdropMaskStyle: CSSProperties = cloudMaskTop
+
+const tintStops = tintGradientStops()
 
 export const mobileBottomNavCloudTintStyle: CSSProperties = {
   background: `linear-gradient(to bottom, ${tintStops})`,
+  ...cloudMaskBottom,
 }
 
 export const mobileHeaderCloudTintStyle: CSSProperties = {
   background: `linear-gradient(to top, ${tintStops})`,
+  ...cloudMaskTop,
 }
 
 export const mobileBottomNavCloudTintPositionClass = cn(

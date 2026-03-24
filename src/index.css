@@ -514,6 +514,20 @@ img:not(.rounded-full):not(.rounded-none) {
   isolation: isolate;
 }
 
+/* VV-managed sheets: ease max-height + bottom so keyboard-driven updates don’t feel twitchy */
+[data-quad-vv-managed] {
+  transition-property: max-height, bottom;
+  transition-duration: 0.24s;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-quad-vv-managed] {
+    transition-duration: 0.01ms;
+    transition-timing-function: linear;
+  }
+}
+
 /* Landing-style background: warm gradient on cream (sign-in, onboarding, landing) */
 .landing-bg {
   background:
