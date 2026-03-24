@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MobileBottomDrawer } from "@/components/ui/mobile-bottom-drawer"
@@ -1926,13 +1927,25 @@ function ConversationList({
   onNavigateToExplore?: () => void
 }) {
   const [hiddenSheetOpen, setHiddenSheetOpen] = useState(false)
-  const term = search.trim().toLowerCase()
-  const filtered = conversations.filter((c) => {
-    if (friendsOnly && (c.type !== "dm" || !friendIds.has(c.other_user_id))) return false
-    if (!term) return true
-    const display = (c.other_display_name ?? "").toLowerCase()
-    const convName = (c.name ?? "").toLowerCase()
-    return display.includes(term) || convName.includes(term)
+  const listScrollRef = useRef<HTMLDivElement>(null)
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return conversations.filter((c) => {
+      if (friendsOnly && (c.type !== "dm" || !friendIds.has(c.other_user_id))) return false
+      if (!term) return true
+      const display = (c.other_display_name ?? "").toLowerCase()
+      const convName = (c.name ?? "").toLowerCase()
+      return display.includes(term) || convName.includes(term)
+    })
+  }, [conversations, search, friendsOnly, friendIds])
+
+  const rowVirtualizer = useVirtualizer({
+    count: !loading && filtered.length > 0 ? filtered.length : 0,
+    getScrollElement: () => listScrollRef.current,
+    estimateSize: () => 76,
+    overscan: 10,
+    getItemKey: (index) => filtered[index]!.id,
   })
 
   return (
@@ -1986,114 +1999,134 @@ function ConversationList({
         </button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col px-2 py-1">
-          {loading && (
+      <div
+        ref={listScrollRef}
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {loading && (
+          <div className="flex flex-col px-2 py-1">
             <ConversationListSkeleton count={6} />
-          )}
-          {!loading && filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-6 px-4 gap-3">
-              <p className="text-sm text-muted-foreground text-center">
-                {conversations.length === 0
-                  ? "No conversations yet. Start a new message."
-                  : friendsOnly
-                    ? "No conversations with friends."
-                    : "No matches."}
-              </p>
-              {friendsOnly && onNavigateToExplore && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full gap-2"
-                  onClick={onNavigateToExplore}
-                >
-                  <Compass className="size-4" />
-                  Explore People
-                </Button>
-              )}
-            </div>
-          )}
-          {!loading &&
-            filtered.map((conv) => {
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-6 px-4 gap-3">
+            <p className="text-sm text-muted-foreground text-center">
+              {conversations.length === 0
+                ? "No conversations yet. Start a new message."
+                : friendsOnly
+                  ? "No conversations with friends."
+                  : "No matches."}
+            </p>
+            {friendsOnly && onNavigateToExplore && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full gap-2"
+                onClick={onNavigateToExplore}
+              >
+                <Compass className="size-4" />
+                Explore People
+              </Button>
+            )}
+          </div>
+        )}
+        {!loading && filtered.length > 0 && (
+          <div
+            className="relative w-full px-2 py-1"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const conv = filtered[virtualRow.index]!
               const hoverColor = convHoverColor(conv.id)
               return (
-              <button
-                key={conv.id}
-                onClick={() => onSelect(conv.id)}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-all md:border md:border-transparent",
-                  selectedId !== conv.id && "hover:bg-secondary/50",
-                  selectedId === conv.id && hoverColor === "quad-green" && "bg-quad-green/15 md:border-quad-green/30",
-                  selectedId === conv.id && hoverColor === "quad-blue" && "bg-quad-blue/15 md:border-quad-blue/30",
-                  selectedId === conv.id && hoverColor === "quad-red" && "bg-quad-red/15 md:border-quad-red/30",
-                  selectedId === conv.id && hoverColor === "quad-yellow" && "bg-quad-yellow/15 md:border-quad-yellow/30",
-                  selectedId !== conv.id && "md:hover:shadow-lg",
-                  selectedId !== conv.id && hoverColor === "quad-green" && "md:hover:border-quad-green/30 md:hover:shadow-quad-green/20",
-                  selectedId !== conv.id && hoverColor === "quad-blue" && "md:hover:border-quad-blue/30 md:hover:shadow-quad-blue/20",
-                  selectedId !== conv.id && hoverColor === "quad-red" && "md:hover:border-quad-red/30 md:hover:shadow-quad-red/20",
-                  selectedId !== conv.id && hoverColor === "quad-yellow" && "md:hover:border-quad-yellow/30 md:hover:shadow-quad-yellow/20"
-                )}
-              >
-                <div className="relative shrink-0">
-                  <Avatar className="size-11">
-                    {conv.other_avatar_url ? (
-                      <img src={conv.other_avatar_url} alt="" className="size-11 rounded-full object-cover" />
-                    ) : (
-                      <AvatarFallback className="bg-accent text-accent-foreground text-sm font-semibold">
-                        {initials(conv.other_display_name)}
-                      </AvatarFallback>
+                <div
+                  key={conv.id}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  className="absolute left-0 top-0 w-full box-border"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelect(conv.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-all md:border md:border-transparent",
+                      selectedId !== conv.id && "hover:bg-secondary/50",
+                      selectedId === conv.id && hoverColor === "quad-green" && "bg-quad-green/15 md:border-quad-green/30",
+                      selectedId === conv.id && hoverColor === "quad-blue" && "bg-quad-blue/15 md:border-quad-blue/30",
+                      selectedId === conv.id && hoverColor === "quad-red" && "bg-quad-red/15 md:border-quad-red/30",
+                      selectedId === conv.id && hoverColor === "quad-yellow" && "bg-quad-yellow/15 md:border-quad-yellow/30",
+                      selectedId !== conv.id && "md:hover:shadow-lg",
+                      selectedId !== conv.id && hoverColor === "quad-green" && "md:hover:border-quad-green/30 md:hover:shadow-quad-green/20",
+                      selectedId !== conv.id && hoverColor === "quad-blue" && "md:hover:border-quad-blue/30 md:hover:shadow-quad-blue/20",
+                      selectedId !== conv.id && hoverColor === "quad-red" && "md:hover:border-quad-red/30 md:hover:shadow-quad-red/20",
+                      selectedId !== conv.id && hoverColor === "quad-yellow" && "md:hover:border-quad-yellow/30 md:hover:shadow-quad-yellow/20"
                     )}
-                  </Avatar>
-                  {conv.unread_count > 0 && (
-                    <span className="absolute bottom-0 right-0 size-3 rounded-full bg-primary ring-2 ring-background" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className={cn(
-                          "text-sm font-medium truncate",
-                          conv.unread_count > 0 ? "text-foreground" : "text-foreground/80"
+                  >
+                    <div className="relative shrink-0">
+                      <Avatar className="size-11">
+                        {conv.other_avatar_url ? (
+                          <img src={conv.other_avatar_url} alt="" className="size-11 rounded-full object-cover" />
+                        ) : (
+                          <AvatarFallback className="bg-accent text-accent-foreground text-sm font-semibold">
+                            {initials(conv.other_display_name)}
+                          </AvatarFallback>
                         )}
-                      >
-                        {conv.other_display_name || "Unknown"}
-                      </span>
-                      {conv.squad_id && (
-                        <span className="shrink-0 inline-flex items-center justify-center text-xs font-medium px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">
-                          Squad
-                        </span>
+                      </Avatar>
+                      {conv.unread_count > 0 && (
+                        <span className="absolute bottom-0 right-0 size-3 rounded-full bg-primary ring-2 ring-background" />
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {conv.muted_at && (
-                        <VolumeX className="size-4 text-muted-foreground" aria-label="Muted" />
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(conv.last_message_created_at)}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "truncate text-sm font-medium",
+                              conv.unread_count > 0 ? "text-foreground" : "text-foreground/80"
+                            )}
+                          >
+                            {conv.other_display_name || "Unknown"}
+                          </span>
+                          {conv.squad_id && (
+                            <span className="inline-flex shrink-0 items-center justify-center rounded-md bg-primary/15 px-1.5 py-0.5 text-xs font-medium text-primary">
+                              Squad
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {conv.muted_at && (
+                            <VolumeX className="size-4 text-muted-foreground" aria-label="Muted" />
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {formatTime(conv.last_message_created_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-0.5 flex items-center justify-between">
+                        <p
+                          className={cn(
+                            "truncate text-xs",
+                            conv.unread_count > 0 ? "font-medium text-foreground/80" : "text-muted-foreground"
+                          )}
+                        >
+                          {conv.last_message_content || "No messages yet"}
+                        </p>
+                        {conv.unread_count > 0 && (
+                          <span className="ml-2 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                            {conv.unread_count}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <p
-                      className={cn(
-                        "text-xs truncate",
-                        conv.unread_count > 0 ? "text-foreground/80 font-medium" : "text-muted-foreground"
-                      )}
-                    >
-                      {conv.last_message_content || "No messages yet"}
-                    </p>
-                    {conv.unread_count > 0 && (
-                      <span className="ml-2 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                        {conv.unread_count}
-                      </span>
-                    )}
-                  </div>
+                  </button>
                 </div>
-              </button>
-            )})}
-        </div>
-      </ScrollArea>
+              )
+            })}
+          </div>
+        )}
+      </div>
       {hiddenConversations.length > 0 && (
         <div
           className={cn(

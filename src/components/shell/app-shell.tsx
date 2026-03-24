@@ -292,29 +292,31 @@ function AppShellInner() {
               </div>
             )}
             {activePage === "profile" && (
-              <ProfilePage
-                viewingUserId={viewingUserId}
-                onBackFromViewing={() => {
-                  setViewingUserId(null)
-                  if (profileReturnToPage) {
-                    navigate(profileReturnToPage)
-                    setProfileReturnToPage(null)
-                  }
-                }}
-                onViewUserProfile={(id) => handleViewUserProfile(id, profileReturnToPage ?? "feed")}
-                onGoToSquad={(squadId) => {
-                  setSquadToOpenId(squadId)
-                  navigate("squads")
-                }}
-                onNavigateToExplore={() => {
-                  setExploreInitialTab("people")
-                  navigate("explore")
-                }}
-                onNavigateToDiscoverSquads={() => {
-                  setExploreInitialTab("squads")
-                  navigate("explore")
-                }}
-              />
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ProfilePage
+                  viewingUserId={viewingUserId}
+                  onBackFromViewing={() => {
+                    setViewingUserId(null)
+                    if (profileReturnToPage) {
+                      navigate(profileReturnToPage)
+                      setProfileReturnToPage(null)
+                    }
+                  }}
+                  onViewUserProfile={(id) => handleViewUserProfile(id, profileReturnToPage ?? "feed")}
+                  onGoToSquad={(squadId) => {
+                    setSquadToOpenId(squadId)
+                    navigate("squads")
+                  }}
+                  onNavigateToExplore={() => {
+                    setExploreInitialTab("people")
+                    navigate("explore")
+                  }}
+                  onNavigateToDiscoverSquads={() => {
+                    setExploreInitialTab("squads")
+                    navigate("explore")
+                  }}
+                />
+              </div>
             )}
           </main>
         </div>

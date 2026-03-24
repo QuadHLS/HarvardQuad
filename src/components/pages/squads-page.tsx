@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useProfile } from "@/contexts/ProfileContext"
 import { SquadsService, type Squad, type SquadMember, type SquadDocument } from "@/services/squadsService"
@@ -68,6 +68,7 @@ import { useIsMobile, useShowSidebar } from "@/hooks/use-mobile"
 import { useSubView } from "@/hooks/use-sub-view"
 import { toast } from "sonner"
 import { PostDetailView, PostCard, NewPostModal, PostComposer } from "@/components/pages/home-feed"
+import { FeedVirtualizedPostBlock } from "@/components/feed/feed-virtualized-post-block"
 import { SharePostModal } from "@/components/share-post-modal"
 import { ShareSquadModal } from "@/components/share-squad-modal"
 import { ChatView } from "@/components/pages/messages-page"
@@ -1301,9 +1302,11 @@ interface SquadDetailProps {
   showChat?: boolean
   onShowChatChange?: (v: boolean) => void
   onDetailViewChange?: (inDetail: boolean) => void
+  /** Scroll root for desktop feed virtualization (squad page wrapper with overflow-y-auto) */
+  feedScrollParentRef: React.RefObject<HTMLDivElement>
 }
 
-function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showChat: showChatProp, onShowChatChange, onDetailViewChange }: SquadDetailProps) {
+function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showChat: showChatProp, onShowChatChange, onDetailViewChange, feedScrollParentRef }: SquadDetailProps) {
   const { profile } = useProfile()
   const showSidebar = useShowSidebar()
 
@@ -1351,6 +1354,26 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
   const [hideChatOpen, setHideChatOpen] = useState(false)
   const [squadChatMuted, setSquadChatMuted] = useState(false)
 
+  const PAGE_SIZE = 20
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  /** Raw rows returned by `listPostsForSquad` so offset pagination stays aligned with the API (pinned duplicates filtered client-side). */
+  const squadRawFetchedRef = useRef(0)
+  const pinnedPostIdsRef = useRef<Set<string>>(new Set())
+  const squadLoadingMoreRef = useRef(false)
+  const squadLoadMoreRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    pinnedPostIdsRef.current = new Set(pinnedPosts.map((p) => p.id))
+  }, [pinnedPosts])
+
+  // New squad: reset pagination before paint (avoid one frame of the previous squad’s posts).
+  useLayoutEffect(() => {
+    setPosts([])
+    squadRawFetchedRef.current = 0
+    setHasMore(true)
+  }, [squad.id])
+
   useEffect(() => {
     onDetailViewChange?.(!!detailPost)
     return () => onDetailViewChange?.(false)
@@ -1378,6 +1401,50 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
     }
   }, [squad.id])
 
+  const loadSquadPosts = useCallback(
+    async (silent = false, append = false) => {
+      if (!userId) return
+      if (append && squadLoadingMoreRef.current) return
+      const offset = append ? squadRawFetchedRef.current : 0
+      const limit = append ? PAGE_SIZE : Math.max(PAGE_SIZE, squadRawFetchedRef.current)
+      if (append) {
+        squadLoadingMoreRef.current = true
+        setLoadingMore(true)
+      } else if (!silent) setLoading(true)
+      try {
+        const list = await FeedService.listPostsForSquad(squad.id, userId, { limit, offset })
+        const pinnedIds = pinnedPostIdsRef.current
+        const filtered = list.filter((p) => !pinnedIds.has(p.id))
+        if (append) {
+          setPosts((prev) => {
+            const seen = new Set(prev.map((p) => p.id))
+            const newPosts = filtered.filter((p) => !seen.has(p.id))
+            return [...prev, ...newPosts]
+          })
+          squadRawFetchedRef.current += list.length
+        } else {
+          setPosts(filtered)
+          squadRawFetchedRef.current = list.length
+        }
+        setHasMore(list.length >= PAGE_SIZE)
+      } catch {
+        // Match home `loadPosts` / `loadCustomPosts`: clear list on failed initial load only; leave hasMore as-is.
+        if (!append && !silent) {
+          setPosts([])
+          squadRawFetchedRef.current = 0
+        }
+      } finally {
+        if (append) {
+          squadLoadingMoreRef.current = false
+          setLoadingMore(false)
+        } else if (!silent) {
+          setLoading(false)
+        }
+      }
+    },
+    [userId, squad.id]
+  )
+
   const loadAll = useCallback(async () => {
     if (!userId) {
       setLoading(false)
@@ -1385,21 +1452,20 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
     }
     setLoading(true)
     try {
-      const [pinned, allPosts, mems, docs, reqs, pending] = await Promise.all([
+      const [pinned, mems, docs, reqs, pending] = await Promise.all([
         FeedService.listPinnedPostsForSquad(squad.id, userId),
-        FeedService.listPostsForSquad(squad.id, userId),
         SquadsService.getSquadMembers(squad.id),
         SquadsService.getSquadDocuments(squad.id),
         SquadsService.getSquadJoinRequests(squad.id),
         SquadsService.getPendingInvitesForSquad(squad.id),
       ])
       setPinnedPosts(pinned)
-      const pinnedIds = new Set(pinned.map((p) => p.id))
-      setPosts(allPosts.filter((p) => !pinnedIds.has(p.id)))
+      pinnedPostIdsRef.current = new Set(pinned.map((p) => p.id))
       setMembers(mems)
       setDocuments(docs)
       setJoinRequests(reqs)
       setPendingInvites(pending)
+      await loadSquadPosts(true, false)
     } catch {
       setPosts([])
       setPinnedPosts([])
@@ -1407,10 +1473,12 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
       setDocuments([])
       setJoinRequests([])
       setPendingInvites([])
+      squadRawFetchedRef.current = 0
+      setHasMore(false)
     } finally {
       setLoading(false)
     }
-  }, [squad.id, userId])
+  }, [squad.id, userId, loadSquadPosts])
 
   useEffect(() => {
     loadSquad()
@@ -1463,6 +1531,20 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
       chAux.unsubscribe()
     }
   }, [squad.id, canViewFeed, loadAll])
+
+  useEffect(() => {
+    const el = squadLoadMoreRef.current
+    if (!el || !canViewFeed || !userId) return
+    if (!hasMore || loading || loadingMore) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void loadSquadPosts(true, true)
+      },
+      { rootMargin: "200px", threshold: 0 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [canViewFeed, userId, hasMore, loading, loadingMore, loadSquadPosts])
 
   const handleJoin = async () => {
     if (!userId) return
@@ -2946,13 +3028,18 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
                   onToggleOrder={() => setSortAscending((prev) => !prev)}
                 />
               </div>
-              <div className="flex flex-col gap-3">
-                {loading ? (
-                  <FeedSkeleton count={4} />
-                ) : (
-                  sortedPosts.map((post) => <PostCard key={post.id} {...postCardProps(post, false)} />)
-                )}
-              </div>
+              {loading ? (
+                <FeedSkeleton count={4} />
+              ) : (
+                <FeedVirtualizedPostBlock
+                  posts={sortedPosts}
+                  virtualize={!isMobile}
+                  scrollParentRef={feedScrollParentRef}
+                  loadMoreRef={squadLoadMoreRef}
+                  loadingMore={loadingMore}
+                  renderPost={(post) => <PostCard {...postCardProps(post, false)} />}
+                />
+              )}
               {!loading && sortedPosts.length === 0 && pinnedPosts.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <MessageSquare className="size-12 text-muted-foreground/30 mb-3" />
@@ -3106,6 +3193,7 @@ export function SquadsPage({
   const [createOpen, setCreateOpen] = useState(false)
   const [createSubmitting, setCreateSubmitting] = useState(false)
   const isMobile = useIsMobile()
+  const squadFeedScrollParentRef = useRef<HTMLDivElement>(null)
 
   const loadSquads = useCallback(async () => {
     if (!user) {
@@ -3193,7 +3281,7 @@ export function SquadsPage({
         ? "flex flex-col flex-1 min-h-0 overflow-y-auto"
         : "mx-auto w-full max-w-5xl flex flex-col flex-1 min-h-0 px-4 py-4 md:px-6 md:py-6 pb-6 overflow-y-auto"
     return (
-      <div className={wrapperClass}>
+      <div ref={squadFeedScrollParentRef} className={wrapperClass}>
         <SquadDetail
           squad={selectedSquad}
           onBack={() => { setSelectedSquad(null); loadSquads() }}
@@ -3203,6 +3291,7 @@ export function SquadsPage({
           showChat={showChat}
           onShowChatChange={setShowChat}
           onDetailViewChange={setInDetailView}
+          feedScrollParentRef={squadFeedScrollParentRef}
         />
       </div>
     )

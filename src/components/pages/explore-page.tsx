@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { SquadsService, type Squad } from "@/services/squadsService"
 import { ProfilesService, type ExploreProfile, profileDisplayName, profileInitials } from "@/services/profilesService"
 import { FriendsService, type FriendRequestStatus } from "@/services/friendsService"
@@ -284,6 +285,7 @@ export function ExplorePage({
   const [discoverPrivacy, setDiscoverPrivacy] = useState<string[]>([])
   const [discoverSort, setDiscoverSort] = useState<DiscoverSortOption>(DISCOVER_DEFAULT_SORT)
   const [sharePost, setSharePost] = useState<FeedPostWithAuthor | null>(null)
+  const peopleListScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -416,6 +418,47 @@ export function ExplorePage({
     )
   }, [tab, search, people])
 
+  const peopleVirtualizeDesktop =
+    !isMobile && tab === "people" && !peopleLoading && filteredPeople.length > 0
+
+  const peopleRowVirtualizer = useVirtualizer({
+    count: peopleVirtualizeDesktop ? filteredPeople.length : 0,
+    getScrollElement: () => peopleListScrollRef.current,
+    estimateSize: () => 100,
+    overscan: 8,
+    getItemKey: (index) => filteredPeople[index]!.id,
+  })
+
+  const explorePeopleAddFriend = useCallback(async (id: string) => {
+    await FriendsService.sendFriendRequest(id)
+    toast.success("Friend request sent")
+    setFriendStatusMap((prev) => ({
+      ...prev,
+      [id]: { isFriend: prev[id]?.isFriend ?? false, requestStatus: "pending_sent" },
+    }))
+  }, [])
+
+  const explorePeopleAcceptRequest = useCallback(async (id: string) => {
+    await FriendsService.acceptFriendRequest(id)
+    toast.success("Friend request accepted")
+    setFriendStatusMap((prev) => ({ ...prev, [id]: { isFriend: true, requestStatus: null } }))
+  }, [])
+
+  const explorePeopleCancelRequest = useCallback(async (id: string) => {
+    await FriendsService.cancelFriendRequest(id)
+    toast.success("Friend request cancelled")
+    setFriendStatusMap((prev) => ({
+      ...prev,
+      [id]: { isFriend: prev[id]?.isFriend ?? false, requestStatus: null },
+    }))
+  }, [])
+
+  const explorePeopleUnfriend = useCallback(async (id: string) => {
+    await FriendsService.removeFriend(id)
+    toast.success("Removed from friends")
+    setFriendStatusMap((prev) => ({ ...prev, [id]: { isFriend: false, requestStatus: null } }))
+  }, [])
+
   const filteredDiscoverSquads = useMemo(() => {
     if (tab !== "squads") return []
     return filterDiscoverSquadsList(
@@ -491,7 +534,7 @@ export function ExplorePage({
       <div
         className={cn(
           "mx-auto w-full max-w-5xl px-4 py-4 md:px-6 md:py-6 pb-nav-safe md:pb-6",
-          tab === "trending" && "md:flex md:flex-col md:flex-1 md:min-h-0"
+          (tab === "trending" || tab === "people") && "md:flex md:flex-col md:flex-1 md:min-h-0"
         )}
       >
       {/* Header — matches in-tab focus (trending vs people vs discover squads) */}
@@ -550,12 +593,19 @@ export function ExplorePage({
         ))}
       </div>
 
-      <div className={cn("flex gap-6", tab === "trending" && "md:flex-1 md:min-h-0 md:overflow-hidden")}>
+      <div
+        className={cn(
+          "flex gap-6",
+          (tab === "trending" || tab === "people") && "md:flex-1 md:min-h-0 md:overflow-hidden"
+        )}
+      >
         {/* Main Content */}
-        <div className={cn(
-          "flex-1 min-w-0",
-          tab === "trending" && "md:min-h-0 md:overflow-hidden"
-        )}>
+        <div
+          className={cn(
+            "flex-1 min-w-0",
+            (tab === "trending" || tab === "people") && "md:flex md:min-h-0 md:flex-col md:overflow-hidden"
+          )}
+        >
           {/* Trending Tab: Squads + Posts + Campus Activity */}
           {tab === "trending" && (
             <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-6 md:h-full md:min-h-0">
@@ -674,40 +724,68 @@ export function ExplorePage({
 
           {/* People Tab */}
           {tab === "people" && (
-            <div className="flex flex-col gap-2 flex-1 min-w-0">
+            <div className="flex min-h-0 flex-1 min-w-0 flex-col md:overflow-hidden">
               {peopleLoading ? (
-                Array.from({ length: 4 }).map((_, i) => <SquadListCardSkeleton key={i} />)
+                <div className="flex flex-col gap-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <SquadListCardSkeleton key={i} />
+                  ))}
+                </div>
               ) : filteredPeople.length > 0 ? (
-                filteredPeople.map((person) => (
-                  <PersonCard
-                    key={person.id}
-                    person={person}
-                    currentUserId={userId}
-                    friendStatus={friendStatusMap[person.id]}
-                    useFullName
-                    onViewUserProfile={onViewUserProfile}
-                    onAddFriend={async (id) => {
-                      await FriendsService.sendFriendRequest(id)
-                      toast.success("Friend request sent")
-                      setFriendStatusMap((prev) => ({ ...prev, [id]: { isFriend: prev[id]?.isFriend ?? false, requestStatus: "pending_sent" } }))
-                    }}
-                    onAcceptRequest={async (id) => {
-                      await FriendsService.acceptFriendRequest(id)
-                      toast.success("Friend request accepted")
-                      setFriendStatusMap((prev) => ({ ...prev, [id]: { isFriend: true, requestStatus: null } }))
-                    }}
-                    onCancelRequest={async (id) => {
-                      await FriendsService.cancelFriendRequest(id)
-                      toast.success("Friend request cancelled")
-                      setFriendStatusMap((prev) => ({ ...prev, [id]: { isFriend: prev[id]?.isFriend ?? false, requestStatus: null } }))
-                    }}
-                    onUnfriend={async (id) => {
-                      await FriendsService.removeFriend(id)
-                      toast.success("Removed from friends")
-                      setFriendStatusMap((prev) => ({ ...prev, [id]: { isFriend: false, requestStatus: null } }))
-                    }}
-                  />
-                ))
+                isMobile ? (
+                  <div className="flex flex-col gap-2">
+                    {filteredPeople.map((person) => (
+                      <PersonCard
+                        key={person.id}
+                        person={person}
+                        currentUserId={userId}
+                        friendStatus={friendStatusMap[person.id]}
+                        useFullName
+                        onViewUserProfile={onViewUserProfile}
+                        onAddFriend={explorePeopleAddFriend}
+                        onAcceptRequest={explorePeopleAcceptRequest}
+                        onCancelRequest={explorePeopleCancelRequest}
+                        onUnfriend={explorePeopleUnfriend}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    ref={peopleListScrollRef}
+                    className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain md:pr-1 md:pb-6"
+                    style={{ WebkitOverflowScrolling: "touch" }}
+                  >
+                    <div
+                      className="relative w-full"
+                      style={{ height: `${peopleRowVirtualizer.getTotalSize()}px` }}
+                    >
+                      {peopleRowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const person = filteredPeople[virtualRow.index]!
+                        return (
+                          <div
+                            key={person.id}
+                            data-index={virtualRow.index}
+                            ref={peopleRowVirtualizer.measureElement}
+                            className="absolute left-0 top-0 w-full box-border pb-2"
+                            style={{ transform: `translateY(${virtualRow.start}px)` }}
+                          >
+                            <PersonCard
+                              person={person}
+                              currentUserId={userId}
+                              friendStatus={friendStatusMap[person.id]}
+                              useFullName
+                              onViewUserProfile={onViewUserProfile}
+                              onAddFriend={explorePeopleAddFriend}
+                              onAcceptRequest={explorePeopleAcceptRequest}
+                              onCancelRequest={explorePeopleCancelRequest}
+                              onUnfriend={explorePeopleUnfriend}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
               ) : (
                 <p className="text-sm text-muted-foreground py-4">
                   {search.trim() ? "No people match your search." : "No people to show."}

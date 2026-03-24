@@ -70,6 +70,7 @@ import {
 } from "@/components/ui/tooltip"
 import { FeedSkeleton } from "@/components/ui/feed-skeletons"
 import { SharePostModal } from "@/components/share-post-modal"
+import { FeedVirtualizedPostBlock } from "@/components/feed/feed-virtualized-post-block"
 
 // ── Types ──
 type SortOption = "newest" | "hearts" | "replies"
@@ -1509,11 +1510,11 @@ export function PostDetailView({
   if (isMobile) {
     return (
       <div className="flex flex-col h-full min-h-0 mx-auto w-full max-w-2xl min-w-0 overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain py-4" style={{ WebkitOverflowScrolling: "touch" }}>
           {content}
         </div>
         {!readOnly && (
-        <div className="shrink-0 border-t border-border bg-background px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
+        <div className="shrink-0 border-t border-border bg-background py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           <div className="mx-auto w-full max-w-2xl">
             <ReplyComposer
               userInitials={currentUserInitials}
@@ -3315,6 +3316,8 @@ export function HomeFeed({
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  /** Scroll root for desktop feed virtualization (`md:overflow-y-auto` column). */
+  const feedListScrollRef = useRef<HTMLDivElement>(null)
   const feedContainerRef = useRef<HTMLDivElement>(null)
   const [showRightSidebar, setShowRightSidebar] = useState(true)
   const postsLengthRef = useRef(0)
@@ -4018,7 +4021,10 @@ export function HomeFeed({
           ref={feedContainerRef}
           className="flex gap-6 max-md:shrink-0 max-md:overflow-visible md:flex-1 md:min-h-0 md:overflow-hidden"
         >
-          <div className="flex-1 max-w-2xl mx-auto lg:mx-0 min-w-0 overflow-x-hidden flex flex-col max-md:shrink-0 max-md:overflow-y-visible md:overflow-y-auto">
+          <div
+            ref={feedListScrollRef}
+            className="flex-1 max-w-2xl mx-auto lg:mx-0 min-w-0 overflow-x-hidden flex flex-col max-md:shrink-0 max-md:overflow-y-visible md:overflow-y-auto"
+          >
             {isMobile && userId && myFriendsLoaded && (
               <div className="shrink-0 py-1.5">
                 <ActiveFriendsPanel
@@ -4079,10 +4085,14 @@ export function HomeFeed({
                   {loading ? (
                     <FeedSkeleton count={4} />
                   ) : (
-                    <>
-                      {sortedPosts.map((post) => (
+                    <FeedVirtualizedPostBlock
+                      posts={sortedPosts}
+                      virtualize={!isMobile}
+                      scrollParentRef={feedListScrollRef}
+                      loadMoreRef={loadMoreRef}
+                      loadingMore={loadingMore}
+                      renderPost={(post) => (
                         <PostCard
-                          key={post.id}
                           post={post}
                           userId={userId}
                           deletePostToConfirm={deletePostToConfirm}
@@ -4107,14 +4117,8 @@ export function HomeFeed({
                           sourceSquadId={post.source_type === "squad" && post.source_id ? post.source_id : null}
                           onGoToSquad={onGoToSquad}
                         />
-                      ))}
-                      <div ref={loadMoreRef} className="min-h-4" />
-                      {loadingMore && (
-                        <div className="flex justify-center py-4">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                        </div>
                       )}
-                    </>
+                    />
                   )}
                 </div>
               </>
@@ -4185,10 +4189,14 @@ export function HomeFeed({
                           <p className="text-xs text-muted-foreground mt-1">When your friends post, they&apos;ll show up here</p>
                         </div>
                       ) : (
-                        <>
-                          {sortedFriendsPosts.map((post) => (
+                        <FeedVirtualizedPostBlock
+                          posts={sortedFriendsPosts}
+                          virtualize={!isMobile}
+                          scrollParentRef={feedListScrollRef}
+                          loadMoreRef={loadMoreRef}
+                          loadingMore={friendsLoadingMore}
+                          renderPost={(post) => (
                             <PostCard
-                              key={post.id}
                               post={post}
                               userId={userId}
                               deletePostToConfirm={deletePostToConfirm}
@@ -4213,14 +4221,8 @@ export function HomeFeed({
                               sourceSquadId={post.source_type === "squad" && post.source_id ? post.source_id : null}
                               onGoToSquad={onGoToSquad}
                             />
-                          ))}
-                          <div ref={loadMoreRef} className="min-h-4" />
-                          {friendsLoadingMore && (
-                            <div className="flex justify-center py-4">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                            </div>
                           )}
-                        </>
+                        />
                       )}
                     </div>
 
@@ -4311,10 +4313,14 @@ export function HomeFeed({
                         <p className="text-sm text-muted-foreground">No posts yet in your custom feed</p>
                       </div>
                     ) : (
-                      <>
-                        {sortedCustomPosts.map((post) => (
+                      <FeedVirtualizedPostBlock
+                        posts={sortedCustomPosts}
+                        virtualize={!isMobile}
+                        scrollParentRef={feedListScrollRef}
+                        loadMoreRef={loadMoreRef}
+                        loadingMore={customLoadingMore}
+                        renderPost={(post) => (
                           <PostCard
-                            key={post.id}
                             post={post}
                             userId={userId}
                             deletePostToConfirm={deletePostToConfirm}
@@ -4339,14 +4345,8 @@ export function HomeFeed({
                             sourceSquadId={post.source_type === "squad" && post.source_id ? post.source_id : null}
                             onGoToSquad={onGoToSquad}
                           />
-                        ))}
-                        <div ref={loadMoreRef} className="min-h-4" />
-                        {customLoadingMore && (
-                          <div className="flex justify-center py-4">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                          </div>
                         )}
-                      </>
+                      />
                     )}
                   </div>
                 )}

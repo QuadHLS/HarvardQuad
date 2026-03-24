@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { FeedService, type FeedPostWithAuthor } from "@/services/feedService"
 import { SquadsService } from "@/services/squadsService"
 import { PostCard, PostDetailView, NewPostModal } from "@/components/pages/home-feed"
+import { FeedVirtualizedPostBlock } from "@/components/feed/feed-virtualized-post-block"
 import { SharePostModal } from "@/components/share-post-modal"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useSubView } from "@/hooks/use-sub-view"
@@ -603,6 +604,7 @@ function ProfilePosts({
   const [newPostOpen, setNewPostOpen] = useState(false)
   const likingInProgressRef = useRef<Set<string>>(new Set())
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const profilePostsScrollRef = useRef<HTMLDivElement>(null)
   const postsLengthRef = useRef(0)
   const loadingMoreRef = useRef(false)
   postsLengthRef.current = posts.length
@@ -636,6 +638,7 @@ function ProfilePosts({
     async (silent = false, append = false) => {
       if (!userId) {
         setPosts([])
+        setHasMore(false)
         setLoading(false)
         return
       }
@@ -662,7 +665,10 @@ function ProfilePosts({
           setHasMore(list.length >= PROFILE_POSTS_PAGE_SIZE)
         }
       } catch {
-        if (!append && !silent) setPosts([])
+        if (!append && !silent) {
+          setPosts([])
+          setHasMore(false)
+        }
       } finally {
         if (append) {
           loadingMoreRef.current = false
@@ -979,55 +985,58 @@ function ProfilePosts({
           editPost={editPost}
         />
       )}
-      <div className="flex flex-col gap-3">
-        {loading ? (
-          <FeedSkeleton count={4} />
-        ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Grid3X3 className="size-12 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">No posts yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Your posts will appear here</p>
-          </div>
-        ) : (
-          <>
-            {posts.map((post) => {
-              const isViewingOtherProfile = !!currentUserId && userId !== currentUserId
-              return (
-              <PostCard
-                key={post.id}
-                post={post}
-                userId={currentUserId ?? userId}
-                deletePostToConfirm={deletePostToConfirm}
-                onConfirmDeletePost={confirmDeletePost}
-                onCancelDeletePost={() => setDeletePostToConfirm(null)}
-                onLike={() => handleLike(post)}
-                onBookmark={() => handleBookmark(post)}
-                onOpenDetail={() => handleOpenPost(post)}
-                onVote={(optionId, phase) => handlePollVote(post, optionId, phase)}
-                onEditPost={handleEditPost}
-                onDeletePost={handleDeletePost}
-                onReportPost={handleReportPost}
-                onSharePost={(p) => setSharePost(p)}
-                onOpenUserProfile={currentUserId && post.author_id !== currentUserId ? onViewUserProfile : undefined}
-                editPost={editPost}
-                onSubmitPost={handleCreatePost}
-                onCancelEditPost={() => setEditPost(null)}
-                submittingPost={submittingPost}
-                userInitials={userInitials}
-                isMobile={isMobile}
-                sourceTag={post.source_type === 'squad' && post.source_name ? post.source_name : 'Campus'}
-                onGoToSquad={onGoToSquad}
-                sourceSquadId={post.source_type === 'squad' && post.source_id ? post.source_id : null}
-              />
-            )})}
-            <div ref={loadMoreRef} className="min-h-4" />
-            {loadingMore && (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+      <div className="flex min-h-0 flex-1 flex-col md:overflow-hidden">
+        <div
+          ref={profilePostsScrollRef}
+          className="flex min-h-0 flex-1 flex-col overflow-x-hidden max-md:overflow-y-visible md:overflow-y-auto"
+        >
+          <div className="flex flex-col gap-3 pb-nav-safe md:pb-4">
+            {loading ? (
+              <FeedSkeleton count={4} />
+            ) : posts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Grid3X3 className="size-12 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">No posts yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Your posts will appear here</p>
               </div>
+            ) : (
+              <FeedVirtualizedPostBlock
+                posts={posts}
+                virtualize={!isMobile}
+                scrollParentRef={profilePostsScrollRef}
+                loadMoreRef={loadMoreRef}
+                loadingMore={loadingMore}
+                renderPost={(post) => (
+                  <PostCard
+                    post={post}
+                    userId={currentUserId ?? userId}
+                    deletePostToConfirm={deletePostToConfirm}
+                    onConfirmDeletePost={confirmDeletePost}
+                    onCancelDeletePost={() => setDeletePostToConfirm(null)}
+                    onLike={() => handleLike(post)}
+                    onBookmark={() => handleBookmark(post)}
+                    onOpenDetail={() => handleOpenPost(post)}
+                    onVote={(optionId, phase) => handlePollVote(post, optionId, phase)}
+                    onEditPost={handleEditPost}
+                    onDeletePost={handleDeletePost}
+                    onReportPost={handleReportPost}
+                    onSharePost={(p) => setSharePost(p)}
+                    onOpenUserProfile={currentUserId && post.author_id !== currentUserId ? onViewUserProfile : undefined}
+                    editPost={editPost}
+                    onSubmitPost={handleCreatePost}
+                    onCancelEditPost={() => setEditPost(null)}
+                    submittingPost={submittingPost}
+                    userInitials={userInitials}
+                    isMobile={isMobile}
+                    sourceTag={post.source_type === "squad" && post.source_name ? post.source_name : "Campus"}
+                    onGoToSquad={onGoToSquad}
+                    sourceSquadId={post.source_type === "squad" && post.source_id ? post.source_id : null}
+                  />
+                )}
+              />
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </>
   )
@@ -1059,6 +1068,8 @@ function ProfileSaved({
   const [submittingPost, setSubmittingPost] = useState(false)
   const [newPostOpen, setNewPostOpen] = useState(false)
   const likingInProgressRef = useRef<Set<string>>(new Set())
+  const profileSavedScrollRef = useRef<HTMLDivElement>(null)
+  const savedLoadMoreRef = useRef<HTMLDivElement>(null)
 
   const handleOpenPost = useCallback(
     async (post: FeedPostWithAuthor) => {
@@ -1358,45 +1369,60 @@ function ProfileSaved({
         submitting={submittingPost}
         editPost={editPost}
       />
-      <div className="flex flex-col gap-3">
-        {loading ? (
-          <FeedSkeleton count={4} />
-        ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Bookmark className="size-12 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">No saved posts yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Bookmark posts to find them here later</p>
+      <div className="flex min-h-0 flex-1 flex-col md:overflow-hidden">
+        <div
+          ref={profileSavedScrollRef}
+          className="flex min-h-0 flex-1 flex-col overflow-x-hidden max-md:overflow-y-visible md:overflow-y-auto"
+        >
+          <div className="flex flex-col gap-3 pb-nav-safe md:pb-4">
+            {loading ? (
+              <FeedSkeleton count={4} />
+            ) : posts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Bookmark className="size-12 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">No saved posts yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Bookmark posts to find them here later</p>
+              </div>
+            ) : (
+              <FeedVirtualizedPostBlock
+                posts={posts}
+                virtualize={!isMobile}
+                scrollParentRef={profileSavedScrollRef}
+                loadMoreRef={savedLoadMoreRef}
+                loadingMore={false}
+                renderPost={(post) => (
+                  <PostCard
+                    post={post}
+                    userId={effectiveCurrentUserId}
+                    deletePostToConfirm={deletePostToConfirm}
+                    onConfirmDeletePost={confirmDeletePost}
+                    onCancelDeletePost={() => setDeletePostToConfirm(null)}
+                    onLike={() => handleLike(post)}
+                    onBookmark={() => handleBookmark(post)}
+                    onOpenDetail={() => handleOpenPost(post)}
+                    onVote={(optionId, phase) => handlePollVote(post, optionId, phase)}
+                    onEditPost={handleEditPost}
+                    onDeletePost={handleDeletePost}
+                    onReportPost={handleReportPost}
+                    onSharePost={(p) => setSharePost(p)}
+                    onOpenUserProfile={
+                      effectiveCurrentUserId && post.author_id !== effectiveCurrentUserId ? onViewUserProfile : undefined
+                    }
+                    editPost={editPost}
+                    onSubmitPost={handleCreatePost}
+                    onCancelEditPost={() => setEditPost(null)}
+                    submittingPost={submittingPost}
+                    userInitials={userInitials}
+                    isMobile={isMobile}
+                    sourceTag={post.source_type === "squad" && post.source_name ? post.source_name : "Campus"}
+                    onGoToSquad={onGoToSquad}
+                    sourceSquadId={post.source_type === "squad" && post.source_id ? post.source_id : null}
+                  />
+                )}
+              />
+            )}
           </div>
-        ) : (
-          posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              userId={effectiveCurrentUserId}
-              deletePostToConfirm={deletePostToConfirm}
-              onConfirmDeletePost={confirmDeletePost}
-              onCancelDeletePost={() => setDeletePostToConfirm(null)}
-              onLike={() => handleLike(post)}
-              onBookmark={() => handleBookmark(post)}
-              onOpenDetail={() => handleOpenPost(post)}
-              onVote={(optionId, phase) => handlePollVote(post, optionId, phase)}
-              onEditPost={handleEditPost}
-              onDeletePost={handleDeletePost}
-              onReportPost={handleReportPost}
-              onSharePost={(p) => setSharePost(p)}
-              onOpenUserProfile={effectiveCurrentUserId && post.author_id !== effectiveCurrentUserId ? onViewUserProfile : undefined}
-              editPost={editPost}
-              onSubmitPost={handleCreatePost}
-              onCancelEditPost={() => setEditPost(null)}
-              submittingPost={submittingPost}
-              userInitials={userInitials}
-              isMobile={isMobile}
-              sourceTag={post.source_type === 'squad' && post.source_name ? post.source_name : 'Campus'}
-              onGoToSquad={onGoToSquad}
-              sourceSquadId={post.source_type === 'squad' && post.source_id ? post.source_id : null}
-            />
-          ))
-        )}
+        </div>
       </div>
     </>
   )
@@ -2956,7 +2982,7 @@ export function ProfilePage({
 
   if (loading && profileUserId) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-4 md:px-6 md:py-6 pb-nav-safe md:pb-6">
+      <div className="mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col px-4 py-4 pb-nav-safe md:h-full md:min-h-0 md:flex-1 md:px-6 md:py-6 md:pb-6">
         <ProfileHeaderSkeleton />
       </div>
     )
@@ -2976,16 +3002,17 @@ export function ProfilePage({
         }}
         anchorRect={blockInfoAnchorRect}
       />
-    <div className="mx-auto w-full max-w-3xl px-4 py-4 md:px-6 md:py-6 pb-nav-safe md:pb-6">
+    <div className="mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col px-4 py-4 pb-nav-safe md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:px-6 md:py-6 md:pb-6">
       {!isOwnProfile && onBackFromViewing && (
         <button
           onClick={onBackFromViewing}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
+          className="mb-4 flex shrink-0 items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
           Back
         </button>
       )}
+      <div className="shrink-0">
       <ProfileHeader
         profile={displayProfile}
         postCount={postCount}
@@ -3123,6 +3150,7 @@ export function ProfilePage({
           ) : undefined
         }
       />
+      </div>
 
       {isPrivate ? (
         <div className="mt-8 flex flex-col items-center justify-center py-16 text-center">
@@ -3133,7 +3161,7 @@ export function ProfilePage({
       ) : (
         <>
           {/* Tabs */}
-          <div className="mt-6 flex items-center gap-1 rounded-lg bg-secondary p-1">
+          <div className="mt-6 flex shrink-0 items-center gap-1 rounded-lg bg-secondary p-1">
             {tabsToShow.map((tab) => (
               <button
                 key={tab.id}
@@ -3151,8 +3179,15 @@ export function ProfilePage({
             ))}
           </div>
 
-          {/* Tab Content */}
-          <div className="mt-4">
+          {/* Tab Content: posts/saved use inner scroll + virtualization on desktop; other tabs scroll this region */}
+          <div
+            className={cn(
+              "mt-4 flex min-h-0 flex-1 flex-col",
+              activeTab === "posts" || activeTab === "saved"
+                ? "md:overflow-hidden"
+                : "overflow-y-auto md:min-h-0 md:flex-1"
+            )}
+          >
             {activeTab === "posts" && (
               <ProfilePosts
                 userId={profileUserId ?? undefined}
