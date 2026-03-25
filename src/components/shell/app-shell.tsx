@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { LayoutGroup } from "framer-motion"
+import { GlobalSearch } from "@/components/shell/global-search"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 import { BlocksService } from "@/services/blocksService"
@@ -18,7 +20,7 @@ import { HomeFeed } from "@/components/pages/home-feed"
 import { SquadsPage } from "@/components/pages/squads-page"
 import { MessagesPage } from "@/components/pages/messages-page"
 import { CalendarPage } from "@/components/pages/calendar-page"
-import { ProfilePage } from "@/components/pages/profile-page"
+import { ProfilePage, type ProfilePageInitialTab } from "@/components/pages/profile-page"
 import { NotificationsPage } from "@/components/pages/notifications-page"
 import { ExplorePage } from "@/components/pages/explore-page"
 
@@ -36,6 +38,12 @@ function AppShellInner() {
   const [postToOpenId, setPostToOpenId] = useState<string | null>(null)
   const [conversationIdToOpen, setConversationIdToOpen] = useState<string | null>(null)
   const [exploreInitialTab, setExploreInitialTab] = useState<"trending" | "people" | "squads" | null>(null)
+  const [profileInitialTab, setProfileInitialTab] = useState<ProfilePageInitialTab | null>(null)
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false)
+
+  useEffect(() => {
+    if (activePage !== "profile") setProfileInitialTab(null)
+  }, [activePage])
 
   const navigate = useCallback((p: PageId) => {
     setPostToOpenId((prev) => (p !== "feed" ? null : prev))
@@ -48,6 +56,12 @@ function AppShellInner() {
     setViewingUserId(null)
     setActivePage("profile")
   }, [])
+
+  const openProfileSettings = useCallback(() => {
+    setViewingUserId(null)
+    setProfileInitialTab("settings")
+    navigate("profile")
+  }, [navigate])
 
   const handleViewUserProfile = useCallback(
     async (id: string, returnToPage: PageId) => {
@@ -128,7 +142,23 @@ function AppShellInner() {
     prevPageRef.current = activePage
   }, [activePage])
 
+  const globalSearchOpenRef = useRef(globalSearchOpen)
+  globalSearchOpenRef.current = globalSearchOpen
+
+  useEffect(() => {
+    if (!user) return
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault()
+        setGlobalSearchOpen(!globalSearchOpenRef.current)
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [user])
+
   return (
+    <LayoutGroup id="quad-search">
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
       {/* iOS safe area top fill - matches background behind Dynamic Island / notch */}
       <div className="h-safe-top shrink-0 bg-background md:hidden" />
@@ -138,9 +168,32 @@ function AppShellInner() {
         activePage={activePage}
         onNavigate={navigate}
         onGoToMyProfile={goToMyProfile}
+        onOpenProfileSettings={openProfileSettings}
         profile={profile}
         notificationsUnreadCount={notificationsUnreadCount}
+        onOpenSearch={() => setGlobalSearchOpen(true)}
+        suppressDesktopSearchPill={globalSearchOpen}
       />
+      )}
+
+      {user && (
+        <GlobalSearch
+          open={globalSearchOpen}
+          onOpenChange={setGlobalSearchOpen}
+          isMobile={isMobile}
+          userId={user.id}
+          onNavigate={navigate}
+          onNavigateToExploreTab={(tab) => {
+            setExploreInitialTab(tab)
+            navigate("explore")
+          }}
+          onOpenConversation={(id) => {
+            setConversationIdToOpen(id)
+            navigate("messages")
+          }}
+          onViewProfile={(id) => handleViewUserProfile(id, activePage)}
+          onOpenProfileSettings={openProfileSettings}
+        />
       )}
 
       <div className="flex flex-1 min-h-0 md:overflow-hidden max-md:overflow-visible">
@@ -292,8 +345,10 @@ function AppShellInner() {
               </div>
             )}
             {activePage === "profile" && (
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div className="w-full min-w-0">
                 <ProfilePage
+                  initialTab={profileInitialTab}
+                  onInitialTabUsed={() => setProfileInitialTab(null)}
                   viewingUserId={viewingUserId}
                   onBackFromViewing={() => {
                     setViewingUserId(null)
@@ -331,6 +386,7 @@ function AppShellInner() {
         />
       )}
     </div>
+    </LayoutGroup>
   )
 }
 

@@ -35,6 +35,8 @@ type MobileBottomDrawerProps = {
   scrollBody?: boolean
   bodyClassName?: string
   maxHeightClassName?: string
+  /** When false, no visible header — title/description are still exposed to assistive tech (sr-only). */
+  showHeader?: boolean
 }
 
 export function MobileBottomDrawer({
@@ -50,6 +52,7 @@ export function MobileBottomDrawer({
   scrollBody = true,
   bodyClassName,
   maxHeightClassName = 'max-h-[85dvh]',
+  showHeader = true,
 }: MobileBottomDrawerProps) {
   // `variant` kept for call-site clarity; layout is unified (see JSDoc).
   void _variant
@@ -72,14 +75,23 @@ export function MobileBottomDrawer({
         className={cn(vv.maxHeightPx != null ? 'max-h-none' : maxHeightClassName, contentClassName)}
         style={hasVvStyle ? { ...vvStyle } : undefined}
       >
-        <DrawerHeader className="bg-background">
-          <DrawerTitle className={titleClassName}>{title}</DrawerTitle>
-          {description != null && description !== '' ? (
-            <DrawerDescription className={descriptionClassName}>{description}</DrawerDescription>
-          ) : (
-            <DrawerDescription className="sr-only">Bottom sheet</DrawerDescription>
-          )}
-        </DrawerHeader>
+        {showHeader ? (
+          <DrawerHeader className="bg-background">
+            <DrawerTitle className={titleClassName}>{title}</DrawerTitle>
+            {description != null && description !== '' ? (
+              <DrawerDescription className={descriptionClassName}>{description}</DrawerDescription>
+            ) : (
+              <DrawerDescription className="sr-only">Bottom sheet</DrawerDescription>
+            )}
+          </DrawerHeader>
+        ) : (
+          <>
+            <DrawerTitle className="sr-only">{title}</DrawerTitle>
+            <DrawerDescription className="sr-only">
+              {description != null && description !== '' ? description : 'Bottom sheet'}
+            </DrawerDescription>
+          </>
+        )}
         {scrollBody ? (
           <div
             className={cn(scrollBodyClass, 'px-4 pb-6', bodyClassName)}

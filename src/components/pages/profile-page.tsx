@@ -985,11 +985,8 @@ function ProfilePosts({
           editPost={editPost}
         />
       )}
-      <div className="flex min-h-0 flex-1 flex-col md:overflow-hidden">
-        <div
-          ref={profilePostsScrollRef}
-          className="flex min-h-0 flex-1 flex-col overflow-x-hidden max-md:overflow-y-visible md:overflow-y-auto"
-        >
+      <div className="flex flex-col overflow-x-hidden">
+        <div ref={profilePostsScrollRef} className="flex flex-col">
           <div className="flex flex-col gap-3 pb-nav-safe md:pb-4">
             {loading ? (
               <FeedSkeleton count={4} />
@@ -1002,7 +999,7 @@ function ProfilePosts({
             ) : (
               <FeedVirtualizedPostBlock
                 posts={posts}
-                virtualize={!isMobile}
+                virtualize={false}
                 scrollParentRef={profilePostsScrollRef}
                 loadMoreRef={loadMoreRef}
                 loadingMore={loadingMore}
@@ -1369,11 +1366,8 @@ function ProfileSaved({
         submitting={submittingPost}
         editPost={editPost}
       />
-      <div className="flex min-h-0 flex-1 flex-col md:overflow-hidden">
-        <div
-          ref={profileSavedScrollRef}
-          className="flex min-h-0 flex-1 flex-col overflow-x-hidden max-md:overflow-y-visible md:overflow-y-auto"
-        >
+      <div className="flex flex-col overflow-x-hidden">
+        <div ref={profileSavedScrollRef} className="flex flex-col">
           <div className="flex flex-col gap-3 pb-nav-safe md:pb-4">
             {loading ? (
               <FeedSkeleton count={4} />
@@ -1386,7 +1380,7 @@ function ProfileSaved({
             ) : (
               <FeedVirtualizedPostBlock
                 posts={posts}
-                virtualize={!isMobile}
+                virtualize={false}
                 scrollParentRef={profileSavedScrollRef}
                 loadMoreRef={savedLoadMoreRef}
                 loadingMore={false}
@@ -2695,6 +2689,8 @@ function ProfileSettings({
   )
 }
 
+export type ProfilePageInitialTab = "posts" | "squads" | "friends" | "saved" | "settings"
+
 export function ProfilePage({
   viewingUserId,
   onBackFromViewing,
@@ -2702,6 +2698,8 @@ export function ProfilePage({
   onGoToSquad,
   onNavigateToExplore,
   onNavigateToDiscoverSquads,
+  initialTab,
+  onInitialTabUsed,
 }: {
   viewingUserId?: string | null
   onBackFromViewing?: () => void
@@ -2709,6 +2707,9 @@ export function ProfilePage({
   onGoToSquad?: (squadId: string) => void
   onNavigateToExplore?: () => void
   onNavigateToDiscoverSquads?: () => void
+  /** Deep-link (e.g. global search) — cleared via {@link onInitialTabUsed} after user picks another tab. */
+  initialTab?: ProfilePageInitialTab | null
+  onInitialTabUsed?: () => void
 } = {}) {
   const { user } = useAuth()
   const { profile: contextProfile, loading: contextLoading, invalidate } = useProfile()
@@ -2719,8 +2720,22 @@ export function ProfilePage({
   const [squadCount, setSquadCount] = useState<number>(0)
   const [loading, setLoading] = useState(!!profileUserId)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<"posts" | "squads" | "friends" | "saved" | "settings">("posts")
+  const [activeTab, setActiveTab] = useState<"posts" | "squads" | "friends" | "saved" | "settings">(
+    () => initialTab ?? "posts"
+  )
   const [editing, setEditing] = useState(false)
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab)
+  }, [initialTab])
+
+  const selectTab = useCallback(
+    (t: ProfilePageInitialTab) => {
+      setActiveTab(t)
+      onInitialTabUsed?.()
+    },
+    [onInitialTabUsed]
+  )
   const [headerFriendStatus, setHeaderFriendStatus] = useState<{ isFriend: boolean; requestStatus: FriendRequestStatus } | null>(null)
   const [headerFriendLoading, setHeaderFriendLoading] = useState(false)
   const [headerBlocked, setHeaderBlocked] = useState(false)
@@ -2982,7 +2997,7 @@ export function ProfilePage({
 
   if (loading && profileUserId) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col px-4 py-4 pb-nav-safe md:h-full md:min-h-0 md:flex-1 md:px-6 md:py-6 md:pb-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col px-4 py-4 pb-nav-safe md:px-6 md:py-6 md:pb-6">
         <ProfileHeaderSkeleton />
       </div>
     )
@@ -3002,7 +3017,7 @@ export function ProfilePage({
         }}
         anchorRect={blockInfoAnchorRect}
       />
-    <div className="mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col px-4 py-4 pb-nav-safe md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:px-6 md:py-6 md:pb-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col px-4 py-4 pb-nav-safe md:px-6 md:py-6 md:pb-6">
       {!isOwnProfile && onBackFromViewing && (
         <button
           onClick={onBackFromViewing}
@@ -3165,7 +3180,7 @@ export function ProfilePage({
             {tabsToShow.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => selectTab(tab.id)}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   activeTab === tab.id
@@ -3179,15 +3194,8 @@ export function ProfilePage({
             ))}
           </div>
 
-          {/* Tab Content: posts/saved use inner scroll + virtualization on desktop; other tabs scroll this region */}
-          <div
-            className={cn(
-              "mt-4 flex min-h-0 flex-1 flex-col",
-              activeTab === "posts" || activeTab === "saved"
-                ? "md:overflow-hidden"
-                : "overflow-y-auto md:min-h-0 md:flex-1"
-            )}
-          >
+          {/* Tab content flows with the shell <main> scroll — header + tabs + body scroll together */}
+          <div className="mt-4 flex flex-col">
             {activeTab === "posts" && (
               <ProfilePosts
                 userId={profileUserId ?? undefined}
@@ -3229,7 +3237,7 @@ export function ProfilePage({
                 onEditProfile={() => {
                   if (user) {
                     setEditing(true)
-                    setActiveTab("posts")
+                    selectTab("posts")
                   }
                 }}
                 profile={displayProfile}

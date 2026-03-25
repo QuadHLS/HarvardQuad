@@ -5,25 +5,57 @@ import {
   mobileHeaderCloudTintPositionClass,
   mobileHeaderCloudTintStyle,
 } from "@/components/shell/mobile-chrome-cloud"
-import { Search, Bell, Sun, Moon, Monitor } from "lucide-react"
+import { Search, Bell, Sun, Moon, Monitor, User, Settings, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
+import { motion, useReducedMotion } from "framer-motion"
 import { useAuth } from "@/contexts/AuthContext"
 import { useProfile } from "@/contexts/ProfileContext"
 import { supabase } from "@/lib/supabase"
+import {
+  quadSearchFieldClass,
+  quadSearchIconClass,
+  quadSearchMobileChipClass,
+  quadSearchMobileChipInnerClass,
+  quadSearchMobileIconClass,
+  quadSearchMorphTransition,
+  quadSearchSurfaceClass,
+} from "@/components/shell/quad-search-surface-styles"
 
 interface TopBarProps {
   activePage: PageId
   onNavigate?: (page: PageId) => void
   onGoToMyProfile?: () => void
+  onOpenProfileSettings?: () => void
   profile?: { full_name: string | null; public_name: string | null; avatar_url: string | null } | null
   notificationsUnreadCount?: number
+  onOpenSearch?: () => void
+  /** While global search is open on desktop — hide the header pill so the palette keeps the only `layoutId`. */
+  suppressDesktopSearchPill?: boolean
 }
 
-export function TopBar({ activePage, onNavigate, onGoToMyProfile, profile, notificationsUnreadCount = 0 }: TopBarProps) {
-  const { user } = useAuth()
+export function TopBar({
+  activePage: _activePage,
+  onNavigate,
+  onGoToMyProfile,
+  onOpenProfileSettings,
+  profile,
+  notificationsUnreadCount = 0,
+  onOpenSearch,
+  suppressDesktopSearchPill = false,
+}: TopBarProps) {
+  const reduceMotion = useReducedMotion()
+  const { user, signOut } = useAuth()
   const { invalidate } = useProfile()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -62,30 +94,64 @@ export function TopBar({ activePage, onNavigate, onGoToMyProfile, profile, notif
           <img src="/QUAD.svg" alt="" className="h-10 md:h-12 w-auto rounded-none" />
         </button>
       </div>
-      {/* Desktop Search - centered in full header */}
+      {/* Desktop Search - centered; shared layoutId morphs into global search panel */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 hidden w-full max-w-[min(32rem,calc(100vw-20rem))] -translate-x-1/2 -translate-y-1/2 md:flex">
-        <div className="relative w-full pointer-events-auto">
-          <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Search people, squads, posts..."
-            className="h-10 w-full rounded-full border border-primary/40 bg-background pl-11 pr-5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-            aria-label="Search"
-          />
-        </div>
+        {!suppressDesktopSearchPill &&
+          (reduceMotion === true ? (
+            <div className={cn(quadSearchSurfaceClass, "pointer-events-auto transition-colors hover:border-primary/55 hover:bg-secondary/40")}>
+              <Search className={quadSearchIconClass} />
+              <button
+                type="button"
+                onClick={() => onOpenSearch?.()}
+                className={cn(
+                  quadSearchFieldClass,
+                  "w-full rounded-full !px-11 !text-center transition-colors hover:bg-secondary/40"
+                )}
+                aria-label="Quad search"
+              >
+                Quad search
+              </button>
+            </div>
+          ) : (
+            <motion.div
+              layoutId="quad-search-surface"
+              className={cn(quadSearchSurfaceClass, "pointer-events-auto transition-colors hover:border-primary/55 hover:bg-secondary/40")}
+              transition={quadSearchMorphTransition}
+            >
+              <Search className={quadSearchIconClass} />
+              <button
+                type="button"
+                onClick={() => onOpenSearch?.()}
+                className={cn(
+                  quadSearchFieldClass,
+                  "w-full rounded-full !px-11 !text-center transition-colors hover:bg-secondary/40"
+                )}
+                aria-label="Quad search"
+              >
+                Quad search
+              </button>
+            </motion.div>
+          ))}
       </div>
-      <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2 pl-4 pr-2 md:justify-end md:gap-4 md:px-6">
-        {/* Mobile: same search field as desktop, inline */}
+      {/*
+        Desktop: this row is flex-1 and comes after the absolutely centered search in the DOM.
+        Same z-index would stack it on top and steal clicks over the search pill — use
+        md:pointer-events-none here and re-enable on actual controls.
+      */}
+      <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2 pl-4 pr-2 md:pointer-events-none md:justify-end md:gap-4 md:px-6">
+        {/* Mobile: opens same search sheet */}
         <div className="relative min-w-0 flex-1 md:hidden">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Search people, squads, posts..."
-            className="h-9 w-full rounded-full border border-primary/25 bg-background/45 py-2 pl-10 pr-3 text-sm text-foreground shadow-none backdrop-blur-md placeholder:text-muted-foreground focus:outline-none dark:bg-background/35"
-            aria-label="Search"
-          />
+          <Search className={quadSearchMobileIconClass} aria-hidden strokeWidth={1.75} />
+          <button
+            type="button"
+            onClick={() => onOpenSearch?.()}
+            className={cn(quadSearchMobileChipClass, quadSearchMobileChipInnerClass)}
+            aria-label="Quad search"
+          >
+            Quad search
+          </button>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 md:pointer-events-auto">
         {/* Notifications */}
         <button
           onClick={() => onNavigate?.("notifications")}
@@ -121,19 +187,69 @@ export function TopBar({ activePage, onNavigate, onGoToMyProfile, profile, notif
           </button>
         )}
 
-        {/* Profile - avatar, click navigates to own profile */}
-        <button
-          onClick={() => (onGoToMyProfile ? onGoToMyProfile() : onNavigate?.("profile"))}
-          className="flex size-10 items-center justify-center rounded-lg hover:bg-secondary transition-colors"
-          aria-label="Your profile"
-        >
-          <Avatar className="size-8 cursor-pointer">
-            {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt="" />}
-            <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-              {(profile?.public_name?.trim() || profile?.full_name?.trim() || "U").slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </button>
+        {/* Profile — mobile: tap opens profile; desktop: account menu */}
+        <div className="md:hidden">
+          <button
+            type="button"
+            onClick={() => (onGoToMyProfile ? onGoToMyProfile() : onNavigate?.("profile"))}
+            className="flex size-10 items-center justify-center rounded-lg hover:bg-secondary transition-colors"
+            aria-label="Your profile"
+          >
+            <Avatar className="size-8 cursor-pointer">
+              {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt="" />}
+              <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
+                {(profile?.public_name?.trim() || profile?.full_name?.trim() || "U").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </button>
+        </div>
+        <div className="hidden md:block">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex size-10 items-center justify-center rounded-lg outline-offset-2 hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                aria-label="Account menu"
+              >
+                <Avatar className="size-8 cursor-pointer">
+                  {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt="" />}
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
+                    {(profile?.public_name?.trim() || profile?.full_name?.trim() || "U").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 border-border">
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                My account
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (onGoToMyProfile) onGoToMyProfile()
+                  else onNavigate?.("profile")
+                }}
+              >
+                <User />
+                Your profile
+              </DropdownMenuItem>
+              {onOpenProfileSettings ? (
+                <DropdownMenuItem onSelect={() => onOpenProfileSettings()}>
+                  <Settings />
+                  Settings
+                </DropdownMenuItem>
+              ) : null}
+              {user ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onSelect={() => void signOut()}>
+                    <LogOut />
+                    Sign out
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         </div>
       </div>
     </header>

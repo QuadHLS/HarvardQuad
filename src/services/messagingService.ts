@@ -140,14 +140,7 @@ export class MessagingService {
     return (data || []) as DmConversationRow[];
   }
 
-  // Get all conversations (DMs + groups). Run add_get_all_conversations_rpc migration first.
-  static async getAllConversations(): Promise<DmConversationRow[]> {
-    const { data, error } = await supabase.rpc('get_all_conversations');
-    if (error) {
-      if (error.code === '42883') return this.getDmConversations(); // fallback to DMs only
-      throw error;
-    }
-    const rows = (data || []) as DmConversationRow[];
+  private static async attachGroupAvatarSignedUrls(rows: DmConversationRow[]): Promise<DmConversationRow[]> {
     const squadPaths = rows
       .filter((r) => r.type === 'group' && r.squad_id && r.other_avatar_url && !r.other_avatar_url.startsWith('http'))
       .map((r) => r.other_avatar_url!);
@@ -163,6 +156,32 @@ export class MessagingService {
       const urlMap = r.squad_id ? squadUrlMap : groupUrlMap;
       return urlMap.has(r.other_avatar_url) ? { ...r, other_avatar_url: urlMap.get(r.other_avatar_url)! } : r;
     });
+  }
+
+  // Get all conversations (DMs + groups). Run add_get_all_conversations_rpc migration first.
+  static async getAllConversations(): Promise<DmConversationRow[]> {
+    const { data, error } = await supabase.rpc('get_all_conversations');
+    if (error) {
+      if (error.code === '42883') return this.getDmConversations(); // fallback to DMs only
+      throw error;
+    }
+    const rows = (data || []) as DmConversationRow[];
+    return this.attachGroupAvatarSignedUrls(rows);
+  }
+
+  /** Most recent conversations for global search; capped server-side. Run add_get_recent_conversations.sql first. */
+  static async getRecentConversations(limit: number): Promise<DmConversationRow[]> {
+    const capped = Math.max(1, Math.min(Math.floor(limit), 100));
+    const { data, error } = await supabase.rpc('get_recent_conversations', { p_limit: capped });
+    if (error) {
+      if (error.code === '42883') {
+        const all = await this.getAllConversations();
+        return all.slice(0, capped);
+      }
+      throw error;
+    }
+    const rows = (data || []) as DmConversationRow[];
+    return this.attachGroupAvatarSignedUrls(rows);
   }
 
   // Unread count for a single conversation (e.g. squad chat badge)

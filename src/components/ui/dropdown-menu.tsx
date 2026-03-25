@@ -196,7 +196,8 @@ function DropdownMenuShortcut({
     <span
       data-slot="dropdown-menu-shortcut"
       className={cn(
-        'text-muted-foreground ml-auto text-xs tracking-widest',
+        'ml-auto inline-flex shrink-0 items-center gap-1 text-muted-foreground text-xs tracking-widest',
+        'has-[[data-slot=kbd]]:tracking-normal has-[[data-slot=kbd-group]]:tracking-normal',
         className,
       )}
       {...props}
