@@ -348,8 +348,7 @@ function SharedSquadMessageCard({
 export function MessageBubble({
   msg,
   isMe,
-  otherUserId,
-  otherLastReadAt,
+  deliveryStatus,
   scrollRef,
   uploadProgress,
   onNavigateToPost,
@@ -357,8 +356,8 @@ export function MessageBubble({
 }: {
   msg: Message
   isMe: boolean
-  otherUserId?: string | null
-  otherLastReadAt: string | null
+  /** Latest outgoing message only: read vs delivered (DM uses peer last-read). */
+  deliveryStatus?: "read" | "delivered" | null
   scrollRef?: React.Ref<HTMLDivElement>
   uploadProgress?: number
   onNavigateToPost?: (postId: string) => void
@@ -371,6 +370,20 @@ export function MessageBubble({
   const isSharedPost = msg.message_type === "shared_post" && msg.shared_post_data
   const isSharedSquad = msg.message_type === "shared_squad" && msg.shared_squad_data
   const isImageOrVideo = (msg.message_type === "image" || msg.message_type === "video") && attUrl
+
+  const ownSendStatus = !isMe
+    ? null
+    : String(msg.id).startsWith("temp-")
+      ? (
+          <Loader2 className="size-3 animate-spin text-muted-foreground" />
+        )
+      : deliveryStatus
+        ? (
+            <span className="text-xs tabular-nums text-muted-foreground" aria-label={deliveryStatus === "read" ? "Read" : "Delivered"}>
+              {deliveryStatus === "read" ? "read" : "delivered"}
+            </span>
+          )
+        : null
 
   if (isSharedSquad) {
     return (
@@ -399,13 +412,8 @@ export function MessageBubble({
           </div>
         )}
         <div className="flex items-center gap-1 px-1">
+          {ownSendStatus}
           <span className="text-xs text-muted-foreground">{time}</span>
-          {isMe &&
-            (String(msg.id).startsWith("temp-") ? (
-              <Loader2 className="size-3 animate-spin text-muted-foreground" />
-            ) : otherUserId && otherLastReadAt && new Date(msg.created_at) <= new Date(otherLastReadAt) ? (
-              <CheckCheck className="size-3 text-primary" aria-label="Seen" />
-            ) : null)}
         </div>
       </div>
     )
@@ -439,13 +447,8 @@ export function MessageBubble({
           </div>
         )}
         <div className="flex items-center gap-1 px-1">
+          {ownSendStatus}
           <span className="text-xs text-muted-foreground">{time}</span>
-          {isMe &&
-            (String(msg.id).startsWith("temp-") ? (
-              <Loader2 className="size-3 animate-spin text-muted-foreground" />
-            ) : otherUserId && otherLastReadAt && new Date(msg.created_at) <= new Date(otherLastReadAt) ? (
-              <CheckCheck className="size-3 text-primary" aria-label="Seen" />
-            ) : null)}
         </div>
       </div>
     )
@@ -566,13 +569,8 @@ export function MessageBubble({
         </div>
       )}
       <div className="flex items-center gap-1 mt-1 px-1">
+        {ownSendStatus}
         <span className="text-xs text-muted-foreground">{time}</span>
-        {isMe &&
-          (String(msg.id).startsWith("temp-") ? (
-            <Loader2 className="size-3 animate-spin text-muted-foreground" />
-          ) : otherUserId && otherLastReadAt && new Date(msg.created_at) <= new Date(otherLastReadAt) ? (
-            <CheckCheck className="size-3 text-primary" aria-label="Seen" />
-          ) : null)}
       </div>
     </div>
   )
@@ -2358,6 +2356,7 @@ export function ChatView({
 
   const handleRealtimeMessage = useCallback(
     (msg: Message) => {
+      let shouldMarkRead = false
       setMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev
         // Ignore our own attachment messages from realtime - we replace optimistics from API response
@@ -2371,12 +2370,18 @@ export function ChatView({
         )
         if (pendingFromMe && msg.sender_id === currentUserId && msg.message_type === "text") {
           messageKeyRef.current.set(msg.id, pendingFromMe.id)
+          // Staying in-thread: advance our last_read_at so the other person sees "read" without re-entering
+          shouldMarkRead = true
           return prev.map((m) => (m.id === pendingFromMe.id ? msg : m))
         }
+        shouldMarkRead = true
         return [...prev, msg]
       })
+      if (shouldMarkRead) {
+        void MessagingService.markAsRead(conversationId).then(() => onMarkAsRead?.())
+      }
     },
-    [currentUserId]
+    [conversationId, currentUserId, onMarkAsRead]
   )
 
   useEffect(() => {
@@ -2390,11 +2395,21 @@ export function ChatView({
 
   useEffect(() => {
     if (!otherUserId) return
-    const channel = MessagingService.subscribeToParticipants(conversationId, () => {
-      MessagingService.getOtherParticipantLastReadAt(conversationId, otherUserId).then(setOtherLastReadAt)
+    const channel = MessagingService.subscribeToParticipants(conversationId, (payload) => {
+      const uid = payload.new?.user_id ?? payload.old?.user_id
+      if (uid !== undefined && uid !== otherUserId) return
+      void MessagingService.getOtherParticipantLastReadAt(conversationId, otherUserId).then(setOtherLastReadAt)
     })
     return () => MessagingService.unsubscribeFromParticipants(channel)
   }, [conversationId, otherUserId])
+
+  /** Index of the latest message from us (temp or real); read/delivered applies to that row only. */
+  const lastOwnMessageIndex = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].sender_id === currentUserId) return i
+    }
+    return -1
+  }, [messages, currentUserId])
 
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -2588,6 +2603,8 @@ export function ChatView({
         setMessages((prev) => prev.map((m) => (m.id === tempId ? sent : m)))
       }
       scrollRef.current?.scrollIntoView({ behavior: "smooth" })
+      // Realtime skips own non-text; keeps last_read_at current after attachment-only sends.
+      void MessagingService.markAsRead(conversationId).then(() => onMarkAsRead?.())
     } catch (e) {
       console.error("Failed to send:", e)
       const reason = getUploadErrorReason(e)
@@ -2891,13 +2908,21 @@ export function ChatView({
                   />
                 ))
               ) : (
-                messages.map((msg) => (
+                messages.map((msg, idx) => (
                   <MessageBubble
                     key={messageKeyRef.current.get(msg.id) ?? msg.id}
                     msg={msg}
                     isMe={msg.sender_id === currentUserId}
-                    otherUserId={otherUserId}
-                    otherLastReadAt={otherLastReadAt}
+                    deliveryStatus={
+                      msg.sender_id === currentUserId &&
+                      idx === lastOwnMessageIndex &&
+                      lastOwnMessageIndex === messages.length - 1 &&
+                      !String(msg.id).startsWith("temp-")
+                        ? otherUserId && otherLastReadAt && new Date(msg.created_at) <= new Date(otherLastReadAt)
+                          ? "read"
+                          : "delivered"
+                        : null
+                    }
                     scrollRef={messages[messages.length - 1]?.id === msg.id ? scrollRef : undefined}
                     uploadProgress={uploadProgress[msg.id]}
                     onNavigateToPost={onNavigateToPost}

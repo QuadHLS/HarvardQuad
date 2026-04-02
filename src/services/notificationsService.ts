@@ -52,6 +52,9 @@ export function extractMentionIds(html: string | null | undefined): string[] {
   return [...ids];
 }
 
+/** Chat alerts use Messages tab + conversation unread; excluded from notification inbox. */
+const EXCLUDED_INBOX_TYPES: NotificationType[] = ['dm', 'group_message'];
+
 export const NotificationsService = {
   async list(
     userId: string,
@@ -60,10 +63,14 @@ export const NotificationsService = {
     const limit = options?.limit ?? 50;
     const offset = options?.offset ?? 0;
 
-    const { data: rows, error } = await supabase
+    let q = supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', userId);
+    for (const t of EXCLUDED_INBOX_TYPES) {
+      q = q.not('type', 'eq', t);
+    }
+    const { data: rows, error } = await q
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -87,11 +94,15 @@ export const NotificationsService = {
   },
 
   async getUnreadCount(userId: string): Promise<number> {
-    const { count, error } = await supabase
+    let q = supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .is('read_at', null);
+    for (const t of EXCLUDED_INBOX_TYPES) {
+      q = q.not('type', 'eq', t);
+    }
+    const { count, error } = await q;
 
     if (error) throw error;
     return count ?? 0;
@@ -103,6 +114,17 @@ export const NotificationsService = {
       .update({ read_at: new Date().toISOString() })
       .eq('id', notificationId)
       .eq('user_id', userId);
+
+    if (error) throw error;
+  },
+
+  async markReadMany(notificationIds: string[], userId: string): Promise<void> {
+    if (notificationIds.length === 0) return;
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .in('id', notificationIds);
 
     if (error) throw error;
   },
@@ -128,6 +150,17 @@ export const NotificationsService = {
       .delete()
       .eq('id', notificationId)
       .eq('user_id', userId);
+
+    if (error) throw error;
+  },
+
+  async deleteMany(notificationIds: string[], userId: string): Promise<void> {
+    if (notificationIds.length === 0) return;
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId)
+      .in('id', notificationIds);
 
     if (error) throw error;
   },

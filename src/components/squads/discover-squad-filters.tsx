@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/combobox"
 import { cn } from "@/lib/utils"
 
-/** Matches `ComboboxChips` surface so Sort aligns with Category / Privacy. */
-const discoverFilterControlClass =
+/** Matches `ComboboxChips` surface so Sort aligns with Category / Privacy. Reused where a filter should match Discover (e.g. notifications “Show”). */
+export const discoverFilterControlClass =
   "min-h-9 w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm shadow-xs transition-[color,box-shadow] outline-none dark:bg-input/30"
 
 /** Sentinel: no category filter (show all). */

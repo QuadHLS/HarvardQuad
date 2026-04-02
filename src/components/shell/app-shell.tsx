@@ -52,6 +52,11 @@ function AppShellInner() {
     setActivePage(p)
   }, [])
 
+  const openMessagesWithConversation = useCallback((conversationId: string) => {
+    setConversationIdToOpen(conversationId)
+    navigate("messages")
+  }, [navigate])
+
   const goToMyProfile = useCallback(() => {
     setViewingUserId(null)
     setActivePage("profile")
@@ -94,7 +99,7 @@ function AppShellInner() {
     [user?.id, navigate]
   )
 
-  useNotificationToasts(navigate, activePage)
+  useNotificationToasts(navigate, activePage, openMessagesWithConversation)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [sidebarHoverMode, setSidebarHoverMode] = useState(false)
   const SIDEBAR_COLLAPSE_BREAKPOINT = 1200

@@ -1836,12 +1836,12 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
     <div className="flex flex-col gap-4">
       {/* Chat + Share + Invite (hidden on mobile; shown next to Feed/About toggles) */}
       {showSidebar && userId && (squadData.is_joined || canViewFeed) && (
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-nowrap items-center justify-center gap-2 overflow-x-auto pb-0.5 scrollbar-none max-w-full" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
           {squadData.is_joined ? (squadData.conversation_id && squadData.chat_enabled ? (
             <button
               type="button"
               onClick={() => setShowChat(true)}
-              className="relative flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+              className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
             >
               <MessagesSquare className="size-3.5" />
               Chat
@@ -1867,7 +1867,7 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
                   toast.error((e as Error).message || 'Failed to enable chat')
                 }
               }}
-              className="flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
             >
               <MessagesSquare className="size-3.5" /> Enable Chat
             </button>
@@ -1876,7 +1876,7 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
               <TooltipTrigger asChild>
                 <span
                   onClick={() => toast.info("Group chat isn't enabled")}
-                  className="flex items-center justify-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
                 >
                   <MessagesSquare className="size-3.5" /> Chat
                 </span>
@@ -1887,7 +1887,7 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
             <Tooltip>
               <TooltipTrigger asChild>
                 <span
-                  className="flex items-center justify-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
                 >
                   <MessagesSquare className="size-3.5" /> Chat
                 </span>
@@ -1901,16 +1901,25 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
             <button
               type="button"
               onClick={() => setShareSquadOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
             >
               <Forward className="size-3.5" /> Share
+            </button>
+          )}
+          {userId && !squadData.is_joined && squadData.type === 'open' && (
+            <button
+              type="button"
+              onClick={handleJoin}
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+            >
+              <UserPlus className="size-3.5" /> Join Squad
             </button>
           )}
           {squadData.is_joined && (squadData.type === 'open' || ((squadData.type === 'restricted' || squadData.type === 'private') && squadData.is_admin)) && (
             <button
               type="button"
               onClick={() => setInviteOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
             >
               <UserPlus className="size-3.5" /> Invite
             </button>
@@ -2793,11 +2802,6 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
                 <h2 className={pageMainTitleClass}>{squadData.name}</h2>
               </div>
             </div>
-            <div className="shrink-0 flex items-center gap-2">
-              {userId && !squadData.is_joined && squadData.type === 'open' && (
-                <Button size="sm" onClick={handleJoin}>Join Squad</Button>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -2838,8 +2842,8 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
 
       {/* Feed / About tabs when sidebar is hidden (below md breakpoint) */}
       {!showSidebar && !showNonMemberWall && (
-        <div className="mt-20 flex items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-1 rounded-lg bg-secondary p-1">
+        <div className="mt-20 flex min-w-0 items-center gap-2">
+          <div className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-secondary p-1">
             {(["feed", "about"] as const).map((tab) => (
               <button
                 key={tab}
@@ -2857,12 +2861,16 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
             ))}
           </div>
           {((userId && squadData.is_joined) || canViewFeed) && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div
+              className="min-w-0 flex-1 overflow-x-auto pb-0.5 scrollbar-none"
+              style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}
+            >
+            <div className="flex w-max max-w-full flex-nowrap items-center justify-end gap-2">
               {squadData.is_joined ? (squadData.conversation_id && squadData.chat_enabled ? (
                 <button
                   type="button"
                   onClick={() => setShowChat(true)}
-                  className="relative flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+                  className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
                 >
                   <MessagesSquare className="size-3.5" />
                   Chat
@@ -2888,14 +2896,14 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
                       toast.error((e as Error).message || 'Failed to enable chat')
                     }
                   }}
-                  className="flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
                 >
                   <MessagesSquare className="size-3.5" /> Enable Chat
                 </button>
               ) : (
                 <span
                   onClick={() => toast.info("Group chat isn't enabled")}
-                  className="flex items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
                 >
                   <MessagesSquare className="size-3.5" /> Chat
                 </span>
@@ -2903,7 +2911,7 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
-                      className="flex items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
+                      className="flex shrink-0 items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium cursor-default"
                     >
                       <MessagesSquare className="size-3.5" /> Chat
                     </span>
@@ -2917,20 +2925,30 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
                 <button
                   type="button"
                   onClick={() => setShareSquadOpen(true)}
-                  className="flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
                 >
                   <Forward className="size-3.5" /> Share
+                </button>
+              )}
+              {userId && !squadData.is_joined && squadData.type === 'open' && (
+                <button
+                  type="button"
+                  onClick={handleJoin}
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <UserPlus className="size-3.5" /> Join Squad
                 </button>
               )}
               {squadData.is_joined && (squadData.type === 'open' || ((squadData.type === 'restricted' || squadData.type === 'private') && squadData.is_admin)) && (
                 <button
                   type="button"
                   onClick={() => setInviteOpen(true)}
-                  className="flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
                 >
                   <UserPlus className="size-3.5" /> Invite
                 </button>
               )}
+            </div>
             </div>
           )}
         </div>
@@ -3017,6 +3035,19 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
             editPost={editPost}
           />
 
+          {userId && !squadData.is_joined && squadData.type === 'open' && (
+            <div className="mb-4 rounded-xl border border-border bg-card p-4 text-center">
+              <p className="text-sm text-muted-foreground mb-3">Join to post, chat, and get updates</p>
+              <button
+                type="button"
+                onClick={handleJoin}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+              >
+                <UserPlus className="size-3.5" /> Join Squad
+              </button>
+            </div>
+          )}
+
           {/* Feed Sort + Posts */}
           {canViewFeed && (
             <>
@@ -3054,13 +3085,6 @@ function SquadDetail({ squad, onBack, isMobile, userId, onViewUserProfile, showC
             <div className="mt-6 rounded-xl border border-border bg-card p-6 text-center">
               <Lock className="size-12 text-muted-foreground/50 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">Sign in to view squad details and participate.</p>
-            </div>
-          )}
-
-          {userId && !squadData.is_joined && squadData.type === 'open' && (
-            <div className="mt-6 rounded-xl border border-border bg-card p-4 text-center">
-              <p className="text-sm text-muted-foreground mb-3">Join to post, chat, and get updates</p>
-              <Button size="sm" onClick={handleJoin}>Join Squad</Button>
             </div>
           )}
         </div>

@@ -1242,10 +1242,13 @@ export class MessagingService {
     supabase.removeChannel(channel);
   }
 
-  // Subscribe to participant changes for a specific conversation
+  /** Payload from postgres_changes on `conversation_participants` (shape we use). */
   static subscribeToParticipants(
     conversationId: string,
-    callback: () => void
+    callback: (payload: {
+      new?: { user_id?: string } | null
+      old?: { user_id?: string } | null
+    }) => void
   ) {
     return supabase
       .channel(`participants:${conversationId}`)
@@ -1257,8 +1260,8 @@ export class MessagingService {
           table: 'conversation_participants',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => {
-          callback();
+        (payload) => {
+          callback(payload as { new?: { user_id?: string } | null; old?: { user_id?: string } | null })
         }
       )
       .subscribe();

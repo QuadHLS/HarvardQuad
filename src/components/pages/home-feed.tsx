@@ -2807,14 +2807,15 @@ function ActiveFriendsPanel({
     const name = f.public_name?.trim() || f.full_name?.trim() || "?"
     return name.slice(0, 2).toUpperCase()
   }
-  const getName = (f: { full_name: string | null; public_name: string | null }) =>
-    f.public_name?.trim() || f.full_name?.trim()?.split(/\s+/)[0] || "Friend"
+  /** Shown under avatar: prefer legal/full name, then @handle. */
+  const getLabelUnderAvatar = (f: { full_name: string | null; public_name: string | null }) =>
+    f.full_name?.trim() || f.public_name?.trim() || "Friend"
 
   const renderMobileTile = (f: (typeof friends)[number]) => {
     const inner = (
       <>
         <div className="relative">
-          <Avatar className="size-12">
+          <Avatar className="size-14">
             {f.avatar_url ? <AvatarImage src={f.avatar_url} alt="" /> : null}
             <AvatarFallback className="bg-accent text-accent-foreground text-xs font-semibold">
               {getInitials(f)}
@@ -2822,7 +2823,9 @@ function ActiveFriendsPanel({
           </Avatar>
           <span className="absolute bottom-0 right-0 size-2.5 rounded-full bg-primary ring-[1.5px] ring-background" />
         </div>
-        <span className="text-xs text-muted-foreground truncate w-12 text-center">{getName(f)}</span>
+        <span className="block max-w-[5.75rem] min-w-0 truncate text-center text-xs text-muted-foreground">
+          {getLabelUnderAvatar(f)}
+        </span>
       </>
     )
     return (
@@ -2901,22 +2904,27 @@ function ActiveFriendsPanel({
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-start gap-x-2 gap-y-2">
         {displayFriendsDesktop.map((f) => (
             <button
               key={f.id}
               type="button"
               onClick={() => onViewUserProfile?.(f.id)}
-              className="relative rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              aria-label={`View ${getName(f)}'s profile`}
+              className="flex flex-col items-center gap-1 w-[5rem] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg py-0.5"
+              aria-label={`View ${getLabelUnderAvatar(f)}'s profile`}
             >
-              <Avatar className="size-9">
-                {f.avatar_url ? <AvatarImage src={f.avatar_url} alt="" /> : null}
-                <AvatarFallback className="bg-accent text-accent-foreground text-xs font-semibold">
-                  {getInitials(f)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="absolute bottom-0 right-0 size-2.5 rounded-full bg-primary ring-2 ring-card" />
+              <div className="relative shrink-0">
+                <Avatar className="size-10">
+                  {f.avatar_url ? <AvatarImage src={f.avatar_url} alt="" /> : null}
+                  <AvatarFallback className="bg-accent text-accent-foreground text-xs font-semibold">
+                    {getInitials(f)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="absolute bottom-0 right-0 size-2.5 rounded-full bg-primary ring-2 ring-card" />
+              </div>
+              <span className="block w-full min-w-0 truncate text-center text-[11px] text-muted-foreground">
+                {getLabelUnderAvatar(f)}
+              </span>
             </button>
         ))}
         {hasMore && onNavigateToExplore && (

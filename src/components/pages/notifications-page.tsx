@@ -1,19 +1,26 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Heart,
   MessageCircle,
   Users as UsersIcon,
   AtSign,
-  ArrowRight,
   Check,
   CheckCheck,
   Inbox,
   Trash2,
   X,
   Clock,
+  ChevronDown,
   Loader2,
 } from "lucide-react"
 import { cn, pageMainTitleClass, quadHoverColor } from "@/lib/utils"
@@ -23,16 +30,22 @@ import { SquadsService } from "@/services/squadsService"
 import { FriendsService } from "@/services/friendsService"
 import { FeedService } from "@/services/feedService"
 import { NotificationListSkeleton } from "@/components/ui/feed-skeletons"
+import { discoverFilterControlClass } from "@/components/squads/discover-squad-filters"
 import { toast } from "sonner"
 
-type NotificationFilter = "all" | "mentions" | "likes" | "replies" | "squads" | "friends" | "messages"
+type NotificationFilter = "all" | "mentions" | "likes" | "replies" | "squads" | "friends"
+
+const NOTIFICATION_FILTER_TABS: readonly NotificationFilter[] = [
+  "all",
+  "squads",
+  "friends",
+  "mentions",
+  "replies",
+  "likes",
+]
 
 const SQUAD_TYPES: NotificationType[] = ['squad_invite', 'invite_accepted', 'invite_declined', 'join_request', 'join_request_approved', 'join_request_denied', 'squad_join']
 const FRIEND_TYPES: NotificationType[] = ['friend_request', 'friend_accepted']
-const MESSAGE_TYPES: NotificationType[] = ["dm", "group_message"]
-
-/** Types that navigate to a post, conversation, squad, or profile */
-const VIEWABLE_TYPES: NotificationType[] = ['like', 'reply', 'mention', 'dm', 'group_message', 'squad_invite', 'invite_accepted', 'invite_declined', 'join_request', 'join_request_approved', 'join_request_denied', 'squad_join', 'friend_request', 'friend_accepted']
 
 const typeConfig: Record<NotificationType, { icon: React.ElementType; bg: string; text: string; content: string }> = {
   like: { icon: Heart, bg: "bg-red-500/15", text: "text-red-500", content: "liked your post" },
@@ -54,13 +67,12 @@ const typeConfig: Record<NotificationType, { icon: React.ElementType; bg: string
 }
 
 const emptyStateConfig: Record<NotificationFilter, { icon: React.ElementType; title: string; description: string }> = {
-  all: { icon: Inbox, title: "No notifications yet", description: "When someone interacts with your posts or messages, you'll see it here" },
+  all: { icon: Inbox, title: "No notifications yet", description: "When someone interacts with your posts, squads, or friends, you'll see it here" },
   mentions: { icon: AtSign, title: "No mentions", description: "When someone @mentions you in a post, it'll show up here" },
   likes: { icon: Heart, title: "No likes yet", description: "Likes on your posts will appear here" },
   replies: { icon: MessageCircle, title: "No replies yet", description: "Replies to your posts and comments will show up here" },
   squads: { icon: UsersIcon, title: "No squad activity", description: "Invites and join request updates will appear here" },
   friends: { icon: UsersIcon, title: "No friend requests", description: "Friend requests and acceptances will appear here" },
-  messages: { icon: MessageCircle, title: "No message notifications", description: "New DMs and group messages will show up here" },
 }
 
 function actorDisplayName(actor: NotificationWithActor["actor"]): string {
@@ -79,7 +91,7 @@ function actorInitials(actor: NotificationWithActor["actor"]): string {
 function EmptyState({ filter }: { filter: NotificationFilter }) {
   const { icon: Icon, title, description } = emptyStateConfig[filter]
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-border bg-card">
+    <div className="flex flex-col items-center justify-center px-4 py-16 text-center rounded-xl border border-border bg-card sm:px-6">
       <div className="flex size-12 items-center justify-center rounded-full bg-secondary mb-3">
         <Icon className="size-6 text-muted-foreground/40" />
       </div>
@@ -98,6 +110,8 @@ interface NotificationsPageProps {
 
 function NotificationItem({
   notification,
+  selected,
+  onSelectedChange,
   onMarkRead,
   onDelete,
   onClick,
@@ -113,6 +127,8 @@ function NotificationItem({
   friendAction,
 }: {
   notification: NotificationWithActor
+  selected: boolean
+  onSelectedChange: (next: boolean) => void
   onMarkRead: (id: string) => void
   onDelete: (id: string) => void
   onClick: () => void
@@ -143,12 +159,8 @@ function NotificationItem({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onClick()}
       className={cn(
-        "flex gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:shadow-lg",
+        "flex items-center gap-2.5 rounded-xl border p-3.5 transition-all hover:shadow-lg",
         read ? "border-border bg-card" : "border-primary/20 bg-primary/[0.03]",
         hoverColor === "quad-green" && "hover:border-quad-green/30 hover:shadow-quad-green/20",
         hoverColor === "quad-blue" && "hover:border-quad-blue/30 hover:shadow-quad-blue/20",
@@ -156,6 +168,24 @@ function NotificationItem({
         hoverColor === "quad-yellow" && "hover:border-quad-yellow/30 hover:shadow-quad-yellow/20"
       )}
     >
+      <div
+        className="flex shrink-0 items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <Checkbox
+          checked={selected}
+          onCheckedChange={(v) => onSelectedChange(v === true)}
+          aria-label="Select notification"
+        />
+      </div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onClick()}
+        className="flex min-w-0 flex-1 cursor-pointer gap-3"
+      >
       <div className="relative shrink-0">
         {notification.actor_id && onViewUserProfile ? (
           <button
@@ -216,21 +246,7 @@ function NotificationItem({
         <p className="mt-1.5 text-xs text-muted-foreground">{FeedService.timeAgo(notification.created_at)}</p>
       </div>
 
-      <div className="shrink-0 flex items-center gap-0.5">
-        {VIEWABLE_TYPES.includes(notification.type) && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onClick()
-            }}
-            className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-            aria-label="View"
-            title="View"
-          >
-            <ArrowRight className="size-3.5" />
-          </button>
-        )}
+      <div className="shrink-0 flex flex-nowrap items-center justify-end gap-1 overflow-x-auto">
         {isSquadInvite && onAcceptInvite && onDeclineInvite && (
           <>
             <button
@@ -240,14 +256,14 @@ function NotificationItem({
                 e.stopPropagation()
                 onAcceptInvite(notification.target_id)
               }}
-              className="flex size-7 items-center justify-center rounded-md bg-chart-3/20 text-chart-3 hover:bg-chart-3/30 transition-colors disabled:opacity-50"
-              aria-label="Accept invite"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-chart-3/20 px-2 py-1 text-xs font-medium text-chart-3 hover:bg-chart-3/30 transition-colors disabled:opacity-50"
             >
               {inviteAction?.id === notification.target_id && inviteAction.kind === "accept" ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3 shrink-0 animate-spin" />
               ) : (
-                <Check className="size-3.5" />
+                <Check className="size-3 shrink-0" />
               )}
+              Accept invite
             </button>
             <button
               type="button"
@@ -256,14 +272,14 @@ function NotificationItem({
                 e.stopPropagation()
                 onDeclineInvite(notification.target_id)
               }}
-              className="flex size-7 items-center justify-center rounded-md bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20 transition-colors disabled:opacity-50"
-              aria-label="Decline invite"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
             >
               {inviteAction?.id === notification.target_id && inviteAction.kind === "decline" ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3 shrink-0 animate-spin" />
               ) : (
-                <X className="size-3.5" />
+                <X className="size-3 shrink-0" />
               )}
+              Decline
             </button>
           </>
         )}
@@ -276,14 +292,14 @@ function NotificationItem({
                 e.stopPropagation()
                 onAcceptFriendRequest(notification.actor_id!)
               }}
-              className="flex size-7 items-center justify-center rounded-md bg-chart-3/20 text-chart-3 hover:bg-chart-3/30 transition-colors disabled:opacity-50"
-              aria-label="Accept friend request"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-chart-3/20 px-2 py-1 text-xs font-medium text-chart-3 hover:bg-chart-3/30 transition-colors disabled:opacity-50"
             >
               {friendAction?.id === notification.actor_id && friendAction.kind === "accept" ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3 shrink-0 animate-spin" />
               ) : (
-                <Check className="size-3.5" />
+                <Check className="size-3 shrink-0" />
               )}
+              Accept friend
             </button>
             <button
               type="button"
@@ -292,14 +308,14 @@ function NotificationItem({
                 e.stopPropagation()
                 onDeclineFriendRequest(notification.actor_id!)
               }}
-              className="flex size-7 items-center justify-center rounded-md bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20 transition-colors disabled:opacity-50"
-              aria-label="Decline friend request"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
             >
               {friendAction?.id === notification.actor_id && friendAction.kind === "decline" ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3 shrink-0 animate-spin" />
               ) : (
-                <X className="size-3.5" />
+                <X className="size-3 shrink-0" />
               )}
+              Decline
             </button>
           </>
         )}
@@ -312,14 +328,14 @@ function NotificationItem({
                 e.stopPropagation()
                 onApproveRequest(notification.target_id)
               }}
-              className="flex size-7 items-center justify-center rounded-md bg-chart-3/20 text-chart-3 hover:bg-chart-3/30 transition-colors disabled:opacity-50"
-              aria-label="Approve request"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-chart-3/20 px-2 py-1 text-xs font-medium text-chart-3 hover:bg-chart-3/30 transition-colors disabled:opacity-50"
             >
               {requestAction?.id === notification.target_id && requestAction.kind === "approve" ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3 shrink-0 animate-spin" />
               ) : (
-                <Check className="size-3.5" />
+                <Check className="size-3 shrink-0" />
               )}
+              Approve join
             </button>
             <button
               type="button"
@@ -328,14 +344,14 @@ function NotificationItem({
                 e.stopPropagation()
                 onDenyRequest(notification.target_id)
               }}
-              className="flex size-7 items-center justify-center rounded-md bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20 transition-colors disabled:opacity-50"
-              aria-label="Deny request"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
             >
               {requestAction?.id === notification.target_id && requestAction.kind === "deny" ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3 shrink-0 animate-spin" />
               ) : (
-                <X className="size-3.5" />
+                <X className="size-3 shrink-0" />
               )}
+              Deny
             </button>
           </>
         )}
@@ -346,10 +362,10 @@ function NotificationItem({
               e.stopPropagation()
               onMarkRead(notification.id)
             }}
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            aria-label="Mark as read"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
-            <Check className="size-3.5" />
+            <Check className="size-3 shrink-0" />
+            Mark read
           </button>
         )}
         <button
@@ -358,11 +374,12 @@ function NotificationItem({
             e.stopPropagation()
             onDelete(notification.id)
           }}
-          className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
           aria-label="Delete notification"
         >
           <Trash2 className="size-3.5" />
         </button>
+      </div>
       </div>
     </div>
   )
@@ -377,6 +394,7 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
   const [requestsSent, setRequestsSent] = useState<Array<{ to_user_id: string; full_name: string | null; public_name: string | null; avatar_url: string | null; status: string; created_at: string }>>([])
   const [requestsSentLoading, setRequestsSentLoading] = useState(false)
   const [loading, setLoading] = useState(!!user)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const load = useCallback(async () => {
     if (!user) {
@@ -393,7 +411,7 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user])
 
   useEffect(() => {
     load()
@@ -412,7 +430,7 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user?.id, load])
+  }, [user, load])
 
   useEffect(() => {
     if (filter === "squads" && user) {
@@ -424,7 +442,7 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
       setInvitesSent([])
       setInvitesSentLoading(false)
     }
-  }, [filter, user?.id])
+  }, [filter, user])
 
   useEffect(() => {
     if (filter === "friends" && user) {
@@ -436,34 +454,40 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
       setRequestsSent([])
       setRequestsSentLoading(false)
     }
-  }, [filter, user?.id])
+  }, [filter, user])
 
-  const unreadCount = items.filter((n) => !n.read_at).length
-
-  const getUnreadForFilter = (f: NotificationFilter) => {
-    if (f === "all") return unreadCount
+  const getUnreadForFilter = useCallback((f: NotificationFilter) => {
+    if (f === "all") return items.filter((n) => !n.read_at).length
     return items.filter((n) => {
       if (f === "mentions") return n.type === "mention" && !n.read_at
       if (f === "likes") return n.type === "like" && !n.read_at
       if (f === "replies") return n.type === "reply" && !n.read_at
       if (f === "squads") return SQUAD_TYPES.includes(n.type) && !n.read_at
       if (f === "friends") return FRIEND_TYPES.includes(n.type) && !n.read_at
-      if (f === "messages") return MESSAGE_TYPES.includes(n.type) && !n.read_at
       return false
     }).length
-  }
+  }, [items])
 
-  const filtered = items
-    .filter((n) => {
-      if (filter === "mentions") return n.type === "mention"
-      if (filter === "likes") return n.type === "like"
-      if (filter === "replies") return n.type === "reply"
-      if (filter === "squads") return SQUAD_TYPES.includes(n.type)
-      if (filter === "friends") return FRIEND_TYPES.includes(n.type)
-      if (filter === "messages") return MESSAGE_TYPES.includes(n.type)
-      return true
-    })
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  const unreadForCurrentFilter = useMemo(() => getUnreadForFilter(filter), [filter, getUnreadForFilter])
+
+  const filtered = useMemo(
+    () =>
+      items
+        .filter((n) => {
+          if (filter === "mentions") return n.type === "mention"
+          if (filter === "likes") return n.type === "like"
+          if (filter === "replies") return n.type === "reply"
+          if (filter === "squads") return SQUAD_TYPES.includes(n.type)
+          if (filter === "friends") return FRIEND_TYPES.includes(n.type)
+          return true
+        })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [items, filter]
+  )
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => filtered.some((n) => n.id === id)))
+  }, [filtered])
 
   const handleMarkRead = async (id: string) => {
     if (!user) return
@@ -482,7 +506,6 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
     if (f === "replies") return ["reply"]
     if (f === "squads") return SQUAD_TYPES
     if (f === "friends") return FRIEND_TYPES
-    if (f === "messages") return MESSAGE_TYPES
     return undefined
   }
 
@@ -511,6 +534,38 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
       // ignore
     }
   }
+
+  const handleBulkMarkRead = useCallback(async () => {
+    if (!user || selectedIds.length === 0) return
+    const ids = [...selectedIds]
+    const unreadIds = ids.filter((id) => {
+      const n = items.find((x) => x.id === id)
+      return n && !n.read_at
+    })
+    if (unreadIds.length === 0) return
+    try {
+      await NotificationsService.markReadMany(unreadIds, user.id)
+      const now = new Date().toISOString()
+      setItems((prev) =>
+        prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read_at: n.read_at ?? now } : n))
+      )
+      setSelectedIds([])
+    } catch {
+      toast.error("Failed to mark notifications as read")
+    }
+  }, [user, selectedIds, items])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!user || selectedIds.length === 0) return
+    const ids = [...selectedIds]
+    try {
+      await NotificationsService.deleteMany(ids, user.id)
+      setItems((prev) => prev.filter((n) => !ids.includes(n.id)))
+      setSelectedIds([])
+    } catch {
+      toast.error("Failed to delete notifications")
+    }
+  }, [user, selectedIds])
 
   const [inviteAction, setInviteAction] = useState<{ id: string; kind: "accept" | "decline" } | null>(null)
   const handleAcceptInvite = async (inviteId: string) => {
@@ -669,20 +724,15 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-4 md:px-6 md:py-6 pb-nav-safe md:pb-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className={pageMainTitleClass}>Notifications</h2>
-          <p className="hidden text-sm text-muted-foreground md:block">
-            {unreadCount > 0 ? `${unreadCount} ${unreadCount === 1 ? "unread notification" : "unread notifications"}` : "You're all caught up"}
-          </p>
-        </div>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className={cn(pageMainTitleClass, "min-w-0")}>Notifications</h2>
         <button
           type="button"
           onClick={handleMarkAllRead}
-          disabled={getUnreadForFilter(filter) === 0}
+          disabled={unreadForCurrentFilter === 0}
           className={cn(
-            "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-            getUnreadForFilter(filter) > 0
+            "flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+            unreadForCurrentFilter > 0
               ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
               : "border-border text-muted-foreground cursor-default"
           )}
@@ -692,29 +742,99 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
         </button>
       </div>
 
-      <div className="mb-4 rounded-lg bg-secondary p-1">
-        <div className="flex w-full gap-1">
-          {(["all", "squads", "friends", "messages", "mentions", "replies", "likes"] as const).map((tab) => {
-            const unread = getUnreadForFilter(tab)
-            return (
+      <div className="mb-6 flex w-full min-w-0 flex-wrap items-center gap-3">
+        {!loading && filtered.length > 0 && (
+          <div className="inline-flex h-8 max-w-full min-w-0 flex-nowrap items-center gap-1.5 overflow-x-auto rounded-md border border-input bg-transparent px-2.5 shadow-xs transition-[color,box-shadow] [scrollbar-width:none] hover:bg-accent/30 sm:gap-2 sm:px-3 dark:bg-input/30 [&::-webkit-scrollbar]:hidden">
+            <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs leading-none text-muted-foreground">
+              <Checkbox
+                checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                onCheckedChange={(v) => {
+                  if (v === true) setSelectedIds(filtered.map((n) => n.id))
+                  else setSelectedIds([])
+                }}
+                className="size-3.5"
+              />
+              Select all
+            </label>
+            {selectedIds.length > 0 ? (
+              <>
+                <span className="hidden w-px shrink-0 self-stretch bg-border sm:block" aria-hidden />
+                <span className="shrink-0 text-[11px] leading-none text-muted-foreground tabular-nums">
+                  {selectedIds.length} selected
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-7 shrink-0 px-1.5 text-[11px] font-medium text-foreground shadow-none hover:bg-accent/70"
+                  onClick={handleBulkMarkRead}
+                >
+                  Mark read
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-7 shrink-0 px-1.5 text-[11px] font-medium text-foreground shadow-none hover:bg-accent/70"
+                  onClick={handleBulkDelete}
+                >
+                  Delete
+                </Button>
+              </>
+            ) : null}
+          </div>
+        )}
+
+        <div className="w-fit min-w-0 max-w-[11rem] shrink-0">
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
               <button
-                key={tab}
                 type="button"
-                onClick={() => setFilter(tab)}
+                aria-label="Filter notifications"
                 className={cn(
-                  "flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium capitalize transition-colors whitespace-nowrap",
-                  filter === tab ? "bg-accent text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground active:bg-accent/50"
+                  discoverFilterControlClass,
+                  "w-fit max-w-full font-normal",
+                  "flex items-center justify-between gap-1.5",
+                  "focus-visible:border-ring focus-visible:ring-inset focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  "hover:bg-accent/30 data-[state=open]:bg-accent/20"
                 )}
               >
-                {tab}
-                {unread > 0 && (
-                  <span className="min-w-[1.25rem] rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
-                    {unread > 99 ? "99+" : unread}
-                  </span>
-                )}
+                <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-left">
+                  <span className="min-w-0 truncate capitalize text-foreground">{filter}</span>
+                  {unreadForCurrentFilter > 0 && (
+                    <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground tabular-nums">
+                      {unreadForCurrentFilter > 99 ? "99+" : unreadForCurrentFilter}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown className="pointer-events-none size-4 shrink-0 text-muted-foreground" aria-hidden />
               </button>
-            )
-          })}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="z-[60] min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-[min(20rem,calc(100vw-2rem))] border-0 ring-1 ring-foreground/10"
+            >
+              {NOTIFICATION_FILTER_TABS.map((tab) => {
+                const unread = getUnreadForFilter(tab)
+                const selected = filter === tab
+                return (
+                  <DropdownMenuItem
+                    key={tab}
+                    onSelect={() => setFilter(tab)}
+                    className="cursor-pointer gap-2 pr-2 capitalize"
+                  >
+                    <span className="flex size-4 shrink-0 items-center justify-center text-primary" aria-hidden>
+                      {selected ? <Check className="size-3.5" /> : null}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{tab}</span>
+                    {unread > 0 ? (
+                      <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground tabular-nums">
+                        {unread > 99 ? "99+" : unread}
+                      </span>
+                    ) : null}
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -919,6 +1039,12 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
                   <NotificationItem
                     key={n.id}
                     notification={n}
+                    selected={selectedIds.includes(n.id)}
+                    onSelectedChange={(next) =>
+                      setSelectedIds((prev) =>
+                        next ? (prev.includes(n.id) ? prev : [...prev, n.id]) : prev.filter((id) => id !== n.id)
+                      )
+                    }
                     onMarkRead={handleMarkRead}
                     onDelete={handleDelete}
                     onClick={() => handleNotificationClick(n)}
@@ -946,6 +1072,12 @@ export function NotificationsPage({ onNavigateToPost, onNavigateToConversation, 
                   <NotificationItem
                     key={n.id}
                     notification={n}
+                    selected={selectedIds.includes(n.id)}
+                    onSelectedChange={(next) =>
+                      setSelectedIds((prev) =>
+                        next ? (prev.includes(n.id) ? prev : [...prev, n.id]) : prev.filter((id) => id !== n.id)
+                      )
+                    }
                     onMarkRead={handleMarkRead}
                     onDelete={handleDelete}
                     onClick={() => handleNotificationClick(n)}

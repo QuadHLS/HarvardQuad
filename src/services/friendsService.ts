@@ -88,7 +88,13 @@ export const FriendsService = {
   > {
     const { data, error } = await supabase.rpc("get_friends_for_user", { profile_user_id: profileUserId })
     if (error) throw error
-    return (data ?? []) as Array<{ id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }>
+    const rows = (data ?? []) as Array<{ id: string; full_name: string | null; public_name: string | null; avatar_url: string | null }>
+    const seen = new Set<string>()
+    return rows.filter((r) => {
+      if (seen.has(r.id)) return false
+      seen.add(r.id)
+      return true
+    })
   },
 
   async getSentFriendRequests(): Promise<
