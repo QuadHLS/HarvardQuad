@@ -3,48 +3,30 @@ import { ArrowLeft } from "lucide-react"
 import { navigateWithoutReload } from "@/lib/navigation"
 import { LegalContent } from "@/components/LegalContent"
 
-const TERMS_TEXT = `QUAD — TERMS OF SERVICE
-Effective Date: September 1, 2025
+const TERMS_TEXT = `HARVARD QUAD — UNRELEASED PROJECT NOTICE
+Last Updated: July 22, 2026
 
-Quad ("Quad," "we," "us," or "our") is a peer-to-peer academic resource. By creating or registering an account, signing into the Service, or accessing the Service, you agree to these Terms and to our Privacy Policy. If you do not agree, do not use the Service.
+Project Status
 
-Definitions
-• Service means Quad's website, applications, and related services.
-• User, Student, "you," or "your" means any person who accesses or uses the Service.
+Harvard Quad is an independent, paused software project. It is not owned, sponsored, commissioned, or endorsed by Harvard University or any Harvard school. The public source repository is provided for portfolio review and does not represent a supported public service or production launch.
 
-Eligibility; Account Registration
+No Public Demo
 
-The Service is offered only to individuals who are 18 years old and currently enrolled at a supported university. You must keep credentials confidential and promptly notify us of unauthorized use.
+No hosted deployment is currently approved as a recruiter or public demo. Do not create an account, upload content, or submit personal, academic, confidential, or copyrighted information to an unapproved deployment.
 
-The Service & Directory Visibility
+Source Evaluation
 
-Quad enables eligible Users to connect with classmates. You may not copy, scrape, export, or use Directory Information outside the Service.
+The repository may be inspected only under its proprietary license. No right to use, copy, deploy, modify, or redistribute the source is granted without permission from the project owners.
 
-Ownership; Licenses
+Future Service Terms
 
-You retain all rights in your content. You grant Quad a non-exclusive, worldwide, royalty-free license to host, store, and display your content within the Service.
+If the project is resumed and a supported service is launched, separate reviewed terms will govern that service. This project-status notice is not a substitute for those future terms.
 
-User Responsibilities
+Disclaimer
 
-You represent that your content does not infringe others' rights and you comply with law and these Terms.
+THE SOURCE AND ANY UNAPPROVED DEPLOYMENT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. USE OF AN UNAPPROVED DEPLOYMENT IS NOT RECOMMENDED.
 
-Acceptable Use
-
-You agree not to scrape, harvest, or mass-download content; export or share materials outside the Service without permission; or use the Service to cheat or facilitate academic misconduct.
-
-Moderation; Enforcement
-
-We may remove content or restrict accounts to protect users and enforce these Terms.
-
-Disclaimers
-
-THE SERVICE IS PROVIDED "AS IS." TO THE FULLEST EXTENT PERMITTED BY LAW, QUAD DISCLAIMS ALL WARRANTIES.
-
-Limitation of Liability
-
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, QUAD WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.
-
-Contact: legal@quadhls.com`
+Questions about the source should be directed to the repository owner through GitHub.`
 
 export function TermsPage() {
   return (
@@ -66,7 +48,7 @@ export function TermsPage() {
             <ArrowLeft className="w-5 h-5" aria-hidden />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <h1 className="text-lg font-semibold">Terms of Service</h1>
+          <h1 className="text-lg font-semibold">Project Status</h1>
         </div>
       </header>
       <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-8" style={{ WebkitOverflowScrolling: "touch" }}>

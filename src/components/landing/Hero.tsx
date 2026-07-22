@@ -52,8 +52,8 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
 
           {/* Subtitle */}
           <p className="text-xl text-[#787771] max-w-2xl mx-auto leading-7 font-medium tracking-[-0.01em]">
-            Quad replaces Canvas, Reddit, Slack, WhatsApp, and your calendar with a unified student
-            operating system. Everything you need for academic and social success in one place.
+            Quad brings feeds, messaging, communities, profiles, and planning concepts into one
+            student-focused workspace.
           </p>
 
           {/* CTA */}
@@ -68,7 +68,7 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
           </div>
 
           <p className="text-sm text-[#27251f] font-medium">
-            Edu gated — sign in with your .edu email.
+            Independent project source preview — not a public launch.
           </p>
         </div>
       </div>

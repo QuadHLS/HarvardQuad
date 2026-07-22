@@ -2194,8 +2194,8 @@ function ProfileSettings({
     {
       title: "Support",
       items: [
-        { icon: FileText, label: "Privacy Policy", desc: "View our privacy policy", href: "/privacy" },
-        { icon: FileText, label: "Terms of Service", desc: "View our terms of service", href: "/terms" },
+        { icon: FileText, label: "Source Privacy Notice", desc: "Review the unreleased-project privacy notice", href: "/privacy" },
+        { icon: FileText, label: "Project Status", desc: "Review the unreleased-project status notice", href: "/terms" },
         { icon: FileText, label: "User Guide", desc: "Coming soon", href: "/user-guide" },
         { icon: LogOut, label: "Sign Out", desc: "Log out of your account", isSignOut: true as const },
       ],

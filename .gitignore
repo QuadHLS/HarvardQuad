@@ -12,7 +12,6 @@ node_modules.bak-*/
 /build
 
 # Misc
-docs/
 .git.corrupt-backup/
 .DS_Store
 .env

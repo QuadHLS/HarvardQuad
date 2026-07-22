@@ -3,63 +3,28 @@ import { ArrowLeft } from "lucide-react"
 import { navigateWithoutReload } from "@/lib/navigation"
 import { LegalContent } from "@/components/LegalContent"
 
-const PRIVACY_TEXT = `Last Updated: February 3, 2026
+const PRIVACY_TEXT = `HARVARD QUAD — SOURCE PORTFOLIO PRIVACY NOTICE
+Last Updated: July 22, 2026
 
-1. INTRODUCTION
+Repository Scope
 
-Quad ("we," "our," or "us") respects your privacy. This Privacy Policy explains how we collect, use, and share information about verified students ("you") when you use our website and services.
+Harvard Quad is a paused, unreleased project. Its public repository is an engineering portfolio artifact, not a supported public service. The repository contains source code, configuration templates, and schema history; it does not include a database dump, private user-level content, production credentials, or recruiter demo accounts.
 
-2. INFORMATION WE COLLECT
+No Approved Hosted Use
 
-We collect information strictly necessary to provide our course-matching and social features.
+No hosted deployment is currently approved as a public or recruiter demo. Do not create an account, upload files, or submit personal, academic, confidential, or copyrighted information to an unapproved deployment.
 
-A. Information You Provide to Us
-• Account Data: Name, .edu email address, and password (if not using Google Auth).
-• Schedule Data: Course names, numbers, times, professors, and locations. This may be collected via manual entry or by analyzing screenshots/PDFs you upload.
-• Profile Content: Bio, profile photos, and other personal details you choose to share.
-• Forum Content: Text and images posted to our anonymous forums. Note: We log the identity of the author of every post on our backend servers.
+Local Development
 
-B. Information Collected Automatically
-• Usage Logs: Timestamps of when you log in, pages viewed, and chats joined.
-• Device Data: IP address, browser type, and operating system.
+A local copy requires a Supabase project controlled by the developer. Data entered into that environment is handled by that environment's operator and providers. Developers should use synthetic data and should not connect this source to an existing hosted project without authorization.
 
-3. HOW WE USE YOUR INFORMATION
+Future Service Privacy Terms
 
-• To Provide the Service: We use your schedule data to automatically sort you into group chats with classmates.
-• To Verify Eligibility: We use your email to ensure you are a current student at the supported university.
-• To Moderate Content: We link your "anonymous" posts to your identity internally to investigate reports of harassment, threats, or illegal activity.
-• To Improve Features: We may analyze aggregated trends (e.g., "Most popular courses") to enhance the platform.
+If the project is resumed and a supported service is launched, a separate reviewed privacy policy must describe the deployed data flows, providers, retention, user controls, and contact process. This source-portfolio notice does not authorize data collection for a future service.
 
-4. SHARING OF INFORMATION
+Repository Questions
 
-We do not sell your personal data to third parties at this time, but we reserve the right to do so in the future. We share your information in the following ways:
-• Other Users (Based on Your Settings):
-  o Private (Default): Only friends see your schedule/profile.
-  o Public: If you opt-in, all verified students can see your schedule/profile.
-• Service Providers: We may share data with cloud hosting providers (e.g., AWS, Google Cloud) solely to host the Service.
-• Law Enforcement: We will disclose your information (including decoding your anonymous posts) if compelled by a court order, or if we believe in good faith that disclosure is necessary to prevent physical harm, violence, or illegal acts.
-• Business Transfers: If Quad is involved in a merger, acquisition, or sale of assets, your information (including schedule data and post history) may be transferred to the new owner.
-
-5. DATA RETENTION
-
-We retain your personal data for as long as your account is active or as needed to provide you the Service.
-• Alumni: If you graduate or leave the university, we may retain your account data but restrict your access permissions.
-• Account Deletion: You may request full account deletion by contacting us. Upon deletion:
-  o Your personally identifiable profile information (Name, Email, Schedule) will be removed from our active databases.
-  o Forum & Chat Content: Due to the irrevocable license granted in our Terms of Service, content you posted to forums or group chats may remain visible on the platform to preserve the context of discussions for other students. However, this content will be disassociated from your profile (anonymized) so it is no longer personally linked to you.
-
-6. COOKIES AND TRACKING
-
-We use cookies to maintain your login session. We may use third-party analytics tools (like Google Analytics) to understand website traffic.
-
-7. YOUR RIGHTS & CHOICES
-
-• Access/Update: You can update your profile and schedule within the settings.
-• Opt-Out: You can switch your profile visibility from "Public" to "Private" at any time.
-
-8. CHANGES TO THIS POLICY
-
-We may modify this Privacy Policy at any time. If we make material changes (e.g., deciding to sell user data to advertisers), we will notify you via the email address associated with your account.`
+Questions about the public source should be directed to the repository owner through GitHub.`
 
 export function PrivacyPage() {
   return (
@@ -81,7 +46,7 @@ export function PrivacyPage() {
             <ArrowLeft className="w-5 h-5" aria-hidden />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <h1 className="text-lg font-semibold">Privacy Policy</h1>
+          <h1 className="text-lg font-semibold">Source Privacy Notice</h1>
         </div>
       </header>
       <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-8" style={{ WebkitOverflowScrolling: "touch" }}>
