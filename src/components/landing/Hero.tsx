@@ -62,7 +62,7 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
           </div>
 
           <p className="text-sm text-[#27251f] font-medium">
-            Edu gated — sign in with your .edu email.
+            Independent historical source preview — not a public launch.
           </p>
         </div>
       </div>

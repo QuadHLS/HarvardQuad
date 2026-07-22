@@ -174,11 +174,11 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
           <p className="text-xs text-[#787771] text-center w-full" >
             By continuing, you agree to our{' '}
             <a href="/terms" className="text-[#d47455] hover:underline">
-              Terms of Service
+              Project Status
             </a>
             {' '}and{' '}
             <a href="/privacy" className="text-[#d47455] hover:underline">
-              Privacy Policy
+              Source Privacy Notice
             </a>
           </p>
         </div>
@@ -774,9 +774,9 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             />
             <label htmlFor="signup-agree-tos-pp" className="text-xs text-[#787771] cursor-pointer select-none">
               I agree to the{' '}
-              <a href="/terms" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Terms of Service</a>
+              <a href="/terms" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Project Status</a>
               {' '}and{' '}
-              <a href="/privacy" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>
+              <a href="/privacy" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Source Privacy Notice</a>
             </label>
           </div>
 

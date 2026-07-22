@@ -247,7 +247,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
                         className="flex items-center justify-center active:scale-95 transition-transform"
                         aria-label="Instagram profile"
                       >
-                        <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[18px] w-auto rounded-none" />
+                        <span className="text-[10px] font-semibold text-[#787771]">IG</span>
                       </a>
                     ) : (
                       <div className="relative">
@@ -260,7 +260,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
                           className="flex items-center justify-center active:scale-95 transition-transform"
                           aria-label="Instagram not linked"
                         >
-                          <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[18px] w-auto rounded-none" />
+                          <span className="text-[10px] font-semibold text-[#787771]">IG</span>
                         </button>
                         {socialNotification === 'instagram' && (
                           <div
@@ -281,7 +281,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
                         className="flex items-center justify-center active:scale-95 transition-transform"
                         aria-label="LinkedIn profile"
                       >
-                        <img src="/LI-In-Bug.png" alt="" className="h-[18px] w-auto rounded-none" />
+                        <span className="text-[10px] font-semibold text-[#787771]">LI</span>
                       </a>
                     ) : (
                       <div className="relative">
@@ -294,7 +294,7 @@ export function UserProfileView({ userId, onBack }: UserProfileViewProps) {
                           className="flex items-center justify-center active:scale-95 transition-transform"
                           aria-label="LinkedIn not linked"
                         >
-                          <img src="/LI-In-Bug.png" alt="" className="h-[18px] w-auto rounded-none" />
+                          <span className="text-[10px] font-semibold text-[#787771]">LI</span>
                         </button>
                         {socialNotification === 'linkedin' && (
                           <div

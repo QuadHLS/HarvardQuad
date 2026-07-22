@@ -429,7 +429,7 @@ export function ProfilePage() {
                           className="flex items-center justify-center active:scale-95 transition-transform"
                           aria-label={isValidSocialUrl(profile?.instagram_url) ? 'Instagram profile' : 'Add Instagram profile'}
                         >
-                          <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[18px] w-auto rounded-none" />
+                          <span className="text-[10px] font-semibold text-[#787771]">IG</span>
                         </button>
                         {socialNotification === 'instagram' && (
                           <div
@@ -455,7 +455,7 @@ export function ProfilePage() {
                           className="flex items-center justify-center active:scale-95 transition-transform"
                           aria-label={isValidSocialUrl(profile?.linkedin_url) ? 'LinkedIn profile' : 'Add LinkedIn profile'}
                         >
-                          <img src="/LI-In-Bug.png" alt="" className="h-[18px] w-auto rounded-none" />
+                          <span className="text-[10px] font-semibold text-[#787771]">LI</span>
                         </button>
                         {socialNotification === 'linkedin' && (
                           <div
@@ -487,7 +487,7 @@ export function ProfilePage() {
             {isEditing && (
               <div className="mt-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-[16px] w-auto flex-shrink-0 rounded-none" />
+                  <span className="w-4 flex-shrink-0 text-[10px] font-semibold text-[#787771]">IG</span>
                   <input
                     type="url"
                     value={editValues.instagram_url}
@@ -498,7 +498,7 @@ export function ProfilePage() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="/LI-In-Bug.png" alt="" className="h-[16px] w-auto flex-shrink-0 rounded-none" />
+                  <span className="w-4 flex-shrink-0 text-[10px] font-semibold text-[#787771]">LI</span>
                   <input
                     type="url"
                     value={editValues.linkedin_url}
@@ -912,7 +912,7 @@ export function ProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-5 w-auto rounded-none" />
+                      <span className="w-5 text-[10px] font-semibold text-[#787771]">IG</span>
                       <div className="flex-1">
                         <p className="text-[12px] text-[#787771] m-0 mb-1">Instagram</p>
                         {isEditing ? (
@@ -942,7 +942,7 @@ export function ProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <img src="/LI-In-Bug.png" alt="" className="h-5 w-auto rounded-none" />
+                      <span className="w-5 text-[10px] font-semibold text-[#787771]">LI</span>
                       <div className="flex-1">
                         <p className="text-[12px] text-[#787771] m-0 mb-1">LinkedIn</p>
                         {isEditing ? (

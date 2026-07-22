@@ -44,7 +44,7 @@ TheQuad@*
 *.tsbuildinfo
 
 # Capacitor / iOS
-ios/App/App/public/assets/
+ios/App/App/public/
 ios/App/Pods/
 **/xcuserdata/
 *.xcuserstate

@@ -721,26 +721,16 @@ export const CalendarScreen = memo(() => (
           <button
             type="button"
             className="flex items-center justify-center p-1 rounded-lg bg-white border border-[#e8e4db] shadow-sm hover:bg-[#f5f3eb] transition-colors"
-            aria-label="Google Calendar"
+            aria-label="Calendar"
           >
-            <img
-              src="/Google_Calendar_icon_(2020).svg.png"
-              alt=""
-              className="h-4 w-auto object-contain object-center rounded-none"
-              aria-hidden="true"
-            />
+            <span className="text-[9px] font-semibold text-[#5f574f]" aria-hidden="true">CAL</span>
           </button>
           <button
             type="button"
             className="flex items-center justify-center p-1 rounded-lg bg-white border border-[#e8e4db] shadow-sm hover:bg-[#f5f3eb] transition-colors"
-            aria-label="Canvas"
+            aria-label="Course system"
           >
-            <img
-              src="/Logo_Canvas_Red_Vertical-768x593.png"
-              alt=""
-              className="h-4 w-auto object-contain object-center rounded-none"
-              aria-hidden="true"
-            />
+            <span className="text-[9px] font-semibold text-[#5f574f]" aria-hidden="true">LMS</span>
           </button>
           <button className="w-5 h-5 flex items-center justify-center rounded-md" aria-label="Previous month">
             <svg className="w-3 h-3 text-[#787771]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1380,8 +1370,8 @@ export const ProfileScreen = memo(() => (
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
               <span className="text-[13px] font-semibold text-[#27251f] truncate">Sarah Mitchell</span>
-              <img src="/Instagram_Glyph_Gradient.png" alt="" className="h-3 w-auto flex-shrink-0 rounded-none" aria-hidden="true" />
-              <img src="/LI-In-Bug.png" alt="" className="h-3 w-auto flex-shrink-0 rounded-none" aria-hidden="true" />
+              <span className="text-[9px] text-[#9b8f7f]" aria-hidden="true">@</span>
+              <span className="text-[9px] text-[#9b8f7f]" aria-hidden="true">↗</span>
             </div>
             <p className="text-[9px] text-[#9b8f7f] mt-0.5">Class of 2027</p>
             <p className="text-[8px] text-[#787771] truncate">Computer Science</p>

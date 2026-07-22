@@ -448,14 +448,14 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
               href="/privacy"
               className="text-sm hover:underline text-[#27251f]"
             >
-              Privacy Policy
+              Source Privacy Notice
             </a>
             <span className="text-[#787771]">|</span>
             <a
               href="/terms"
               className="text-sm hover:underline text-[#27251f]"
             >
-              Terms of Service
+              Project Status
             </a>
           </div>
         </div>
