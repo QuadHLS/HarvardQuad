@@ -3,16 +3,16 @@ import { ArrowLeft } from "lucide-react"
 import { navigateWithoutReload } from "@/lib/navigation"
 import { LegalContent } from "@/components/LegalContent"
 
-const PRIVACY_TEXT = `HARVARD QUAD — SOURCE PORTFOLIO PRIVACY NOTICE
+const PRIVACY_TEXT = `HARVARD QUAD — PUBLIC REPOSITORY PRIVACY NOTICE
 Last Updated: July 22, 2026
 
 Repository Scope
 
-Harvard Quad is a paused, unreleased project. Its public repository is an engineering portfolio artifact, not a supported public service. The repository contains source code, configuration templates, and schema history; it does not include a database dump, private user-level content, production credentials, or recruiter demo accounts.
+Harvard Quad was paused before public launch. The repository contains implemented source, configuration templates, and schema history; it is not a supported public service and does not include a database dump, private user-level content, production credentials, or test-account credentials.
 
 No Approved Hosted Use
 
-No hosted deployment is currently approved as a public or recruiter demo. Do not create an account, upload files, or submit personal, academic, confidential, or copyrighted information to an unapproved deployment.
+No hosted deployment is currently presented or approved as a public demo. Do not create an account, upload files, or submit personal, academic, confidential, or copyrighted information to an unapproved deployment.
 
 Local Development
 
@@ -20,7 +20,7 @@ A local copy requires a Supabase project controlled by the developer. Data enter
 
 Future Service Privacy Terms
 
-If the project is resumed and a supported service is launched, a separate reviewed privacy policy must describe the deployed data flows, providers, retention, user controls, and contact process. This source-portfolio notice does not authorize data collection for a future service.
+If the project is resumed and a supported service is launched, a separate reviewed privacy policy must describe the deployed data flows, providers, retention, user controls, and contact process. This repository notice does not authorize data collection for a future service.
 
 Repository Questions
 
@@ -46,7 +46,7 @@ export function PrivacyPage() {
             <ArrowLeft className="w-5 h-5" aria-hidden />
             <span className="text-sm font-medium">Back</span>
           </button>
-          <h1 className="text-lg font-semibold">Source Privacy Notice</h1>
+          <h1 className="text-lg font-semibold">Repository Privacy Notice</h1>
         </div>
       </header>
       <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-8" style={{ WebkitOverflowScrolling: "touch" }}>

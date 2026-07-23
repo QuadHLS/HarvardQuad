@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
-  <title id="title">Harvard Quad source architecture</title>
-  <desc id="desc">Recruiter overview of the paused Harvard Quad React, Supabase, and Capacitor architecture.</desc>
+  <title id="title">Harvard Quad architecture overview</title>
+  <desc id="desc">Architecture overview of the Harvard Quad React, Supabase, and Capacitor implementation.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fbf9f5"/>
@@ -20,7 +20,7 @@
   </defs>
   <rect width="1280" height="640" rx="28" fill="url(#background)"/>
   <text x="64" y="72" class="title">Harvard Quad</text>
-  <text x="64" y="106" class="subtitle">Paused, unreleased campus social platform · source architecture</text>
+  <text x="64" y="106" class="subtitle">Campus social platform · React, Supabase, and Capacitor</text>
   <text x="1216" y="72" text-anchor="end" class="small">INDEPENDENT PROJECT</text>
 
   <path class="line" d="M306 282 H356"/>
@@ -62,12 +62,12 @@
   <text x="992" y="224" class="label">Supabase</text>
   <text x="992" y="258" class="body">Auth · PostgreSQL · Realtime</text>
   <text x="992" y="286" class="body">Storage · RLS · RPCs</text>
-  <text x="992" y="314" class="body">Triggers and policy evolution</text>
-  <text x="992" y="342" class="body">Environment-level review needed</text>
+  <text x="992" y="314" class="body">Database functions · triggers</text>
+  <text x="992" y="342" class="body">Policy and schema evolution</text>
 
-  <text x="380" y="530" class="label">Divergent iOS Branch</text>
-  <text x="380" y="560" class="body">Capacitor 8 · Xcode/SPM · OAuth return · lifecycle persistence · limited Swift WKWebView work</text>
+  <text x="380" y="530" class="label">iOS Packaging Branch</text>
+  <text x="380" y="560" class="body">Older snapshot · Capacitor 8 · Xcode/SPM · OAuth return · lifecycle persistence</text>
 
-  <text x="64" y="620" class="small">SOURCE PORTFOLIO · NO LIVE DEMO OR LAUNCH CLAIM</text>
+  <text x="64" y="620" class="small">PAUSED BEFORE PUBLIC LAUNCH · NO LIVE DEMO LINKED</text>
   <text x="1216" y="620" text-anchor="end" class="body">Not affiliated with Harvard University</text>
 </svg>

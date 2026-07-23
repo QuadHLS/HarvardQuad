@@ -178,7 +178,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
             </a>
             {' '}and{' '}
             <a href="/privacy" className="text-[#d47455] hover:underline">
-              Source Privacy Notice
+              Repository Privacy Notice
             </a>
           </p>
         </div>
@@ -776,7 +776,7 @@ export function AuthScreensStandalone({ onBack }: AuthScreenProps) {
               I agree to the{' '}
               <a href="/terms" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Project Status</a>
               {' '}and{' '}
-              <a href="/privacy" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Source Privacy Notice</a>
+              <a href="/privacy" className="text-[#d47455] hover:underline inline relative z-10" onClick={(e) => e.stopPropagation()}>Repository Privacy Notice</a>
             </label>
           </div>
 

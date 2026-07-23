@@ -42,10 +42,10 @@ export const Community = memo<CommunityProps>(({ onSignIn }) => (
 
       <div className="mt-24 text-center pt-16 px-4 md:px-16 pb-6 border-t border-neutral-200">
         <h3 className="font-sans text-4xl sm:text-6xl font-normal text-[#27251f] mb-4 leading-[1.1] tracking-[-0.01em]">
-          Explore the project source.
+          Explore the implementation.
         </h3>
         <p className="text-[#787771] leading-7 font-normal tracking-[-0.01em] mb-10 max-w-xl mx-auto">
-          The project is paused and unreleased; this interface remains a source preview rather than a public product launch.
+          The project was paused before public launch. This interface demonstrates the implementation but is not a currently supported public service.
         </p>
         <button
           onClick={onSignIn}

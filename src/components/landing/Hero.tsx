@@ -68,7 +68,7 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
           </div>
 
           <p className="text-sm text-[#27251f] font-medium">
-            Independent project source preview — not a public launch.
+            Independent project paused before public launch.
           </p>
         </div>
       </div>
