@@ -325,7 +325,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   className="text-sm hover:underline absolute"
                   style={{ color: '#27251f', right: '50%', transform: 'translateX(-24px)' }}
                 >
-                  Source Privacy Notice
+                  Repository Privacy Notice
                 </a>
                 <span className="text-[#787771] absolute left-1/2 transform -translate-x-1/2">|</span>
                 <a

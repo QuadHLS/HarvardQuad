@@ -45,7 +45,7 @@ export const Community = memo<CommunityProps>(({ onSignIn }) => (
           Explore the project source.
         </h3>
         <p className="text-[#787771] leading-7 font-normal tracking-[-0.01em] mb-10 max-w-xl mx-auto">
-          This branch is a historical source snapshot rather than a public product launch.
+          This branch preserves an older iOS packaging implementation; it is not a currently supported public service.
         </p>
         <button
           onClick={onSignIn}

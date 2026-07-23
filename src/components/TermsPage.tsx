@@ -3,18 +3,18 @@ import { ArrowLeft } from 'lucide-react';
 import { navigateWithoutReload } from '../lib/navigation';
 import { LegalContent } from './LegalContent';
 
-const TERMS_TEXT = `HARVARD QUAD — UNRELEASED PROJECT NOTICE
+const TERMS_TEXT = `HARVARD QUAD — PROJECT STATUS NOTICE
 Last Updated: July 22, 2026
 
 Project Status
 
-Harvard Quad is an independent, paused software project. It is not owned, sponsored, commissioned, or endorsed by Harvard University or any Harvard school. This historical branch is provided for portfolio review and does not represent a supported public service, production launch, or current deployment.
+Harvard Quad is an independent software project that reached substantial implementation and was paused before public launch. It is not owned, sponsored, commissioned, or endorsed by Harvard University or any Harvard school. This older iOS branch documents implemented packaging work; it does not represent a supported public service, production launch, or current deployment.
 
 No Public Demo
 
-No hosted deployment is currently approved as a recruiter or public demo. Do not create an account, upload content, or submit personal, academic, confidential, or copyrighted information to an unapproved deployment.
+No hosted deployment is currently presented or approved as a public demo. Do not create an account, upload content, or submit personal, academic, confidential, or copyrighted information to an unapproved deployment.
 
-Source Evaluation
+Repository Evaluation
 
 The repository may be inspected only under its proprietary license. No right to use, copy, deploy, modify, or redistribute the source is granted without permission from the project owners.
 

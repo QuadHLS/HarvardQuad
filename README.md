@@ -1,10 +1,10 @@
-# Harvard Quad — iOS Branch
+# Harvard Quad — iOS Packaging Branch
 
-This branch preserves the strongest historical iOS packaging work for Harvard Quad. It is a divergent, older product snapshot—not `main` plus iOS support and not a completed cross-platform release.
+`IOS-branch` is an older, divergent product snapshot that packages Harvard Quad with Capacitor 8 and an Xcode/SPM wrapper. It is not `main` plus iOS support and does not include later product work from the default branch.
 
-Harvard Quad is an independent, paused, unreleased project. It is not owned, sponsored, commissioned, or endorsed by Harvard University or any Harvard school. For the overall project scope, role, architecture, and publication boundaries, see the [default-branch README](https://github.com/QuadHLS/HarvardQuad#readme).
+Harvard Quad is an independent campus social platform that reached substantial implementation and was paused before public launch. It is not owned, sponsored, commissioned, or endorsed by Harvard University or any Harvard school. For the overall product scope, role, architecture, and project boundaries, see the [default-branch README](https://github.com/QuadHLS/HarvardQuad#readme).
 
-## Verified Branch Scope
+## Implemented iOS Scope
 
 - React 18, Vite, and TypeScript application packaged with Capacitor 8
 - Xcode and Swift Package Manager project targeting iOS 15
@@ -13,7 +13,7 @@ Harvard Quad is an independent, paused, unreleased project. It is not owned, spo
 - App-state persistence across lifecycle changes
 - Limited Swift customization for WKWebView navigation behavior
 
-The branch does not establish App Store publication, independently verified TestFlight distribution, or a native Swift application. The custom `AuthBrowserPlugin` files are not wired into the verified TypeScript/Xcode flow and should not be treated as an active integration.
+No App Store release or independently verified TestFlight distribution is claimed. This branch is accurately described as a React/TypeScript application packaged for iOS with Capacitor—not a native Swift application. The custom `AuthBrowserPlugin` files are not wired into the reviewed TypeScript/Xcode flow and are not presented as an active integration.
 
 ## Source and Build Boundaries
 
@@ -45,4 +45,4 @@ Opening and signing the Xcode project requires macOS, Xcode, an Apple developer 
 
 ## License and Contributions
 
-This source is publicly visible for portfolio and evaluation purposes under the proprietary [LICENSE](LICENSE). External contributions are not currently accepted. Any future licensing or contribution-policy change requires agreement among the project owners.
+The repository is publicly viewable for technical evaluation under the proprietary [LICENSE](LICENSE). External contributions are not currently accepted. Any future licensing or contribution-policy change requires agreement among the project owners.

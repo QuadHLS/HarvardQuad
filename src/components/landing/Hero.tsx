@@ -62,7 +62,7 @@ export const Hero = memo<HeroProps>(({ onSignIn }) => {
           </div>
 
           <p className="text-sm text-[#27251f] font-medium">
-            Independent historical source preview — not a public launch.
+            Older iOS packaging snapshot — paused before public launch.
           </p>
         </div>
       </div>
