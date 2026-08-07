@@ -4,7 +4,7 @@ Harvard Quad is an independent campus social platform that brings feeds, realtim
 
 ## Role and Collaboration
 
-Justin Li served as **Primary Engineer**, leading most implementation across feeds, messaging, Squads, profiles, mobile workflows, Supabase integration, and the later architecture expansion. A collaborator contributed to early profile, authentication, messaging, and mobile-interface work.
+Justin Li served as **Primary Engineer**, leading most implementation across feeds, messaging, Squads, profiles, mobile workflows, Supabase integration, and the later architecture expansion. Jesus Sanchez Peguero contributed early work on profiles, authentication, messaging, and mobile-interface workflows.
 
 ## Product Scope
 
